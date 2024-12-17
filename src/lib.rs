@@ -1,10 +1,12 @@
-use filter::{FilterBuilder, NumericOps, StringOps};
+use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 
 // ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
 mod filter;
 
 fn main() {
-    // Example 1: Simple transaction filters combined with OR
+    //===============================================================================================
+    //                                     1. SIMPLE OR FILTER
+    //===============================================================================================
     let simple_or_filter = FilterBuilder::new()
         .any_of(|f| {
             f.tx(|t| t.value().gt(1000)); // Value > 1000
@@ -13,12 +15,15 @@ fn main() {
         })
         .build();
 
-    // Example 2: Combined transaction and event filters with AND
+    //===============================================================================================
+    //                         2. TRANSACTION AND EVENT FILTER COMBINATION
+    //===============================================================================================
     let combined_filter = FilterBuilder::new()
         .and(|f| {
             f.tx(|t| {
                 t.value().gt(100); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
+                t.transfer().amount().lt(100)
             });
             f.event(|e| {
                 e.contract().eq("UniswapV2Factory"); // AND Contract = UniswapV2Factory
@@ -26,7 +31,9 @@ fn main() {
         })
         .build();
 
-    // Example 3: Complex nested filters for DeFi transactions
+    //===============================================================================================
+    //                                  3. DEFI NESTED FILTERS
+    //===============================================================================================
     let defi_filter = FilterBuilder::new()
         .any_of(|f| {
             f.all_of(|f| {
@@ -44,7 +51,9 @@ fn main() {
         })
         .build();
 
-    // Example 4: Filtering specific transaction patterns
+    //===============================================================================================
+    //                              4. TRANSACTION PATTERN FILTER
+    //===============================================================================================
     let pattern_filter = FilterBuilder::new()
         .any_of(|f| {
             f.tx(|t| t.value().gt(10000));
@@ -61,7 +70,9 @@ fn main() {
         })
         .build();
 
-    // Example 5: Multi-protocol monitoring
+    //===============================================================================================
+    //                             5. MULTI-PROTOCOL MONITORING
+    //===============================================================================================
     let monitoring_filter = FilterBuilder::new()
         .any_of(|f| {
             // Monitor multiple tokens & DEX
@@ -80,6 +91,57 @@ fn main() {
         .and(|f| {
             // But only high-value transactions
             f.tx(|t| t.value().gt(50000));
+        })
+        .build();
+
+    //===============================================================================================
+    //                            6. COMPREHENSIVE TRANSACTION FILTER
+    //===============================================================================================
+    let comprehensive_filter = FilterBuilder::new()
+        .any_of(|f| {
+            // Basic transaction numeric fields
+            f.tx(|t| {
+                t.value().gt(1000000);
+                t.gas_price().lt(50_000_000_000);
+                t.gas().between(21000, 100000);
+                t.nonce().eq(5);
+
+                t.access_list()
+                    .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e".to_string());
+            });
+
+            // EIP-1559 fields
+            f.tx(|t| {
+                t.max_fee_per_gas().lt(100_000_000_000);
+                t.max_priority_fee().lt(2_000_000_000);
+                t.tx_type().eq(2);
+            });
+
+            // Block and chain fields
+            f.tx(|t| {
+                t.block_number().gt(1000000);
+                t.index().lt(100);
+                t.chain_id().eq(1);
+            });
+
+            // Address and hash fields
+            f.tx(|t| {
+                t.from().starts_with("0xdead");
+                t.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                t.hash().contains("abc");
+                t.block_hash().starts_with("0x0");
+            });
+
+            // Transfer-specific fields
+            f.tx(|t| {
+                t.transfer().method().eq("transfer");
+                t.transfer().amount().gt(1000);
+                t.transfer().to().contains("dead");
+                t.transfer().from().starts_with("0x");
+                t.transfer()
+                    .spender()
+                    .eq("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
+            });
         })
         .build();
 }

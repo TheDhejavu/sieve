@@ -1,105 +1,23 @@
-// transaction builder
+use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
 
-use super::{
-    conditions::{EventCondition, FilterCondition, FilterNode, LogicalOp, TransactionCondition},
-    field::{EventField, FieldWrapper, NumericFieldType, StringFieldType, TxField},
-};
+use super::{event::EventBuilder, transaction::TxBuilder};
 
-pub trait ConditionBuilder {
-    type Condition;
-
-    fn push_condition(&mut self, condition: Self::Condition);
-}
-
-// ===== Transaction Builder =====
-pub struct TxBuilder {
-    conditions: Vec<TransactionCondition>,
-}
-
-impl ConditionBuilder for TxBuilder {
-    type Condition = TransactionCondition;
-
-    fn push_condition(&mut self, condition: TransactionCondition) {
-        self.conditions.push(condition)
-    }
-}
-
-impl TxBuilder {
-    pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
-    }
-
-    pub fn value(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
-        FieldWrapper {
-            field: NumericFieldType(TxField::Value),
-            parent: self,
-        }
-    }
-
-    pub fn gas_price(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
-        FieldWrapper {
-            field: NumericFieldType(TxField::GasPrice),
-            parent: self,
-        }
-    }
-
-    pub fn gas(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
-        FieldWrapper {
-            field: NumericFieldType(TxField::Gas),
-            parent: self,
-        }
-    }
-
-    pub fn nonce(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
-        FieldWrapper {
-            field: NumericFieldType(TxField::Nonce),
-            parent: self,
-        }
-    }
-}
-
-// ===== Event Builder ========
-pub struct EventBuilder {
-    conditions: Vec<EventCondition>,
-}
-
-impl ConditionBuilder for EventBuilder {
-    type Condition = EventCondition;
-
-    fn push_condition(&mut self, condition: EventCondition) {
-        self.conditions.push(condition)
-    }
-}
-
-impl EventBuilder {
-    pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
-    }
-
-    pub fn contract(&mut self) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
-        FieldWrapper {
-            field: StringFieldType(EventField::Contract),
-            parent: self,
-        }
-    }
-}
-
-// ===== Filter Builder =====
+/// FilterBuilder allows constructing complex filter conditions using a builder pattern.
 pub struct FilterBuilder {
     filters: Vec<FilterNode>,
 }
 
-// transaction builder
 impl FilterBuilder {
+    /// Creates a new empty [`FilterBuilder`].
     pub fn new() -> Self {
         Self {
             filters: Vec::new(),
         }
     }
+
+    /// Adds transaction-based conditions to the filter.
+    ///
+    /// Returns a [`BlockFilterBuilder`] for further configuration.
     pub fn tx<F>(&mut self, f: F) -> BlockFilterBuilder
     where
         F: FnOnce(&mut TxBuilder),
@@ -110,7 +28,9 @@ impl FilterBuilder {
         filter.tx(f)
     }
 
-    // Event builder
+    /// Adds event-based conditions to the filter.
+    ///
+    /// Returns a [`BlockFilterBuilder`] for further configuration.
     pub fn event<F>(&mut self, f: F) -> BlockFilterBuilder
     where
         F: FnOnce(&mut EventBuilder),
@@ -121,27 +41,11 @@ impl FilterBuilder {
         filter.event(f)
     }
 
-    // Logical Operations.
-    pub fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder
-    where
-        F: FnOnce(&mut FilterBuilder),
-    {
-        let filter = LogicalFilterBuilder {
-            filters: &mut self.filters,
-        };
-        filter.or(f)
-    }
+    // ====== Logical Operations ========
 
-    pub fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder
-    where
-        F: FnOnce(&mut FilterBuilder),
-    {
-        let filter = LogicalFilterBuilder {
-            filters: &mut self.filters,
-        };
-        filter.and(f)
-    }
-
+    /// Combines conditions with AND logic, requiring all conditions to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
     pub fn and<F>(&mut self, f: F) -> LogicalFilterBuilder
     where
         F: FnOnce(&mut FilterBuilder),
@@ -152,7 +56,80 @@ impl FilterBuilder {
         filter.and(f)
     }
 
+    /// Alias for `and`. Combines conditions requiring all to be true.
+    /// Provides a more readable alternative when combining multiple conditions
+    /// that must all be satisfied.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    pub fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        let filter = LogicalFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.and(f)
+    }
+
+    /// Requires that none of the specified conditions are true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    pub fn none_of<F>(&mut self, f: F) -> LogicalFilterBuilder
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        let filter = LogicalFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.none_of(f)
+    }
+
+    /// Applies a NOT operation to the given conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    pub fn not<F>(&mut self, f: F) -> LogicalFilterBuilder
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        let filter = LogicalFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.not(f)
+    }
+
+    /// Alias for `not`.
+    /// Provides a more readable way to express "except when" conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    pub fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        let filter = LogicalFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.not(f)
+    }
+
+    /// Combines conditions with OR logic, requiring at least one condition to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
     pub fn or<F>(&mut self, f: F) -> LogicalFilterBuilder
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        let filter = LogicalFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.or(f)
+    }
+
+    /// Alias for `or`.
+    /// Provides a more readable alternative for specifying that any one
+    /// of multiple conditions should match.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    pub fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder
     where
         F: FnOnce(&mut FilterBuilder),
     {
@@ -222,6 +199,27 @@ impl<'a> LogicalFilterBuilder<'a> {
         F: FnOnce(&mut FilterBuilder),
     {
         self.build_logical_operation(LogicalOp::And, f)
+    }
+
+    pub fn not<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        self.build_logical_operation(LogicalOp::Not, f)
+    }
+
+    pub fn none_of<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        self.build_logical_operation(LogicalOp::NoneOf, f)
+    }
+
+    pub fn xor<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        self.build_logical_operation(LogicalOp::Xor, f)
     }
 
     pub fn or<F>(self, f: F) -> Self

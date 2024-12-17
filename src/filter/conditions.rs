@@ -3,6 +3,40 @@ pub enum LogicalOp {
     And,
     Or,
     Not,
+    NoneOf,
+    Xor,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum NumericCondition {
+    GreaterThan(u64),
+    GreaterThanOrEqualTo(u64),
+
+    LessThan(u64),
+    LessThanOrEqualTo(u64),
+
+    EqualTo(u64),
+    NotEqualTo(u64),
+
+    Between(u64, u64),
+    Outside(u64, u64),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrayCondition<T> {
+    Contains(T),
+    NotIn(Vec<T>),
+    Empty,
+    NotEmpty,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StringCondition {
+    EqualTo(String),
+    Contains(String),
+    StartsWith(String),
+    EndsWith(String),
+    Matches(String),
 }
 
 #[derive(Debug, Clone)]
@@ -11,28 +45,39 @@ pub enum FilterCondition {
     EventCondition(EventCondition),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum NumericCondition {
-    GreaterThan(u64),
-    LessThan(u64),
-    EqualTo(u64),
-    Between(u64, u64),
-}
-
 #[derive(Debug, Clone)]
 pub enum TransactionCondition {
+    // Amount fields - Numeric
     Value(NumericCondition),
     Gas(NumericCondition),
     GasPrice(NumericCondition),
-    Nonce(NumericCondition),
-}
+    MaxFeePerGas(NumericCondition),
+    MaxPriorityFee(NumericCondition),
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum StringCondition {
-    EqualTo(String),
-    In(Vec<String>),
-    StartsWith(String),
-    EndsWith(String),
+    // Counter fields - Numeric
+    Nonce(NumericCondition),
+    Type(NumericCondition),
+    ChainId(NumericCondition),
+    BlockNumber(NumericCondition),
+    TransactionIndex(NumericCondition),
+
+    // Address fields - String
+    From(StringCondition),
+    To(StringCondition),
+
+    // Hash fields - String
+    Hash(StringCondition),
+    BlockHash(StringCondition),
+
+    // Access list - Array
+    AccessList(ArrayCondition<String>),
+
+    // Transfer conditions - Decoded Input
+    TransferMethod(StringCondition),
+    TransferTo(StringCondition),
+    TransferFrom(StringCondition),
+    TransferAmount(NumericCondition),
+    TransferSpender(StringCondition),
 }
 
 #[derive(Debug, Clone)]
@@ -53,4 +98,10 @@ Filter tree represents tree structure of filters:
 pub struct FilterNode {
     pub group: Option<(LogicalOp, Vec<FilterNode>)>,
     pub condition: Option<FilterCondition>,
+}
+
+pub trait ConditionBuilder {
+    type Condition;
+
+    fn push_condition(&mut self, condition: Self::Condition);
 }
