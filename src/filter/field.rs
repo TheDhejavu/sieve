@@ -17,6 +17,7 @@ pub struct ArrayFieldType<T>(pub T);
 
 // Transfer-specific fields
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum TransferField {
     Method,  // The transfer method (transfer, transferFrom, approve)
     To,      // Recipient address
@@ -27,6 +28,7 @@ pub enum TransferField {
 
 // Transaction specific field
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum TxField {
     // Basic transaction fields
     Nonce,          // Transaction sequence number
@@ -61,6 +63,7 @@ pub enum TxField {
 
 // Event-specific fields (logs)
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum EventField {
     Contract,    // Contract address that generated the event
     Topics,      // Array of 0 to 4 32-byte topics (first is event signature)
@@ -73,6 +76,7 @@ pub enum EventField {
 
 // ===  Block-specific fields ===
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum BlockField {
     // Core block info
     Number,     // Block number/height
@@ -97,6 +101,7 @@ pub enum BlockField {
 }
 
 // ==== Pool-specific fields (mempool) ====
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum PoolField {
     // Transaction identification
