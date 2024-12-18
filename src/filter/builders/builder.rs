@@ -171,7 +171,7 @@ pub struct MainFilterBuilder<'a> {
     filters: &'a mut Vec<FilterNode>,
 }
 
-impl<'a> MainFilterBuilder<'a> {
+impl MainFilterBuilder<'_> {
     pub fn tx<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut TxBuilder),
@@ -253,7 +253,7 @@ pub struct LogicalFilterBuilder<'a> {
     filters: &'a mut Vec<FilterNode>,
 }
 
-impl<'a> LogicalFilterBuilder<'a> {
+impl LogicalFilterBuilder<'_> {
     pub fn and<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut FilterBuilder),
