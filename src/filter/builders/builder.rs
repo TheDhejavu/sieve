@@ -7,6 +7,7 @@ pub struct FilterBuilder {
     filters: Vec<FilterNode>,
 }
 
+#[allow(dead_code)]
 impl FilterBuilder {
     /// Creates a new empty [`FilterBuilder`].
     pub fn new() -> Self {
@@ -167,10 +168,12 @@ impl FilterBuilder {
 }
 
 // ===== Main Filter Builder =====
+#[allow(dead_code)]
 pub struct MainFilterBuilder<'a> {
     filters: &'a mut Vec<FilterNode>,
 }
 
+#[allow(dead_code)]
 impl MainFilterBuilder<'_> {
     pub fn tx<F>(self, f: F) -> Self
     where
@@ -249,10 +252,12 @@ impl MainFilterBuilder<'_> {
 }
 
 // ===== Logical Builder =====
+#[allow(dead_code)]
 pub struct LogicalFilterBuilder<'a> {
     filters: &'a mut Vec<FilterNode>,
 }
 
+#[allow(dead_code)]
 impl LogicalFilterBuilder<'_> {
     pub fn and<F>(self, f: F) -> Self
     where

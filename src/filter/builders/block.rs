@@ -16,7 +16,7 @@ impl ConditionBuilder for BlockBuilder {
         self.conditions.push(condition)
     }
 }
-
+#[allow(dead_code)]
 impl BlockBuilder {
     pub fn new() -> Self {
         Self {

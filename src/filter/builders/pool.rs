@@ -17,6 +17,7 @@ impl ConditionBuilder for PoolBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl PoolBuilder {
     pub fn new() -> Self {
         Self {

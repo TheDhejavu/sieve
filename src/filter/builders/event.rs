@@ -16,6 +16,7 @@ impl ConditionBuilder for EventBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl EventBuilder {
     pub fn new() -> Self {
         Self {

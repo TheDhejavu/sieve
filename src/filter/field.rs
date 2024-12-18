@@ -17,7 +17,6 @@ pub struct ArrayFieldType<T>(pub T);
 
 // Transfer-specific fields
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum TransferField {
     Method,  // The transfer method (transfer, transferFrom, approve)
     To,      // Recipient address
@@ -28,7 +27,6 @@ pub enum TransferField {
 
 // Transaction specific field
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum TxField {
     // Basic transaction fields
     Nonce,          // Transaction sequence number
@@ -63,7 +61,6 @@ pub enum TxField {
 
 // Event-specific fields (logs)
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum EventField {
     Contract,    // Contract address that generated the event
     Topics,      // Array of 0 to 4 32-byte topics (first is event signature)
@@ -76,7 +73,6 @@ pub enum EventField {
 
 // ===  Block-specific fields ===
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum BlockField {
     // Core block info
     Number,     // Block number/height
@@ -101,7 +97,6 @@ pub enum BlockField {
 }
 
 // ==== Pool-specific fields (mempool) ====
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum PoolField {
     // Transaction identification
@@ -142,6 +137,7 @@ impl NumericFieldToCondition<TransactionCondition> for TxField {
             TxField::GasPrice => TransactionCondition::GasPrice(value),
             TxField::MaxFeePerGas => TransactionCondition::MaxFeePerGas(value),
             TxField::MaxPriorityFee => TransactionCondition::MaxPriorityFee(value),
+            TxField::Type => TransactionCondition::Type(value),
 
             // Chain specific
             TxField::ChainId => TransactionCondition::ChainId(value),
@@ -431,12 +427,12 @@ where
         self.parent.push_condition(condition);
     }
 
-    fn is_empty(self) {
+    fn empty(self) {
         let condition = self.field.0.to_condition(ArrayCondition::Empty);
         self.parent.push_condition(condition);
     }
 
-    fn is_not_empty(self) {
+    fn not_empty(self) {
         let condition = self.field.0.to_condition(ArrayCondition::NotEmpty);
         self.parent.push_condition(condition);
     }

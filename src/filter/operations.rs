@@ -52,17 +52,17 @@ pub trait StringOps {
 /// Operations available for array fields that allow various array matching operations.
 #[allow(dead_code)]
 pub trait ArrayOps<T> {
+    /// Creates a condition that checks if array is empty
+    fn empty(self);
+
+    /// Creates a condition that checks if array is not empty
+    fn not_empty(self);
+
     /// Creates a condition that checks if array contains the specified value
     fn contains(self, value: T);
 
     /// Creates a condition that checks if array is not in the values.
     fn not_in(self, values: Vec<T>);
-
-    /// Creates a condition that checks if array is empty
-    fn is_empty(self);
-
-    /// Creates a condition that checks if array is not empty
-    fn is_not_empty(self);
 }
 
 /// Converts a field to a numeric condition of type `C`.

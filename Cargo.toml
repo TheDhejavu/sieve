@@ -7,5 +7,3 @@ edition = "2021"
 
 
 [lints.clippy]
-dead_code = "allow"
-unused_variables = "allow"
