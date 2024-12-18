@@ -1,7 +1,7 @@
 use super::{
     conditions::{
-        ArrayCondition, ConditionBuilder, EventCondition, NumericCondition, StringCondition,
-        TransactionCondition,
+        ArrayCondition, BlockCondition, ConditionBuilder, EventCondition, NumericCondition,
+        PoolCondition, StringCondition, TransactionCondition,
     },
     operations::{
         ArrayFieldToCondition, ArrayOps, NumericFieldToCondition, NumericOps,
@@ -44,7 +44,7 @@ pub enum TxField {
     Type, // Transaction type (0 = legacy, 1 = access list, 2 = EIP-1559)
 
     // Chain specific
-    ChainId, // Chain identifier
+    ChainId,
 
     // Access list (EIP-2930)
     AccessList, // List of addresses and storage keys
@@ -59,11 +59,66 @@ pub enum TxField {
     Transfer(TransferField),
 }
 
-// === Event Fields ======
+// Event-specific fields (logs)
 #[derive(Debug, Clone)]
 pub enum EventField {
-    Contract,
-    Topic,
+    Contract,    // Contract address that generated the event
+    Topics,      // Array of 0 to 4 32-byte topics (first is event signature)
+    LogIndex,    // Integer of the log index position in the block
+    BlockNumber, // Block number where this log was
+    BlockHash,   // Hash of the block where this log was
+    TxHash,      // Hash of the transaction that created this log
+    TxIndex,     // Integer of the transaction's index position
+}
+
+// ===  Block-specific fields ===
+#[derive(Debug, Clone)]
+pub enum BlockField {
+    // Core block info
+    Number,     // Block number/height
+    Hash,       // Block hash
+    ParentHash, // Previous block hash
+    Timestamp,  // Block timestamp
+
+    // Block metadata
+    Size,     // Block size in bytes
+    GasUsed,  // Gas used in this block
+    GasLimit, // Block gas limit
+    BaseFee,  // Base fee per gas (EIP-1559)
+
+    // Mining info
+    Miner,
+
+    // Block content info
+    TransactionCount, // Number of transactions
+    StateRoot,        // State root hash
+    ReceiptsRoot,     // Receipts root hash
+    TransactionsRoot, // Transactions root hash
+}
+
+// ==== Pool-specific fields (mempool) ====
+#[derive(Debug, Clone)]
+pub enum PoolField {
+    // Transaction identification
+    Hash,  // Transaction hash
+    From,  // Sender address
+    To,    // Recipient address
+    Nonce, // Transaction nonce
+
+    // Gas & Value
+    Value,          // ETH value
+    GasPrice,       // Legacy gas price
+    MaxFeePerGas,   // EIP-1559 max fee
+    MaxPriorityFee, // EIP-1559 priority fee
+
+    // Temporal
+    FirstSeen, // Timestamp first seen
+    LastSeen,  // Timestamp last seen
+
+    // Mempool specific
+    ReplacedBy,       // Hash of replacing transaction
+    ReplacementCount, // Number of times replaced
+    PropagationTime,  // Time to propagate to network
 }
 
 pub struct FieldWrapper<'a, T, P> {
@@ -71,6 +126,7 @@ pub struct FieldWrapper<'a, T, P> {
     pub parent: &'a mut P,
 }
 
+// === TxField =====
 impl NumericFieldToCondition<TransactionCondition> for TxField {
     fn to_condition(&self, value: NumericCondition) -> TransactionCondition {
         match self {
@@ -123,15 +179,6 @@ impl StringFieldToCondition<TransactionCondition> for TxField {
     }
 }
 
-impl StringFieldToCondition<EventCondition> for EventField {
-    fn to_condition(&self, value: StringCondition) -> EventCondition {
-        match self {
-            EventField::Contract => EventCondition::Contract(value),
-            EventField::Topic => EventCondition::Topic(value),
-        }
-    }
-}
-
 impl ArrayFieldToCondition<TransactionCondition, String> for TxField {
     fn to_condition(&self, value: ArrayCondition<String>) -> TransactionCondition {
         match self {
@@ -141,6 +188,117 @@ impl ArrayFieldToCondition<TransactionCondition, String> for TxField {
     }
 }
 
+// === EventField =====
+impl NumericFieldToCondition<EventCondition> for EventField {
+    fn to_condition(&self, value: NumericCondition) -> EventCondition {
+        match self {
+            EventField::LogIndex => EventCondition::LogIndex(value),
+            EventField::BlockNumber => EventCondition::BlockNumber(value),
+            EventField::TxIndex => EventCondition::TxIndex(value),
+            _ => panic!("Field does not support numeric conditions"),
+        }
+    }
+}
+
+impl StringFieldToCondition<EventCondition> for EventField {
+    fn to_condition(&self, value: StringCondition) -> EventCondition {
+        match self {
+            EventField::Contract => EventCondition::Contract(value),
+            EventField::BlockHash => EventCondition::BlockHash(value),
+            EventField::TxHash => EventCondition::TxHash(value),
+            _ => panic!("Field does not support string conditions"),
+        }
+    }
+}
+
+impl ArrayFieldToCondition<EventCondition, String> for EventField {
+    fn to_condition(&self, value: ArrayCondition<String>) -> EventCondition {
+        match self {
+            EventField::Topics => EventCondition::Topics(value),
+            _ => panic!("Field does not support array conditions"),
+        }
+    }
+}
+
+// === PoolField =====
+impl NumericFieldToCondition<PoolCondition> for PoolField {
+    fn to_condition(&self, value: NumericCondition) -> PoolCondition {
+        match self {
+            // Value & Gas fields
+            PoolField::Value => PoolCondition::Value(value),
+            PoolField::GasPrice => PoolCondition::GasPrice(value),
+            PoolField::MaxFeePerGas => PoolCondition::MaxFeePerGas(value),
+            PoolField::MaxPriorityFee => PoolCondition::MaxPriorityFee(value),
+
+            // Counter fields
+            PoolField::Nonce => PoolCondition::Nonce(value),
+            PoolField::ReplacementCount => PoolCondition::ReplacementCount(value),
+            PoolField::PropagationTime => PoolCondition::PropagationTime(value),
+
+            // Time fields
+            PoolField::FirstSeen => PoolCondition::FirstSeen(value),
+            PoolField::LastSeen => PoolCondition::LastSeen(value),
+
+            _ => panic!("Field does not support numeric conditions"),
+        }
+    }
+}
+
+impl StringFieldToCondition<PoolCondition> for PoolField {
+    fn to_condition(&self, value: StringCondition) -> PoolCondition {
+        match self {
+            // Transaction identification
+            PoolField::Hash => PoolCondition::Hash(value),
+            PoolField::From => PoolCondition::From(value),
+            PoolField::To => PoolCondition::To(value),
+            PoolField::ReplacedBy => PoolCondition::ReplacedBy(value),
+
+            _ => panic!("Field does not support string conditions"),
+        }
+    }
+}
+
+// === BlockField =====
+impl NumericFieldToCondition<BlockCondition> for BlockField {
+    fn to_condition(&self, value: NumericCondition) -> BlockCondition {
+        match self {
+            // Core block info
+            BlockField::Number => BlockCondition::Number(value),
+            BlockField::Timestamp => BlockCondition::Timestamp(value),
+
+            // Block metadata
+            BlockField::Size => BlockCondition::Size(value),
+            BlockField::GasUsed => BlockCondition::GasUsed(value),
+            BlockField::GasLimit => BlockCondition::GasLimit(value),
+            BlockField::BaseFee => BlockCondition::BaseFee(value),
+            BlockField::TransactionCount => BlockCondition::TransactionCount(value),
+
+            _ => panic!("Field does not support numeric conditions"),
+        }
+    }
+}
+
+impl StringFieldToCondition<BlockCondition> for BlockField {
+    fn to_condition(&self, value: StringCondition) -> BlockCondition {
+        match self {
+            // Hash fields
+            BlockField::Hash => BlockCondition::Hash(value),
+            BlockField::ParentHash => BlockCondition::ParentHash(value),
+
+            // Mining info
+            BlockField::Miner => BlockCondition::Miner(value),
+
+            // Root hashes
+            BlockField::StateRoot => BlockCondition::StateRoot(value),
+            BlockField::ReceiptsRoot => BlockCondition::ReceiptsRoot(value),
+            BlockField::TransactionsRoot => BlockCondition::TransactionsRoot(value),
+
+            _ => panic!("Field does not support string conditions"),
+        }
+    }
+}
+
+// === NumericOps =====
 impl<F, B, C> NumericOps for FieldWrapper<'_, NumericFieldType<F>, B>
 where
     F: NumericFieldToCondition<C>,
@@ -205,6 +363,7 @@ where
     }
 }
 
+// === StringOps =====
 impl<F, B, C> StringOps for FieldWrapper<'_, StringFieldType<F>, B>
 where
     F: StringFieldToCondition<C>,

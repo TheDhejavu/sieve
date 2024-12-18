@@ -86,6 +86,15 @@ fn main() {
             f.any_of(|f| {
                 f.event(|e| e.contract().eq("Comp"));
                 f.event(|e| e.contract().eq("InitializableAdminUpgradeabilityProxy"));
+                f.event(|e| {
+                    e.contract()
+                        .eq("0xdAC17F958D2ee523a2206206994597C13D831ec7");
+                    e.topics().contains(
+                        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+                            .to_string(),
+                    );
+                    // e.topics().is_empty();
+                });
             });
         })
         .and(|f| {
@@ -141,6 +150,50 @@ fn main() {
                 t.transfer()
                     .spender()
                     .eq("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
+            });
+        })
+        .build();
+
+    //===============================================================================================
+    //                            6. POOL FILTER
+    //===============================================================================================
+    let pool_filter = FilterBuilder::new()
+        .any_of(|f| {
+            f.pool(|p| {
+                // High value pending transaction
+                p.value().gt(1000000000000000000u64);
+
+                // Multiple replacements
+                p.replacement_count().gt(2);
+
+                // Gas price conditions
+                p.max_fee_per_gas().lt(50000000000u64);
+
+                // Specific sender/receiver
+                p.from().starts_with("0xdead");
+                p.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+
+                // Network propagation
+                p.propagation_time().lt(1000);
+            });
+        })
+        .build();
+
+    //===============================================================================================
+    //                            6. BLOCK FILTER
+    //===============================================================================================
+    let block_filter = FilterBuilder::new()
+        .any_of(|f| {
+            f.block(|b| {
+                b.gas_limit().gt(100);
+                b.hash().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                b.state_root()
+                    .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+
+                b.receipts_root().starts_with("0xdead");
+                b.base_fee().gt(100);
+
+                b.gas_used().lt(1000);
             });
         })
         .build();

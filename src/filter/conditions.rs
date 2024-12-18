@@ -43,6 +43,8 @@ pub enum StringCondition {
 pub enum FilterCondition {
     TransactionCondition(TransactionCondition),
     EventCondition(EventCondition),
+    PoolCondition(PoolCondition),
+    BlockCondition(BlockCondition),
 }
 
 #[derive(Debug, Clone)]
@@ -82,10 +84,70 @@ pub enum TransactionCondition {
 
 #[derive(Debug, Clone)]
 pub enum EventCondition {
+    // String conditions
     Contract(StringCondition),
-    Topic(StringCondition),
+    BlockHash(StringCondition),
+    TxHash(StringCondition),
+
+    // Numeric conditions
+    LogIndex(NumericCondition),
+    BlockNumber(NumericCondition),
+    TxIndex(NumericCondition),
+
+    // Array condition
+    Topics(ArrayCondition<String>),
 }
 
+#[derive(Debug, Clone)]
+pub enum PoolCondition {
+    // Transaction identification - String
+    Hash(StringCondition),
+    From(StringCondition),
+    To(StringCondition),
+    ReplacedBy(StringCondition),
+
+    // Gas & Value - Numeric
+    Value(NumericCondition),
+    GasPrice(NumericCondition),
+    MaxFeePerGas(NumericCondition),
+    MaxPriorityFee(NumericCondition),
+    Gas(NumericCondition),
+
+    // Counter fields - Numeric
+    Nonce(NumericCondition),
+    ReplacementCount(NumericCondition),
+    PropagationTime(NumericCondition),
+
+    // Temporal fields - Numeric (timestamps)
+    FirstSeen(NumericCondition),
+    LastSeen(NumericCondition),
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockCondition {
+    // Core block info - Numeric
+    Number(NumericCondition),
+    Timestamp(NumericCondition),
+
+    // Block metadata - Numeric
+    Size(NumericCondition),
+    GasUsed(NumericCondition),
+    GasLimit(NumericCondition),
+    BaseFee(NumericCondition),
+    TransactionCount(NumericCondition),
+
+    // Hash fields - String
+    Hash(StringCondition),
+    ParentHash(StringCondition),
+
+    // Mining info - String
+    Miner(StringCondition),
+
+    // Root hashes - String
+    StateRoot(StringCondition),
+    ReceiptsRoot(StringCondition),
+    TransactionsRoot(StringCondition),
+}
 /*
 Filter tree represents tree structure of filters:
                 [OR]

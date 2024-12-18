@@ -1,6 +1,6 @@
 use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
 
-use super::{event::EventBuilder, transaction::TxBuilder};
+use super::{block::BlockBuilder, event::EventBuilder, pool::PoolBuilder, transaction::TxBuilder};
 
 /// FilterBuilder allows constructing complex filter conditions using a builder pattern.
 pub struct FilterBuilder {
@@ -15,30 +15,56 @@ impl FilterBuilder {
         }
     }
 
-    /// Adds transaction-based conditions to the filter.
+    /// Adds transaction conditions to the filter.
     ///
-    /// Returns a [`BlockFilterBuilder`] for further configuration.
-    pub fn tx<F>(&mut self, f: F) -> BlockFilterBuilder
+    /// Returns a [`MainFilterBuilder`] for further configuration.
+    pub fn tx<F>(&mut self, f: F) -> MainFilterBuilder
     where
         F: FnOnce(&mut TxBuilder),
     {
-        let filter = BlockFilterBuilder {
+        let filter = MainFilterBuilder {
             filters: &mut self.filters,
         };
         filter.tx(f)
     }
 
-    /// Adds event-based conditions to the filter.
+    /// Adds event(logs) conditions to the filter.
     ///
-    /// Returns a [`BlockFilterBuilder`] for further configuration.
-    pub fn event<F>(&mut self, f: F) -> BlockFilterBuilder
+    /// Returns a [`MainFilterBuilder`] for further configuration.
+    pub fn event<F>(&mut self, f: F) -> MainFilterBuilder
     where
         F: FnOnce(&mut EventBuilder),
     {
-        let filter = BlockFilterBuilder {
+        let filter = MainFilterBuilder {
             filters: &mut self.filters,
         };
         filter.event(f)
+    }
+
+    /// Adds pool conditions to the filter.
+    ///
+    /// Returns a [`MainFilterBuilder`] for further configuration.
+    pub fn pool<F>(&mut self, f: F) -> MainFilterBuilder
+    where
+        F: FnOnce(&mut PoolBuilder),
+    {
+        let filter = MainFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.pool(f)
+    }
+
+    /// Adds block conditions to the filter.
+    ///
+    /// Returns a [`MainFilterBuilder`] for further configuration.
+    pub fn block<F>(&mut self, f: F) -> MainFilterBuilder
+    where
+        F: FnOnce(&mut BlockBuilder),
+    {
+        let filter = MainFilterBuilder {
+            filters: &mut self.filters,
+        };
+        filter.block(f)
     }
 
     // ====== Logical Operations ========
@@ -140,12 +166,12 @@ impl FilterBuilder {
     }
 }
 
-// ===== Block Builder =====
-pub struct BlockFilterBuilder<'a> {
+// ===== Main Filter Builder =====
+pub struct MainFilterBuilder<'a> {
     filters: &'a mut Vec<FilterNode>,
 }
 
-impl<'a> BlockFilterBuilder<'a> {
+impl<'a> MainFilterBuilder<'a> {
     pub fn tx<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut TxBuilder),
@@ -174,6 +200,40 @@ impl<'a> BlockFilterBuilder<'a> {
             let node = FilterNode {
                 group: None,
                 condition: Some(FilterCondition::EventCondition(condition)),
+            };
+            self.filters.push(node);
+        }
+        self
+    }
+
+    pub fn pool<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut PoolBuilder),
+    {
+        let mut builder = PoolBuilder::new();
+        f(&mut builder);
+
+        for condition in builder.conditions {
+            let node = FilterNode {
+                group: None,
+                condition: Some(FilterCondition::PoolCondition(condition)),
+            };
+            self.filters.push(node);
+        }
+        self
+    }
+
+    pub fn block<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut BlockBuilder),
+    {
+        let mut builder = BlockBuilder::new();
+        f(&mut builder);
+
+        for condition in builder.conditions {
+            let node = FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockCondition(condition)),
             };
             self.filters.push(node);
         }
