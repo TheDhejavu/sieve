@@ -2,6 +2,7 @@ use super::conditions::{ArrayCondition, NumericCondition, StringCondition};
 
 /// Operations available for numeric fields that allow comparison and range checks.
 ///
+#[allow(dead_code)]
 pub trait NumericOps {
     /// Creates a "greater than" condition with the specified value.
     fn gt(self, value: u64);
@@ -30,6 +31,7 @@ pub trait NumericOps {
 
 /// Operations available for string fields that allow various string matching operations.
 ///
+#[allow(dead_code)]
 pub trait StringOps {
     /// Creates a condition that matches strings starting with the specified prefix.
     fn starts_with(self, prefix: &str);
@@ -48,6 +50,7 @@ pub trait StringOps {
 }
 
 /// Operations available for array fields that allow various array matching operations.
+#[allow(dead_code)]
 pub trait ArrayOps<T> {
     /// Creates a condition that checks if array contains the specified value
     fn contains(self, value: T);
