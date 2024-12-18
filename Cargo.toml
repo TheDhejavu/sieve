@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+alloy-consensus = "0.8.1"
+alloy-primitives = "0.8.15"
+alloy-rpc-types = "0.8.1"
+alloy-rpc-types-eth = "0.8.1"
+dashmap = "6.1.0"
 
 
 [lints.clippy]

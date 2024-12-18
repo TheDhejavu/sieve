@@ -2,7 +2,8 @@
 use crate::filter::{
     conditions::{ConditionBuilder, TransactionCondition},
     field::{
-        ArrayFieldType, FieldWrapper, NumericFieldType, StringFieldType, TransferField, TxField,
+        ArrayFieldType, FieldWrapper, StringFieldType, TransferField, TxField, U128FieldType,
+        U256FieldType, U64FieldType, U8FieldType,
     },
 };
 
@@ -27,65 +28,65 @@ impl TxBuilder {
         }
     }
 
-    pub fn value(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn value(&mut self) -> FieldWrapper<'_, U256FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::Value),
+            field: U256FieldType(TxField::Value),
             parent: self,
         }
     }
 
-    pub fn gas_price(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn gas_price(&mut self) -> FieldWrapper<'_, U128FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::GasPrice),
+            field: U128FieldType(TxField::GasPrice),
             parent: self,
         }
     }
 
-    pub fn gas(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn gas(&mut self) -> FieldWrapper<'_, U64FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::Gas),
+            field: U64FieldType(TxField::Gas),
             parent: self,
         }
     }
 
-    pub fn nonce(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn nonce(&mut self) -> FieldWrapper<'_, U64FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::Nonce),
+            field: U64FieldType(TxField::Nonce),
             parent: self,
         }
     }
 
-    pub fn max_fee_per_gas(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn max_fee_per_gas(&mut self) -> FieldWrapper<'_, U128FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::MaxFeePerGas),
+            field: U128FieldType(TxField::MaxFeePerGas),
             parent: self,
         }
     }
 
-    pub fn max_priority_fee(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn max_priority_fee(&mut self) -> FieldWrapper<'_, U128FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::MaxPriorityFee),
+            field: U128FieldType(TxField::MaxPriorityFee),
             parent: self,
         }
     }
 
-    pub fn chain_id(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn chain_id(&mut self) -> FieldWrapper<'_, U64FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::ChainId),
+            field: U64FieldType(TxField::ChainId),
             parent: self,
         }
     }
 
-    pub fn block_number(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn block_number(&mut self) -> FieldWrapper<'_, U64FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::BlockNumber),
+            field: U64FieldType(TxField::BlockNumber),
             parent: self,
         }
     }
 
-    pub fn index(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn index(&mut self) -> FieldWrapper<'_, U64FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::TransactionIndex),
+            field: U64FieldType(TxField::TransactionIndex),
             parent: self,
         }
     }
@@ -118,9 +119,9 @@ impl TxBuilder {
         }
     }
 
-    pub fn tx_type(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, Self> {
+    pub fn tx_type(&mut self) -> FieldWrapper<'_, U8FieldType<TxField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(TxField::Type),
+            field: U8FieldType(TxField::Type),
             parent: self,
         }
     }
@@ -155,9 +156,9 @@ impl<'a> TxTransferBuilder<'a, TxBuilder> {
         Self { parent }
     }
 
-    pub fn amount(&mut self) -> FieldWrapper<'_, NumericFieldType<TxField>, TxBuilder> {
+    pub fn amount(&mut self) -> FieldWrapper<'_, U256FieldType<TxField>, TxBuilder> {
         FieldWrapper {
-            field: NumericFieldType(TxField::Transfer(TransferField::Amount)),
+            field: U256FieldType(TxField::Transfer(TransferField::Amount)),
             parent: self.parent,
         }
     }
@@ -193,21 +194,13 @@ impl<'a> TxTransferBuilder<'a, TxBuilder> {
 
 #[cfg(test)]
 mod tests {
+    use alloy_primitives::U256;
+
     use super::*;
     use crate::filter::{
         conditions::{ArrayCondition, NumericCondition, StringCondition, TransactionCondition},
         ArrayOps, NumericOps, StringOps,
     };
-
-    const BASE_VALUE: u64 = 100;
-    const VALUES: [u64; 6] = [
-        BASE_VALUE,     // eq
-        BASE_VALUE * 2, // gt
-        BASE_VALUE * 3, // gte
-        BASE_VALUE * 4, // lt
-        BASE_VALUE * 5, // lte
-        BASE_VALUE * 6, // between start
-    ];
 
     const ADDRESS: &str = "0x123";
     const PREFIX: &str = "0x";
@@ -217,21 +210,20 @@ mod tests {
     #[test]
     fn test_tx_numeric_field_operations() {
         let mut builder = TxBuilder::new();
-
-        builder.value().eq(VALUES[0]);
-        builder.gas_price().gt(VALUES[1]);
-        builder.gas().lt(VALUES[2]);
-        builder.nonce().between(VALUES[3], VALUES[4]);
-        builder.max_fee_per_gas().lte(VALUES[5]);
-        builder.max_priority_fee().gte(VALUES[0]);
+        builder.value().eq(U256::from(100));
+        builder.gas_price().gt(100);
+        builder.gas().lt(100);
+        builder.nonce().between(100, 200);
+        builder.max_fee_per_gas().lte(100_u128);
+        builder.max_priority_fee().gte(100_u128);
 
         let expected_conditions = vec![
-            TransactionCondition::Value(NumericCondition::EqualTo(VALUES[0])),
-            TransactionCondition::GasPrice(NumericCondition::GreaterThan(VALUES[1])),
-            TransactionCondition::Gas(NumericCondition::LessThan(VALUES[2])),
-            TransactionCondition::Nonce(NumericCondition::Between(VALUES[3], VALUES[4])),
-            TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(VALUES[5])),
-            TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(VALUES[0])),
+            TransactionCondition::Value(NumericCondition::EqualTo(U256::from(100))),
+            TransactionCondition::GasPrice(NumericCondition::GreaterThan(100)),
+            TransactionCondition::Gas(NumericCondition::LessThan(100)),
+            TransactionCondition::Nonce(NumericCondition::Between(100, 200)),
+            TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(100)),
+            TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(100)),
         ];
 
         assert_eq!(builder.conditions, expected_conditions);
@@ -276,14 +268,14 @@ mod tests {
         let mut builder = TxBuilder::new();
         let mut transfer = builder.transfer();
 
-        transfer.amount().eq(VALUES[0]);
+        transfer.amount().eq(U256::from(100));
         transfer.method().eq(METHOD);
         transfer.to().eq(ADDRESS);
         transfer.from().starts_with(PREFIX);
         transfer.spender().contains(CONTENT);
 
         let expected_conditions = vec![
-            TransactionCondition::TransferAmount(NumericCondition::EqualTo(VALUES[0])),
+            TransactionCondition::TransferAmount(NumericCondition::EqualTo(U256::from(100))),
             TransactionCondition::TransferMethod(StringCondition::EqualTo(METHOD.to_string())),
             TransactionCondition::TransferTo(StringCondition::EqualTo(ADDRESS.to_string())),
             TransactionCondition::TransferFrom(StringCondition::StartsWith(PREFIX.to_string())),
@@ -297,16 +289,16 @@ mod tests {
     fn test_tx_chain_specific_fields() {
         let mut builder = TxBuilder::new();
 
-        builder.chain_id().eq(VALUES[0]);
-        builder.block_number().gt(VALUES[1]);
-        builder.index().lt(VALUES[2]);
-        builder.tx_type().eq(VALUES[3]);
+        builder.chain_id().eq(100);
+        builder.block_number().gt(100);
+        builder.index().lt(100);
+        builder.tx_type().eq(1);
 
         let expected_conditions = vec![
-            TransactionCondition::ChainId(NumericCondition::EqualTo(VALUES[0])),
-            TransactionCondition::BlockNumber(NumericCondition::GreaterThan(VALUES[1])),
-            TransactionCondition::TransactionIndex(NumericCondition::LessThan(VALUES[2])),
-            TransactionCondition::Type(NumericCondition::EqualTo(VALUES[3])),
+            TransactionCondition::ChainId(NumericCondition::EqualTo(100)),
+            TransactionCondition::BlockNumber(NumericCondition::GreaterThan(100)),
+            TransactionCondition::TransactionIndex(NumericCondition::LessThan(100)),
+            TransactionCondition::Type(NumericCondition::EqualTo(1)),
         ];
 
         assert_eq!(builder.conditions, expected_conditions);

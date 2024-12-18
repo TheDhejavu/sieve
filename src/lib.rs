@@ -1,6 +1,9 @@
+use alloy_primitives::U256;
+// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
 use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 
-// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
+mod config;
+mod engine;
 mod filter;
 
 #[allow(dead_code)]
@@ -10,7 +13,7 @@ fn main() {
     //===============================================================================================
     let _simple_or_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.tx(|t| t.value().gt(1000)); // Value > 1000
+            f.tx(|t| t.value().gt(U256::from(1000))); // Value > 1000
             f.tx(|t| t.gas_price().lt(50)); // OR Gas price < 50
             f.tx(|t| t.nonce().eq(5)); // OR Nonce = 5
         })
@@ -22,9 +25,9 @@ fn main() {
     let _combined_filter = FilterBuilder::new()
         .and(|f| {
             f.tx(|t| {
-                t.value().gt(100); // Value > 100
+                t.value().gt(U256::from(100)); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
-                t.transfer().amount().lt(100)
+                t.transfer().amount().lt(U256::from(100))
             });
             f.event(|e| {
                 e.contract().eq("UniswapV2Factory"); // AND Contract = UniswapV2Factory
@@ -40,14 +43,14 @@ fn main() {
             f.all_of(|f| {
                 f.event(|e| e.contract().eq("UniswapV2Factory"));
                 f.tx(|t| {
-                    t.value().gt(1000);
+                    t.value().gt(U256::from(100));
                     t.gas_price().lt(150);
                 });
             });
 
             f.all_of(|f| {
                 f.event(|e| e.contract().eq("TetherToken"));
-                f.tx(|t| t.value().gt(5000));
+                f.tx(|t| t.value().gt(U256::from(100)));
             });
         })
         .build();
@@ -57,7 +60,7 @@ fn main() {
     //===============================================================================================
     let _pattern_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.tx(|t| t.value().gt(10000));
+            f.tx(|t| t.value().gt(U256::from(100)));
 
             f.and(|f| {
                 f.tx(|t| t.gas_price().between(50, 150));
@@ -66,7 +69,7 @@ fn main() {
 
             f.tx(|t| {
                 t.gas().gt(500000);
-                t.value().eq(0);
+                t.value().eq(U256::from(100));
             });
         })
         .build();
@@ -100,7 +103,7 @@ fn main() {
         })
         .and(|f| {
             // But only high-value transactions
-            f.tx(|t| t.value().gt(50000));
+            f.tx(|t| t.value().gt(U256::from(1000000)));
         })
         .build();
 
@@ -111,7 +114,7 @@ fn main() {
         .any_of(|f| {
             // Basic transaction numeric fields
             f.tx(|t| {
-                t.value().gt(1000000);
+                t.value().gt(U256::from(1000000));
                 t.gas_price().lt(50_000_000_000);
                 t.gas().between(21000, 100000);
                 t.nonce().eq(5);
@@ -145,7 +148,7 @@ fn main() {
             // Transfer-specific fields
             f.tx(|t| {
                 t.transfer().method().eq("transfer");
-                t.transfer().amount().gt(1000);
+                t.transfer().amount().gt(U256::from(1000));
                 t.transfer().to().contains("dead");
                 t.transfer().from().starts_with("0x");
                 t.transfer()
@@ -162,13 +165,13 @@ fn main() {
         .any_of(|f| {
             f.pool(|p| {
                 // High value pending transaction
-                p.value().gt(1000000000000000000u64);
+                p.value().gt(U256::from(1000000000000000000u64));
 
                 // Multiple replacements
                 p.replacement_count().gt(2);
 
                 // Gas price conditions
-                p.max_fee_per_gas().lt(50000000000u64);
+                p.max_fee_per_gas().lt(50000000000);
 
                 // Specific sender/receiver
                 p.from().starts_with("0xdead");

@@ -1,32 +1,34 @@
-use super::conditions::{ArrayCondition, NumericCondition, StringCondition};
+use alloy_primitives::U256;
+
+use super::conditions::{ArrayCondition, NumericCondition, NumericType, StringCondition};
 
 /// Operations available for numeric fields that allow comparison and range checks.
 ///
 #[allow(dead_code)]
-pub trait NumericOps {
+pub trait NumericOps<T: NumericType> {
     /// Creates a "greater than" condition with the specified value.
-    fn gt(self, value: u64);
+    fn gt(self, value: T);
 
     /// Creates a "greater than or equal to" condition with the specified value.
-    fn gte(self, value: u64);
+    fn gte(self, value: T);
 
     /// Creates a "less than" condition with the specified value.
-    fn lt(self, value: u64);
+    fn lt(self, value: T);
 
     /// Creates a "less than or equal to" condition with the specified value.
-    fn lte(self, value: u64);
+    fn lte(self, value: T);
 
     /// Creates an "equal to" condition with the specified value.
-    fn eq(self, value: u64);
+    fn eq(self, value: T);
 
     /// Creates a "not equal to" condition with the specified value.
-    fn neq(self, value: u64);
+    fn neq(self, value: T);
 
     /// Creates a "between" condition with the specified minimum and maximum values (inclusive).
-    fn between(self, min: u64, max: u64);
+    fn between(self, min: T, max: T);
 
     /// Creates an "outside" condition checking if value is outside the specified range (exclusive).
-    fn outside(self, min: u64, max: u64);
+    fn outside(self, min: T, max: T);
 }
 
 /// Operations available for string fields that allow various string matching operations.
@@ -68,10 +70,21 @@ pub trait ArrayOps<T> {
 /// Converts a field to a numeric condition.
 ///
 /// This trait is implemented by field types that can be converted into numeric conditions.
-pub trait NumericFieldToCondition<C> {
-    fn to_condition(&self, value: NumericCondition) -> C;
+pub trait U8FieldToCondition<C> {
+    fn to_u8_condition(&self, value: NumericCondition<u8>) -> C;
 }
 
+pub trait U64FieldToCondition<C> {
+    fn to_u64_condition(&self, value: NumericCondition<u64>) -> C;
+}
+
+pub trait U256FieldToCondition<C> {
+    fn to_u256_condition(&self, value: NumericCondition<U256>) -> C;
+}
+
+pub trait U128FieldToCondition<C> {
+    fn to_u128_condition(&self, value: NumericCondition<u128>) -> C;
+}
 /// Converts a field to a string condition.
 ///
 /// This trait is implemented by field types that can be converted into string conditions.

@@ -1,3 +1,6 @@
+use alloy_primitives::U256;
+use std::cmp::PartialOrd;
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum LogicalOp {
@@ -8,19 +11,47 @@ pub enum LogicalOp {
     Xor,
 }
 
+// Trait to represent any numeric type we want to support
+pub trait NumericType: Clone + PartialEq + PartialOrd {
+    fn from_u64(value: u64) -> Self;
+}
+
+// Implement for our supported numeric types
+impl NumericType for u64 {
+    fn from_u64(value: u64) -> Self {
+        value
+    }
+}
+
+impl NumericType for u8 {
+    fn from_u64(value: u64) -> Self {
+        value.try_into().unwrap()
+    }
+}
+
+impl NumericType for u128 {
+    fn from_u64(value: u64) -> Self {
+        value.into()
+    }
+}
+
+impl NumericType for U256 {
+    fn from_u64(value: u64) -> Self {
+        U256::from(value)
+    }
+}
+
+// Generic numeric condition that works with any numeric type
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NumericCondition {
-    GreaterThan(u64),
-    GreaterThanOrEqualTo(u64),
-
-    LessThan(u64),
-    LessThanOrEqualTo(u64),
-
-    EqualTo(u64),
-    NotEqualTo(u64),
-
-    Between(u64, u64),
-    Outside(u64, u64),
+pub enum NumericCondition<T: NumericType> {
+    GreaterThan(T),
+    GreaterThanOrEqualTo(T),
+    LessThan(T),
+    LessThanOrEqualTo(T),
+    EqualTo(T),
+    NotEqualTo(T),
+    Between(T, T),
+    Outside(T, T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,36 +83,25 @@ pub enum FilterCondition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum TransactionCondition {
-    // Amount fields - Numeric
-    Value(NumericCondition),
-    Gas(NumericCondition),
-    GasPrice(NumericCondition),
-    MaxFeePerGas(NumericCondition),
-    MaxPriorityFee(NumericCondition),
-
-    // Counter fields - Numeric
-    Nonce(NumericCondition),
-    Type(NumericCondition),
-    ChainId(NumericCondition),
-    BlockNumber(NumericCondition),
-    TransactionIndex(NumericCondition),
-
-    // Address fields - String
+    Gas(NumericCondition<u64>),
+    Nonce(NumericCondition<u64>),
+    Type(NumericCondition<u8>),
+    ChainId(NumericCondition<u64>),
+    BlockNumber(NumericCondition<u64>),
+    TransactionIndex(NumericCondition<u64>),
+    Value(NumericCondition<U256>),
+    GasPrice(NumericCondition<u128>),
+    MaxFeePerGas(NumericCondition<u128>),
+    MaxPriorityFee(NumericCondition<u128>),
+    TransferAmount(NumericCondition<U256>),
     From(StringCondition),
     To(StringCondition),
-
-    // Hash fields - String
     Hash(StringCondition),
     BlockHash(StringCondition),
-
-    // Access list - Array
     AccessList(ArrayCondition<String>),
-
-    // Transfer conditions - Decoded Input
     TransferMethod(StringCondition),
     TransferTo(StringCondition),
     TransferFrom(StringCondition),
-    TransferAmount(NumericCondition),
     TransferSpender(StringCondition),
 }
 
@@ -94,9 +114,9 @@ pub enum EventCondition {
     TxHash(StringCondition),
 
     // Numeric conditions
-    LogIndex(NumericCondition),
-    BlockNumber(NumericCondition),
-    TxIndex(NumericCondition),
+    LogIndex(NumericCondition<u64>),
+    BlockNumber(NumericCondition<u64>),
+    TxIndex(NumericCondition<u64>),
 
     // Array condition
     Topics(ArrayCondition<String>),
@@ -105,54 +125,48 @@ pub enum EventCondition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum PoolCondition {
-    // Transaction identification - String
     Hash(StringCondition),
     From(StringCondition),
     To(StringCondition),
     ReplacedBy(StringCondition),
-
-    // Gas & Value - Numeric
-    Value(NumericCondition),
-    GasPrice(NumericCondition),
-    MaxFeePerGas(NumericCondition),
-    MaxPriorityFee(NumericCondition),
-    Gas(NumericCondition),
-
-    // Counter fields - Numeric
-    Nonce(NumericCondition),
-    ReplacementCount(NumericCondition),
-    PropagationTime(NumericCondition),
-
-    // Temporal fields - Numeric (timestamps)
-    FirstSeen(NumericCondition),
-    LastSeen(NumericCondition),
+    Value(NumericCondition<U256>),
+    GasPrice(NumericCondition<u128>),
+    MaxFeePerGas(NumericCondition<u128>),
+    MaxPriorityFee(NumericCondition<u128>),
+    Gas(NumericCondition<u64>),
+    Nonce(NumericCondition<u64>),
+    ReplacementCount(NumericCondition<u64>),
+    PropagationTime(NumericCondition<u64>),
+    FirstSeen(NumericCondition<u64>),
+    LastSeen(NumericCondition<u64>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum BlockCondition {
-    // Core block info - Numeric
-    Number(NumericCondition),
-    Timestamp(NumericCondition),
+    BaseFee(NumericCondition<u128>),
+    Number(NumericCondition<u64>),
+    Timestamp(NumericCondition<u64>),
+    Size(NumericCondition<u64>),
+    GasUsed(NumericCondition<u64>),
+    GasLimit(NumericCondition<u64>),
+    TransactionCount(NumericCondition<u64>),
 
-    // Block metadata - Numeric
-    Size(NumericCondition),
-    GasUsed(NumericCondition),
-    GasLimit(NumericCondition),
-    BaseFee(NumericCondition),
-    TransactionCount(NumericCondition),
-
-    // Hash fields - String
     Hash(StringCondition),
     ParentHash(StringCondition),
-
-    // Mining info - String
     Miner(StringCondition),
-
-    // Root hashes - String
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),
     TransactionsRoot(StringCondition),
+}
+
+pub(crate) trait ConditionBuilder {
+    type Condition;
+    fn push_condition(&mut self, condition: Self::Condition);
+}
+
+pub(crate) trait Evaluable<T> {
+    fn evaluate(&self, value: &T) -> bool;
 }
 
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
@@ -168,13 +182,54 @@ pub enum BlockCondition {
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
 #[derive(Clone)]
 #[allow(dead_code)]
-pub struct FilterNode {
-    pub group: Option<(LogicalOp, Vec<FilterNode>)>,
-    pub condition: Option<FilterCondition>,
+pub(crate) struct FilterNode {
+    pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
+    pub(crate) condition: Option<FilterCondition>,
 }
 
-pub trait ConditionBuilder {
-    type Condition;
+impl<T> Evaluable<T> for NumericCondition<T>
+where
+    T: NumericType,
+{
+    fn evaluate(&self, value: &T) -> bool {
+        match self {
+            Self::GreaterThan(threshold) => value > threshold,
+            Self::GreaterThanOrEqualTo(threshold) => value >= threshold,
+            Self::LessThan(threshold) => value < threshold,
+            Self::LessThanOrEqualTo(threshold) => value <= threshold,
+            Self::EqualTo(threshold) => value == threshold,
+            Self::NotEqualTo(threshold) => value != threshold,
+            Self::Between(min, max) => value >= min && value <= max,
+            Self::Outside(min, max) => value < min || value > max,
+        }
+    }
+}
 
-    fn push_condition(&mut self, condition: Self::Condition);
+impl Evaluable<String> for StringCondition {
+    fn evaluate(&self, value: &String) -> bool {
+        match self {
+            Self::EqualTo(expected) => value == expected,
+            Self::Contains(substring) => value.contains(substring),
+            Self::StartsWith(prefix) => value.starts_with(prefix),
+            Self::EndsWith(suffix) => value.ends_with(suffix),
+            Self::Matches(pattern) => {
+                // TODO: Use regex pattern matching here
+                value == pattern
+            }
+        }
+    }
+}
+
+impl<T> Evaluable<Vec<T>> for ArrayCondition<T>
+where
+    T: PartialEq,
+{
+    fn evaluate(&self, value: &Vec<T>) -> bool {
+        match self {
+            Self::Contains(item) => value.contains(item),
+            Self::NotIn(items) => !items.iter().any(|item| value.contains(item)),
+            Self::Empty => value.is_empty(),
+            Self::NotEmpty => !value.is_empty(),
+        }
+    }
 }

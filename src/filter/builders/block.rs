@@ -1,7 +1,7 @@
 // Block builder
 use crate::filter::{
     conditions::{BlockCondition, ConditionBuilder},
-    field::{BlockField, FieldWrapper, NumericFieldType, StringFieldType},
+    field::{BlockField, FieldWrapper, StringFieldType, U128FieldType, U64FieldType},
 };
 
 // ===== Block Builder =====
@@ -23,51 +23,51 @@ impl BlockBuilder {
             conditions: Vec::new(),
         }
     }
-    pub fn number(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn number(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::Number),
+            field: U64FieldType(BlockField::Number),
             parent: self,
         }
     }
 
-    pub fn timestamp(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn timestamp(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::Timestamp),
+            field: U64FieldType(BlockField::Timestamp),
             parent: self,
         }
     }
 
-    pub fn size(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn size(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::Size),
+            field: U64FieldType(BlockField::Size),
             parent: self,
         }
     }
 
-    pub fn gas_used(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn gas_used(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::GasUsed),
+            field: U64FieldType(BlockField::GasUsed),
             parent: self,
         }
     }
 
-    pub fn gas_limit(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn gas_limit(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::GasLimit),
+            field: U64FieldType(BlockField::GasLimit),
             parent: self,
         }
     }
 
-    pub fn base_fee(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn base_fee(&mut self) -> FieldWrapper<'_, U128FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::BaseFee),
+            field: U128FieldType(BlockField::BaseFee),
             parent: self,
         }
     }
 
-    pub fn transaction_count(&mut self) -> FieldWrapper<'_, NumericFieldType<BlockField>, Self> {
+    pub fn transaction_count(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(BlockField::TransactionCount),
+            field: U64FieldType(BlockField::TransactionCount),
             parent: self,
         }
     }
@@ -117,6 +117,7 @@ impl BlockBuilder {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::filter::{
         conditions::{NumericCondition, StringCondition},
@@ -127,7 +128,6 @@ mod tests {
     const SIZE: u64 = 1000;
     const GAS_USED: u64 = 2000;
     const GAS_LIMIT: u64 = 2000;
-    const BASE_FEE: u64 = 3000;
     const TRANSACTION_COUNT: u64 = 10;
     const TIMESTAMP: u64 = 5000;
 
@@ -146,7 +146,7 @@ mod tests {
         builder.gas_used().gte(GAS_USED);
         builder.gas_limit().lt(GAS_LIMIT);
         builder.timestamp().lte(TIMESTAMP);
-        builder.base_fee().eq(BASE_FEE);
+        builder.base_fee().eq(100);
         builder.transaction_count().eq(TRANSACTION_COUNT);
 
         let conditions = vec![
@@ -155,7 +155,7 @@ mod tests {
             BlockCondition::GasUsed(NumericCondition::GreaterThanOrEqualTo(GAS_USED)),
             BlockCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
             BlockCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
-            BlockCondition::BaseFee(NumericCondition::EqualTo(BASE_FEE)),
+            BlockCondition::BaseFee(NumericCondition::EqualTo(100)),
             BlockCondition::TransactionCount(NumericCondition::EqualTo(TRANSACTION_COUNT)),
         ];
 

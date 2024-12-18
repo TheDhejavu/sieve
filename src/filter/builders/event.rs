@@ -1,6 +1,6 @@
 use crate::filter::{
     conditions::{ConditionBuilder, EventCondition},
-    field::{ArrayFieldType, EventField, FieldWrapper, NumericFieldType, StringFieldType},
+    field::{ArrayFieldType, EventField, FieldWrapper, StringFieldType, U64FieldType},
 };
 
 // ===== Event Builder ========
@@ -37,23 +37,23 @@ impl EventBuilder {
         }
     }
 
-    pub fn log_index(&mut self) -> FieldWrapper<'_, NumericFieldType<EventField>, Self> {
+    pub fn log_index(&mut self) -> FieldWrapper<'_, U64FieldType<EventField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(EventField::LogIndex),
+            field: U64FieldType(EventField::LogIndex),
             parent: self,
         }
     }
 
-    pub fn block_number(&mut self) -> FieldWrapper<'_, NumericFieldType<EventField>, Self> {
+    pub fn block_number(&mut self) -> FieldWrapper<'_, U64FieldType<EventField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(EventField::BlockNumber),
+            field: U64FieldType(EventField::BlockNumber),
             parent: self,
         }
     }
 
-    pub fn tx_index(&mut self) -> FieldWrapper<'_, NumericFieldType<EventField>, Self> {
+    pub fn tx_index(&mut self) -> FieldWrapper<'_, U64FieldType<EventField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(EventField::TxIndex),
+            field: U64FieldType(EventField::TxIndex),
             parent: self,
         }
     }

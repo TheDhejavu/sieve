@@ -1,5 +1,5 @@
 mod builders;
-mod conditions;
+pub(crate) mod conditions;
 mod field;
 mod operations;
 

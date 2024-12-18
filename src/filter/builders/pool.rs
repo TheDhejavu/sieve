@@ -1,7 +1,7 @@
 // Pool builder
 use crate::filter::{
     conditions::{ConditionBuilder, PoolCondition},
-    field::{FieldWrapper, NumericFieldType, PoolField, StringFieldType},
+    field::{FieldWrapper, PoolField, StringFieldType, U128FieldType, U256FieldType, U64FieldType},
 };
 
 // ===== Pool Builder =====
@@ -18,66 +18,66 @@ impl PoolBuilder {
     }
 
     // Transaction identification - Numeric fields
-    pub fn nonce(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn nonce(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::Nonce),
+            field: U64FieldType(PoolField::Nonce),
             parent: self,
         }
     }
 
     // Gas & Value fields - Numeric
-    pub fn value(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn value(&mut self) -> FieldWrapper<'_, U256FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::Value),
+            field: U256FieldType(PoolField::Value),
             parent: self,
         }
     }
 
-    pub fn gas_price(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn gas_price(&mut self) -> FieldWrapper<'_, U128FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::GasPrice),
+            field: U128FieldType(PoolField::GasPrice),
             parent: self,
         }
     }
 
-    pub fn max_fee_per_gas(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn max_fee_per_gas(&mut self) -> FieldWrapper<'_, U128FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::MaxFeePerGas),
+            field: U128FieldType(PoolField::MaxFeePerGas),
             parent: self,
         }
     }
 
-    pub fn max_priority_fee(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn max_priority_fee(&mut self) -> FieldWrapper<'_, U128FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::MaxPriorityFee),
+            field: U128FieldType(PoolField::MaxPriorityFee),
             parent: self,
         }
     }
 
-    pub fn first_seen(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn first_seen(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::FirstSeen),
+            field: U64FieldType(PoolField::FirstSeen),
             parent: self,
         }
     }
 
-    pub fn last_seen(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn last_seen(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::LastSeen),
+            field: U64FieldType(PoolField::LastSeen),
             parent: self,
         }
     }
 
-    pub fn propagation_time(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn propagation_time(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::PropagationTime),
+            field: U64FieldType(PoolField::PropagationTime),
             parent: self,
         }
     }
 
-    pub fn replacement_count(&mut self) -> FieldWrapper<'_, NumericFieldType<PoolField>, Self> {
+    pub fn replacement_count(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
         FieldWrapper {
-            field: NumericFieldType(PoolField::ReplacementCount),
+            field: U64FieldType(PoolField::ReplacementCount),
             parent: self,
         }
     }
@@ -121,6 +121,8 @@ impl ConditionBuilder for PoolBuilder {
 
 #[cfg(test)]
 mod tests {
+    use alloy_primitives::ruint::aliases::U256;
+
     use super::*;
     use crate::filter::{
         conditions::{NumericCondition, PoolCondition, StringCondition},
@@ -128,10 +130,6 @@ mod tests {
     };
 
     const NONCE: u64 = 1;
-    const VALUE: u64 = 1000;
-    const GAS_PRICE: u64 = 2000;
-    const MAX_FEE: u64 = 3000;
-    const PRIORITY_FEE: u64 = 4000;
     const TIMESTAMP: u64 = 5000;
     const PROPAGATION: u64 = 100;
     const REPLACEMENTS: u64 = 3;
@@ -150,18 +148,18 @@ mod tests {
 
         // Test various numeric operations
         builder.nonce().eq(NONCE);
-        builder.value().gt(VALUE);
-        builder.gas_price().gte(GAS_PRICE);
-        builder.max_fee_per_gas().lt(MAX_FEE);
-        builder.max_priority_fee().lte(PRIORITY_FEE);
+        builder.value().gt(U256::from(100));
+        builder.gas_price().gte(100);
+        builder.max_fee_per_gas().lt(100);
+        builder.max_priority_fee().lte(100);
         builder.propagation_time().between(RANGE_START, RANGE_END);
 
         let conditions = vec![
             PoolCondition::Nonce(NumericCondition::EqualTo(NONCE)),
-            PoolCondition::Value(NumericCondition::GreaterThan(VALUE)),
-            PoolCondition::GasPrice(NumericCondition::GreaterThanOrEqualTo(GAS_PRICE)),
-            PoolCondition::MaxFeePerGas(NumericCondition::LessThan(MAX_FEE)),
-            PoolCondition::MaxPriorityFee(NumericCondition::LessThanOrEqualTo(PRIORITY_FEE)),
+            PoolCondition::Value(NumericCondition::GreaterThan(U256::from(100))),
+            PoolCondition::GasPrice(NumericCondition::GreaterThanOrEqualTo(100)),
+            PoolCondition::MaxFeePerGas(NumericCondition::LessThan(100)),
+            PoolCondition::MaxPriorityFee(NumericCondition::LessThanOrEqualTo(100)),
             PoolCondition::PropagationTime(NumericCondition::Between(RANGE_START, RANGE_END)),
         ];
 
@@ -214,14 +212,14 @@ mod tests {
         // Mix different types of conditions
         builder.nonce().eq(NONCE);
         builder.from().contains(ADDRESS);
-        builder.gas_price().gt(GAS_PRICE);
+        builder.gas_price().gt(100);
         builder.hash().starts_with(PREFIX);
         builder.propagation_time().between(RANGE_START, RANGE_END);
 
         let conditions = vec![
             PoolCondition::Nonce(NumericCondition::EqualTo(NONCE)),
             PoolCondition::From(StringCondition::Contains(ADDRESS.to_string())),
-            PoolCondition::GasPrice(NumericCondition::GreaterThan(GAS_PRICE)),
+            PoolCondition::GasPrice(NumericCondition::GreaterThan(100)),
             PoolCondition::Hash(StringCondition::StartsWith(PREFIX.to_string())),
             PoolCondition::PropagationTime(NumericCondition::Between(RANGE_START, RANGE_END)),
         ];

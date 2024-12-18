@@ -44,12 +44,12 @@ impl FilterBuilder {
 
     /// Adds pool conditions to the filter.
     ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn pool<F>(&mut self, f: F) -> MainFilterBuilder
+    /// Returns a [`PoolFilterBuilder`] for further configuration.
+    pub fn pool<F>(&mut self, f: F) -> PoolFilterBuilder
     where
         F: FnOnce(&mut PoolBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = PoolFilterBuilder {
             filters: &mut self.filters,
         };
         filter.pool(f)
@@ -209,23 +209,6 @@ impl MainFilterBuilder<'_> {
         self
     }
 
-    pub fn pool<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let mut builder = PoolBuilder::new();
-        f(&mut builder);
-
-        for condition in builder.conditions {
-            let node = FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(condition)),
-            };
-            self.filters.push(node);
-        }
-        self
-    }
-
     pub fn block<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut BlockBuilder),
@@ -248,6 +231,31 @@ impl MainFilterBuilder<'_> {
             group: Some((LogicalOp::And, self.filters.clone())),
             condition: None,
         }
+    }
+}
+
+// ===== Pool Filter Builder =====
+#[allow(dead_code)]
+pub struct PoolFilterBuilder<'a> {
+    filters: &'a mut Vec<FilterNode>,
+}
+
+impl PoolFilterBuilder<'_> {
+    pub fn pool<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut PoolBuilder),
+    {
+        let mut builder = PoolBuilder::new();
+        f(&mut builder);
+
+        for condition in builder.conditions {
+            let node = FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(condition)),
+            };
+            self.filters.push(node);
+        }
+        self
     }
 }
 
