@@ -182,7 +182,7 @@ impl MainFilterBuilder<'_> {
         for condition in builder.conditions {
             let node = FilterNode {
                 group: None,
-                condition: Some(FilterCondition::TransactionCondition(condition)),
+                condition: Some(FilterCondition::Transaction(condition)),
             };
             self.filters.push(node);
         }
@@ -199,7 +199,7 @@ impl MainFilterBuilder<'_> {
         for condition in builder.conditions {
             let node = FilterNode {
                 group: None,
-                condition: Some(FilterCondition::EventCondition(condition)),
+                condition: Some(FilterCondition::Event(condition)),
             };
             self.filters.push(node);
         }
@@ -216,7 +216,7 @@ impl MainFilterBuilder<'_> {
         for condition in builder.conditions {
             let node = FilterNode {
                 group: None,
-                condition: Some(FilterCondition::PoolCondition(condition)),
+                condition: Some(FilterCondition::Pool(condition)),
             };
             self.filters.push(node);
         }
@@ -233,7 +233,7 @@ impl MainFilterBuilder<'_> {
         for condition in builder.conditions {
             let node = FilterNode {
                 group: None,
-                condition: Some(FilterCondition::BlockCondition(condition)),
+                condition: Some(FilterCondition::Block(condition)),
             };
             self.filters.push(node);
         }

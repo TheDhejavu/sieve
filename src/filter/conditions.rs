@@ -1,4 +1,5 @@
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum LogicalOp {
     And,
     Or,
@@ -40,14 +41,16 @@ pub enum StringCondition {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum FilterCondition {
-    TransactionCondition(TransactionCondition),
-    EventCondition(EventCondition),
-    PoolCondition(PoolCondition),
-    BlockCondition(BlockCondition),
+    Transaction(TransactionCondition),
+    Event(EventCondition),
+    Pool(PoolCondition),
+    Block(BlockCondition),
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum TransactionCondition {
     // Amount fields - Numeric
     Value(NumericCondition),
@@ -83,6 +86,7 @@ pub enum TransactionCondition {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum EventCondition {
     // String conditions
     Contract(StringCondition),
@@ -99,6 +103,7 @@ pub enum EventCondition {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PoolCondition {
     // Transaction identification - String
     Hash(StringCondition),
@@ -124,6 +129,7 @@ pub enum PoolCondition {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum BlockCondition {
     // Core block info - Numeric
     Number(NumericCondition),
@@ -161,6 +167,7 @@ pub enum BlockCondition {
 //      /     \           /     \
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct FilterNode {
     pub group: Option<(LogicalOp, Vec<FilterNode>)>,
     pub condition: Option<FilterCondition>,
