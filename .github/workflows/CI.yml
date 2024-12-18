@@ -35,9 +35,4 @@ jobs:
         uses: taiki-e/install-action@nextest
 
       - name: Run tests
-        run: |
-          cargo nextest run \
-            --no-capture \
-            --success-output immediate \
-            --status-level=all \
-            --test-threads=1
+        run: cargo nextest run --status-level=all
