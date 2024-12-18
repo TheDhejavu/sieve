@@ -10,7 +10,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TEST_THREADS: 1
   
 jobs:
   tests:
@@ -32,12 +31,8 @@ jobs:
       - name: Run Clippy
         run: cargo clippy -- -D warnings
 
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Run tests
-        run: |
-          cargo test -- \
-            --nocapture \
-            --test-threads=1 \
-            --format=pretty \
-            --show-output
-        env:
-          RUST_BACKTRACE: 1
+        run:  cargo nextest run --success-output immediate --status-level=test
