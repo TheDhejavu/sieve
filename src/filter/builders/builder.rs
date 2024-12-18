@@ -267,6 +267,12 @@ impl<'a> LogicalFilterBuilder<'a> {
     {
         self.build_logical_operation(LogicalOp::Not, f)
     }
+    pub fn unless<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut FilterBuilder),
+    {
+        self.build_logical_operation(LogicalOp::Not, f)
+    }
 
     pub fn none_of<F>(self, f: F) -> Self
     where

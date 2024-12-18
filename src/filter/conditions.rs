@@ -148,14 +148,18 @@ pub enum BlockCondition {
     ReceiptsRoot(StringCondition),
     TransactionsRoot(StringCondition),
 }
-/*
-Filter tree represents tree structure of filters:
-                [OR]
-            /          \
-    [AND]              [AND]
-    /    \            /     \
-[Value>100] [Gas<50] [Contract] [Nonce>5]
-*/
+
+// FilterNode represents a hierarchical structure of logical filters used to evaluate
+// specific conditions. Each node in the tree represents a logical operator
+// (e.g., AND, OR) or a specific condition (e.g., Value > 100). The structure allows
+// for a flexible combination of filters to evaluate complex criteria.
+//
+// Example:
+//                [OR]
+//            /          \
+//       [AND]             [AND]
+//      /     \           /     \
+// [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
 #[derive(Clone)]
 pub struct FilterNode {
     pub group: Option<(LogicalOp, Vec<FilterNode>)>,
