@@ -3,7 +3,7 @@ use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 // ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
 mod filter;
 
-
+#[allow(dead_code)]
 fn main() {
     //===============================================================================================
     //                                     1. SIMPLE OR FILTER

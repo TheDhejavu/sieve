@@ -19,6 +19,7 @@ impl ConditionBuilder for TxBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl TxBuilder {
     pub fn new() -> Self {
         Self {

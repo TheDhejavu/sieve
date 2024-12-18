@@ -27,6 +27,7 @@ pub enum TransferField {
 
 // Transaction specific field
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum TxField {
     // Basic transaction fields
     Nonce,          // Transaction sequence number
