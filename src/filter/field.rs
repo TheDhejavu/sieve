@@ -122,9 +122,9 @@ pub enum PoolField {
     PropagationTime,  // Time to propagate to network
 }
 
-pub struct FieldWrapper<'a, T, P> {
-    pub field: T,
-    pub parent: &'a mut P,
+pub(crate) struct FieldWrapper<'a, T, P> {
+    pub(crate) field: T,
+    pub(crate) parent: &'a mut P,
 }
 
 // === TxField =====
@@ -249,7 +249,6 @@ impl NumericFieldToCondition<PoolCondition> for PoolField {
 impl StringFieldToCondition<PoolCondition> for PoolField {
     fn to_condition(&self, value: StringCondition) -> PoolCondition {
         match self {
-            // Transaction identification
             PoolField::Hash => PoolCondition::Hash(value),
             PoolField::From => PoolCondition::From(value),
             PoolField::To => PoolCondition::To(value),
@@ -264,11 +263,8 @@ impl StringFieldToCondition<PoolCondition> for PoolField {
 impl NumericFieldToCondition<BlockCondition> for BlockField {
     fn to_condition(&self, value: NumericCondition) -> BlockCondition {
         match self {
-            // Core block info
             BlockField::Number => BlockCondition::Number(value),
             BlockField::Timestamp => BlockCondition::Timestamp(value),
-
-            // Block metadata
             BlockField::Size => BlockCondition::Size(value),
             BlockField::GasUsed => BlockCondition::GasUsed(value),
             BlockField::GasLimit => BlockCondition::GasLimit(value),

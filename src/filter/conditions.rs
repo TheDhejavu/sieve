@@ -8,7 +8,7 @@ pub enum LogicalOp {
     Xor,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NumericCondition {
     GreaterThan(u64),
     GreaterThanOrEqualTo(u64),
@@ -23,7 +23,7 @@ pub enum NumericCondition {
     Outside(u64, u64),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArrayCondition<T> {
     Contains(T),
     NotIn(Vec<T>),
@@ -31,7 +31,7 @@ pub enum ArrayCondition<T> {
     NotEmpty,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StringCondition {
     EqualTo(String),
     Contains(String),
@@ -40,7 +40,7 @@ pub enum StringCondition {
     Matches(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum FilterCondition {
     Transaction(TransactionCondition),
@@ -49,7 +49,7 @@ pub enum FilterCondition {
     Block(BlockCondition),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum TransactionCondition {
     // Amount fields - Numeric
@@ -85,7 +85,7 @@ pub enum TransactionCondition {
     TransferSpender(StringCondition),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum EventCondition {
     // String conditions
@@ -102,7 +102,7 @@ pub enum EventCondition {
     Topics(ArrayCondition<String>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum PoolCondition {
     // Transaction identification - String
@@ -128,7 +128,7 @@ pub enum PoolCondition {
     LastSeen(NumericCondition),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum BlockCondition {
     // Core block info - Numeric

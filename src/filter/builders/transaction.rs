@@ -193,75 +193,122 @@ impl<'a> TxTransferBuilder<'a, TxBuilder> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::filter::{
-        conditions::{NumericCondition, StringCondition},
+        conditions::{ArrayCondition, NumericCondition, StringCondition, TransactionCondition},
         ArrayOps, NumericOps, StringOps,
     };
 
-    use super::*;
+    const BASE_VALUE: u64 = 100;
+    const VALUES: [u64; 6] = [
+        BASE_VALUE,     // eq
+        BASE_VALUE * 2, // gt
+        BASE_VALUE * 3, // gte
+        BASE_VALUE * 4, // lt
+        BASE_VALUE * 5, // lte
+        BASE_VALUE * 6, // between start
+    ];
+
+    const ADDRESS: &str = "0x123";
+    const PREFIX: &str = "0x";
+    const CONTENT: &str = "abc";
+    const METHOD: &str = "transfer";
 
     #[test]
-    fn test_basic_transaction_fields() {
+    fn test_tx_numeric_field_operations() {
         let mut builder = TxBuilder::new();
 
-        // Test numeric conditions
-        builder.value().eq(1000);
-        builder.gas_price().gt(50);
-        builder.gas().lt(100000);
-        builder.nonce().between(5, 10);
-        builder.max_fee_per_gas().lte(200);
-        builder.max_priority_fee().gte(10);
-        builder.chain_id().eq(1);
-        builder.block_number().gt(1000000);
-        builder.index().lt(100);
-        builder.tx_type().eq(2);
+        builder.value().eq(VALUES[0]);
+        builder.gas_price().gt(VALUES[1]);
+        builder.gas().lt(VALUES[2]);
+        builder.nonce().between(VALUES[3], VALUES[4]);
+        builder.max_fee_per_gas().lte(VALUES[5]);
+        builder.max_priority_fee().gte(VALUES[0]);
 
-        // Test string conditions
-        builder.from().eq("0x123");
-        builder.to().starts_with("0x");
-        builder.block_hash().contains("abc");
+        let expected_conditions = vec![
+            TransactionCondition::Value(NumericCondition::EqualTo(VALUES[0])),
+            TransactionCondition::GasPrice(NumericCondition::GreaterThan(VALUES[1])),
+            TransactionCondition::Gas(NumericCondition::LessThan(VALUES[2])),
+            TransactionCondition::Nonce(NumericCondition::Between(VALUES[3], VALUES[4])),
+            TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(VALUES[5])),
+            TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(VALUES[0])),
+        ];
 
-        // Test array conditions
-        builder.access_list().empty();
-
-        // Verify conditions were added
-        assert_eq!(builder.conditions.len(), 14);
-
-        // Verify specific conditions
-        match &builder.conditions[0] {
-            TransactionCondition::Value(value) => {
-                assert!(matches!(value, NumericCondition::EqualTo(1000)));
-            }
-            _ => panic!("Expected Value condition"),
-        }
+        assert_eq!(builder.conditions, expected_conditions);
     }
 
     #[test]
-    fn test_transfer_builder() {
+    fn test_tx_string_field_operations() {
         let mut builder = TxBuilder::new();
 
-        // Test all transfer-specific fields
+        builder.from().eq(ADDRESS);
+        builder.to().starts_with(PREFIX);
+        builder.block_hash().contains(CONTENT);
+        builder.hash().ends_with(CONTENT);
+
+        let expected_conditions = vec![
+            TransactionCondition::From(StringCondition::EqualTo(ADDRESS.to_string())),
+            TransactionCondition::To(StringCondition::StartsWith(PREFIX.to_string())),
+            TransactionCondition::BlockHash(StringCondition::Contains(CONTENT.to_string())),
+            TransactionCondition::Hash(StringCondition::EndsWith(CONTENT.to_string())),
+        ];
+
+        assert_eq!(builder.conditions, expected_conditions);
+    }
+
+    #[test]
+    fn test_tx_array_field_operations() {
+        let mut builder = TxBuilder::new();
+
+        builder.access_list().empty();
+        builder.access_list().not_empty();
+
+        let expected_conditions = vec![
+            TransactionCondition::AccessList(ArrayCondition::Empty),
+            TransactionCondition::AccessList(ArrayCondition::NotEmpty),
+        ];
+
+        assert_eq!(builder.conditions, expected_conditions);
+    }
+
+    #[test]
+    fn test_tx_transfer_operations() {
+        let mut builder = TxBuilder::new();
         let mut transfer = builder.transfer();
-        transfer.amount().eq(100);
-        transfer.method().eq("transfer");
-        transfer.to().eq("0x.....");
-        transfer.from().eq("0x.....");
-        transfer.spender().eq("0x....");
-        assert_eq!(builder.conditions.len(), 5);
 
-        // Verify specific transfer conditions
-        match &builder.conditions[0] {
-            TransactionCondition::TransferAmount(amount) => {
-                assert!(matches!(amount, NumericCondition::EqualTo(100)));
-            }
-            _ => panic!("Expected TransferAmount condition"),
-        }
+        transfer.amount().eq(VALUES[0]);
+        transfer.method().eq(METHOD);
+        transfer.to().eq(ADDRESS);
+        transfer.from().starts_with(PREFIX);
+        transfer.spender().contains(CONTENT);
 
-        match &builder.conditions[1] {
-            TransactionCondition::TransferMethod(method) => {
-                assert!(matches!(method, StringCondition::EqualTo(m) if m == "transfer"));
-            }
-            _ => panic!("Expected TransferMethod condition"),
-        }
+        let expected_conditions = vec![
+            TransactionCondition::TransferAmount(NumericCondition::EqualTo(VALUES[0])),
+            TransactionCondition::TransferMethod(StringCondition::EqualTo(METHOD.to_string())),
+            TransactionCondition::TransferTo(StringCondition::EqualTo(ADDRESS.to_string())),
+            TransactionCondition::TransferFrom(StringCondition::StartsWith(PREFIX.to_string())),
+            TransactionCondition::TransferSpender(StringCondition::Contains(CONTENT.to_string())),
+        ];
+
+        assert_eq!(builder.conditions, expected_conditions);
+    }
+
+    #[test]
+    fn test_tx_chain_specific_fields() {
+        let mut builder = TxBuilder::new();
+
+        builder.chain_id().eq(VALUES[0]);
+        builder.block_number().gt(VALUES[1]);
+        builder.index().lt(VALUES[2]);
+        builder.tx_type().eq(VALUES[3]);
+
+        let expected_conditions = vec![
+            TransactionCondition::ChainId(NumericCondition::EqualTo(VALUES[0])),
+            TransactionCondition::BlockNumber(NumericCondition::GreaterThan(VALUES[1])),
+            TransactionCondition::TransactionIndex(NumericCondition::LessThan(VALUES[2])),
+            TransactionCondition::Type(NumericCondition::EqualTo(VALUES[3])),
+        ];
+
+        assert_eq!(builder.conditions, expected_conditions);
     }
 }
