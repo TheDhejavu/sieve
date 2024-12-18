@@ -65,21 +65,21 @@ pub trait ArrayOps<T> {
     fn not_in(self, values: Vec<T>);
 }
 
-/// Converts a field to a numeric condition of type `C`.
+/// Converts a field to a numeric condition.
 ///
 /// This trait is implemented by field types that can be converted into numeric conditions.
 pub trait NumericFieldToCondition<C> {
     fn to_condition(&self, value: NumericCondition) -> C;
 }
 
-/// Converts a field to a string condition of type `C`.
+/// Converts a field to a string condition.
 ///
 /// This trait is implemented by field types that can be converted into string conditions.
 pub trait StringFieldToCondition<C> {
     fn to_condition(&self, value: StringCondition) -> C;
 }
 
-/// Converts a field to an array condition of type `C`.
+/// Converts a field to an array condition.
 pub trait ArrayFieldToCondition<C, T> {
     fn to_condition(&self, value: ArrayCondition<T>) -> C;
 }
