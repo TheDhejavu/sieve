@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+
+[lints.clippy]
+dead_code = "allow"
+unused_variables = "allow"

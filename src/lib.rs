@@ -7,7 +7,7 @@ fn main() {
     //===============================================================================================
     //                                     1. SIMPLE OR FILTER
     //===============================================================================================
-    let simple_or_filter = FilterBuilder::new()
+    let _simple_or_filter = FilterBuilder::new()
         .any_of(|f| {
             f.tx(|t| t.value().gt(1000)); // Value > 1000
             f.tx(|t| t.gas_price().lt(50)); // OR Gas price < 50
@@ -18,7 +18,7 @@ fn main() {
     //===============================================================================================
     //                         2. TRANSACTION AND EVENT FILTER COMBINATION
     //===============================================================================================
-    let combined_filter = FilterBuilder::new()
+    let _combined_filter = FilterBuilder::new()
         .and(|f| {
             f.tx(|t| {
                 t.value().gt(100); // Value > 100
@@ -34,7 +34,7 @@ fn main() {
     //===============================================================================================
     //                                  3. DEFI NESTED FILTERS
     //===============================================================================================
-    let defi_filter = FilterBuilder::new()
+    let _defi_filter = FilterBuilder::new()
         .any_of(|f| {
             f.all_of(|f| {
                 f.event(|e| e.contract().eq("UniswapV2Factory"));
@@ -54,7 +54,7 @@ fn main() {
     //===============================================================================================
     //                              4. TRANSACTION PATTERN FILTER
     //===============================================================================================
-    let pattern_filter = FilterBuilder::new()
+    let _pattern_filter = FilterBuilder::new()
         .any_of(|f| {
             f.tx(|t| t.value().gt(10000));
 
@@ -73,7 +73,7 @@ fn main() {
     //===============================================================================================
     //                             5. MULTI-PROTOCOL MONITORING
     //===============================================================================================
-    let monitoring_filter = FilterBuilder::new()
+    let _monitoring_filter = FilterBuilder::new()
         .any_of(|f| {
             // Monitor multiple tokens & DEX
             f.any_of(|f| {
@@ -106,7 +106,7 @@ fn main() {
     //===============================================================================================
     //                            6. COMPREHENSIVE TRANSACTION FILTER
     //===============================================================================================
-    let comprehensive_filter = FilterBuilder::new()
+    let _comprehensive_filter = FilterBuilder::new()
         .any_of(|f| {
             // Basic transaction numeric fields
             f.tx(|t| {
@@ -157,7 +157,7 @@ fn main() {
     //===============================================================================================
     //                            6. POOL FILTER
     //===============================================================================================
-    let pool_filter = FilterBuilder::new()
+    let _pool_filter = FilterBuilder::new()
         .any_of(|f| {
             f.pool(|p| {
                 // High value pending transaction
@@ -187,7 +187,7 @@ fn main() {
     //===============================================================================================
     //                            6. BLOCK FILTER
     //===============================================================================================
-    let block_filter = FilterBuilder::new()
+    let _block_filter = FilterBuilder::new()
         .any_of(|f| {
             f.block(|b| {
                 b.gas_limit().gt(100);
