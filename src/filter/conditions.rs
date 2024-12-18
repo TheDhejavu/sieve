@@ -155,7 +155,7 @@ pub enum BlockCondition {
     TransactionsRoot(StringCondition),
 }
 
-// FilterNode represents a hierarchical structure of logical filters used to evaluate
+// [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
 // specific conditions. Each node in the tree represents a logical operator
 // (e.g., AND, OR) or a specific condition (e.g., Value > 100). The structure allows
 // for a flexible combination of filters to evaluate complex criteria.
