@@ -187,6 +187,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloy-rpc-types-txpool"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a6c604b8ce6393e75726c15eb2306fe004bca4da07383548158626fe7636ae8"
+dependencies = [
+ "alloy-primitives",
+ "alloy-rpc-types-eth",
+ "alloy-serde",
+ "serde",
+]
+
+[[package]]
 name = "alloy-serde"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1645,6 +1657,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rpc-types",
  "alloy-rpc-types-eth",
+ "alloy-rpc-types-txpool",
  "dashmap",
 ]
 

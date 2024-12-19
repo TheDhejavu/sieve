@@ -1,6 +1,7 @@
 use alloy_consensus::{transaction::PooledTransaction, Transaction, Typed2718};
 use alloy_primitives::U256;
 use alloy_rpc_types::Transaction as RpcTransaction;
+use alloy_rpc_types_txpool::TxpoolContent;
 
 use super::{
     conditions::{
@@ -17,7 +18,6 @@ pub struct U8FieldType<T>(pub T);
 pub struct U64FieldType<T>(pub T);
 pub struct U128FieldType<T>(pub T);
 pub struct U256FieldType<T>(pub T);
-
 pub struct StringFieldType<T>(pub T);
 pub struct ArrayFieldType<T>(pub T);
 
@@ -88,19 +88,14 @@ pub enum BlockField {
 // ==== Pool-specific fields (mempool) ====
 #[derive(Debug, Clone)]
 pub enum PoolField {
-    Hash,             // Transaction hash
-    From,             // Sender address
-    To,               // Recipient address
-    Nonce,            // Transaction nonce
-    Value,            // ETH value
-    GasPrice,         // Legacy gas price
-    MaxFeePerGas,     // EIP-1559 max fee
-    MaxPriorityFee,   // EIP-1559 priority fee
-    FirstSeen,        // Timestamp first seen
-    LastSeen,         // Timestamp last seen
-    ReplacedBy,       // Hash of replacing transaction
-    ReplacementCount, // Number of times replaced
-    PropagationTime,  // Time to propagate to network
+    Hash,      // Transaction hash
+    To,        // Recipient address
+    From,      // Sender address
+    Value,     // ETH value
+    Nonce,     // Transaction nonce
+    GasPrice,  // Gas price
+    GasLimit,  // Gas limit
+    Timestamp, // When tx added to pool
 }
 
 pub(crate) struct FieldWrapper<'a, T, P> {
@@ -109,7 +104,7 @@ pub(crate) struct FieldWrapper<'a, T, P> {
 }
 
 impl U64FieldToCondition<TransactionCondition> for TxField {
-    fn to_u64_condition(&self, value: NumericCondition<u64>) -> TransactionCondition {
+    fn to_condition(&self, value: NumericCondition<u64>) -> TransactionCondition {
         match self {
             TxField::Nonce => TransactionCondition::Nonce(value),
             TxField::Gas => TransactionCondition::Gas(value),
@@ -122,7 +117,7 @@ impl U64FieldToCondition<TransactionCondition> for TxField {
 }
 
 impl U256FieldToCondition<TransactionCondition> for TxField {
-    fn to_u256_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
+    fn to_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
         match self {
             TxField::Value => TransactionCondition::Value(value),
             TxField::Transfer(TransferField::Amount) => TransactionCondition::TransferAmount(value),
@@ -132,7 +127,7 @@ impl U256FieldToCondition<TransactionCondition> for TxField {
 }
 
 impl U8FieldToCondition<TransactionCondition> for TxField {
-    fn to_u8_condition(&self, value: NumericCondition<u8>) -> TransactionCondition {
+    fn to_condition(&self, value: NumericCondition<u8>) -> TransactionCondition {
         match self {
             TxField::Type => TransactionCondition::Type(value),
             _ => panic!("Field does not support U8 numeric conditions"),
@@ -141,7 +136,7 @@ impl U8FieldToCondition<TransactionCondition> for TxField {
 }
 
 impl U128FieldToCondition<TransactionCondition> for TxField {
-    fn to_u128_condition(&self, value: NumericCondition<u128>) -> TransactionCondition {
+    fn to_condition(&self, value: NumericCondition<u128>) -> TransactionCondition {
         match self {
             TxField::GasPrice => TransactionCondition::GasPrice(value),
             TxField::MaxFeePerGas => TransactionCondition::MaxFeePerGas(value),
@@ -152,7 +147,7 @@ impl U128FieldToCondition<TransactionCondition> for TxField {
 }
 
 impl U64FieldToCondition<EventCondition> for EventField {
-    fn to_u64_condition(&self, value: NumericCondition<u64>) -> EventCondition {
+    fn to_condition(&self, value: NumericCondition<u64>) -> EventCondition {
         match self {
             EventField::LogIndex => EventCondition::LogIndex(value),
             EventField::BlockNumber => EventCondition::BlockNumber(value),
@@ -163,7 +158,7 @@ impl U64FieldToCondition<EventCondition> for EventField {
 }
 
 impl U64FieldToCondition<BlockCondition> for BlockField {
-    fn to_u64_condition(&self, value: NumericCondition<u64>) -> BlockCondition {
+    fn to_condition(&self, value: NumericCondition<u64>) -> BlockCondition {
         match self {
             BlockField::Number => BlockCondition::Number(value),
             BlockField::Timestamp => BlockCondition::Timestamp(value),
@@ -177,7 +172,7 @@ impl U64FieldToCondition<BlockCondition> for BlockField {
 }
 
 impl U128FieldToCondition<BlockCondition> for BlockField {
-    fn to_u128_condition(&self, value: NumericCondition<u128>) -> BlockCondition {
+    fn to_condition(&self, value: NumericCondition<u128>) -> BlockCondition {
         match self {
             BlockField::BaseFee => BlockCondition::BaseFee(value),
             _ => panic!("Field does not support U128 numeric conditions"),
@@ -186,31 +181,27 @@ impl U128FieldToCondition<BlockCondition> for BlockField {
 }
 
 impl U64FieldToCondition<PoolCondition> for PoolField {
-    fn to_u64_condition(&self, value: NumericCondition<u64>) -> PoolCondition {
+    fn to_condition(&self, value: NumericCondition<u64>) -> PoolCondition {
         match self {
             PoolField::Nonce => PoolCondition::Nonce(value),
-            PoolField::ReplacementCount => PoolCondition::ReplacementCount(value),
-            PoolField::PropagationTime => PoolCondition::PropagationTime(value),
-            PoolField::FirstSeen => PoolCondition::FirstSeen(value),
-            PoolField::LastSeen => PoolCondition::LastSeen(value),
+            PoolField::GasLimit => PoolCondition::GasLimit(value),
+            PoolField::Timestamp => PoolCondition::Timestamp(value),
             _ => panic!("Field does not support u64 numeric conditions"),
         }
     }
 }
 
 impl U128FieldToCondition<PoolCondition> for PoolField {
-    fn to_u128_condition(&self, value: NumericCondition<u128>) -> PoolCondition {
+    fn to_condition(&self, value: NumericCondition<u128>) -> PoolCondition {
         match self {
             PoolField::GasPrice => PoolCondition::GasPrice(value),
-            PoolField::MaxFeePerGas => PoolCondition::MaxFeePerGas(value),
-            PoolField::MaxPriorityFee => PoolCondition::MaxPriorityFee(value),
             _ => panic!("Field does not support U128 numeric conditions"),
         }
     }
 }
 
 impl U256FieldToCondition<PoolCondition> for PoolField {
-    fn to_u256_condition(&self, value: NumericCondition<U256>) -> PoolCondition {
+    fn to_condition(&self, value: NumericCondition<U256>) -> PoolCondition {
         match self {
             PoolField::Value => PoolCondition::Value(value),
             _ => panic!("Field does not support U256 numeric conditions"),
@@ -219,7 +210,7 @@ impl U256FieldToCondition<PoolCondition> for PoolField {
 }
 
 macro_rules! impl_numeric_ops {
-    ($type:ty, $field_type:ident, $field_trait:ident, $condition_method:ident) => {
+    ($type:ty, $field_type:ident, $field_trait:ident) => {
         impl<T, P, C> NumericOps<$type> for FieldWrapper<'_, $field_type<T>, P>
         where
             T: $field_trait<C>,
@@ -229,23 +220,17 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::GreaterThan(value));
+                    .to_condition(NumericCondition::GreaterThan(value));
                 self.parent.push_condition(condition);
             }
 
             fn lt(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .$condition_method(NumericCondition::LessThan(value));
+                let condition = self.field.0.to_condition(NumericCondition::LessThan(value));
                 self.parent.push_condition(condition);
             }
 
             fn eq(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .$condition_method(NumericCondition::EqualTo(value));
+                let condition = self.field.0.to_condition(NumericCondition::EqualTo(value));
                 self.parent.push_condition(condition);
             }
 
@@ -253,7 +238,7 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::LessThanOrEqualTo(value));
+                    .to_condition(NumericCondition::LessThanOrEqualTo(value));
                 self.parent.push_condition(condition);
             }
 
@@ -261,7 +246,7 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::GreaterThanOrEqualTo(value));
+                    .to_condition(NumericCondition::GreaterThanOrEqualTo(value));
                 self.parent.push_condition(condition);
             }
 
@@ -269,7 +254,7 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::NotEqualTo(value));
+                    .to_condition(NumericCondition::NotEqualTo(value));
                 self.parent.push_condition(condition);
             }
 
@@ -277,7 +262,7 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::Between(min, max));
+                    .to_condition(NumericCondition::Between(min, max));
                 self.parent.push_condition(condition);
             }
 
@@ -285,7 +270,7 @@ macro_rules! impl_numeric_ops {
                 let condition = self
                     .field
                     .0
-                    .$condition_method(NumericCondition::Outside(min, max));
+                    .to_condition(NumericCondition::Outside(min, max));
                 self.parent.push_condition(condition);
             }
         }
@@ -293,10 +278,10 @@ macro_rules! impl_numeric_ops {
 }
 
 // NumericOps for each numeric type
-impl_numeric_ops!(u8, U8FieldType, U8FieldToCondition, to_u8_condition);
-impl_numeric_ops!(u64, U64FieldType, U64FieldToCondition, to_u64_condition);
-impl_numeric_ops!(u128, U128FieldType, U128FieldToCondition, to_u128_condition);
-impl_numeric_ops!(U256, U256FieldType, U256FieldToCondition, to_u256_condition);
+impl_numeric_ops!(u8, U8FieldType, U8FieldToCondition);
+impl_numeric_ops!(u64, U64FieldType, U64FieldToCondition);
+impl_numeric_ops!(u128, U128FieldType, U128FieldToCondition);
+impl_numeric_ops!(U256, U256FieldType, U256FieldToCondition);
 
 impl StringFieldToCondition<TransactionCondition> for TxField {
     fn to_condition(&self, value: StringCondition) -> TransactionCondition {
@@ -334,7 +319,6 @@ impl StringFieldToCondition<PoolCondition> for PoolField {
             PoolField::Hash => PoolCondition::Hash(value),
             PoolField::From => PoolCondition::From(value),
             PoolField::To => PoolCondition::To(value),
-            PoolField::ReplacedBy => PoolCondition::ReplacedBy(value),
 
             _ => panic!("Field does not support string conditions"),
         }
@@ -487,23 +471,17 @@ impl Evaluable<RpcTransaction> for TransactionCondition {
     }
 }
 
-impl Evaluable<PooledTransaction> for PoolCondition {
-    fn evaluate(&self, pool_tx: &PooledTransaction) -> bool {
+impl Evaluable<TxpoolContent> for PoolCondition {
+    fn evaluate(&self, tx_pool_content: &TxpoolContent) -> bool {
         match self {
-            PoolCondition::Hash(condition) => condition.evaluate(&pool_tx.hash().to_string()),
+            PoolCondition::Hash(condition) => todo!(),
             PoolCondition::From(condition) => todo!(),
             PoolCondition::To(condition) => todo!(),
-            PoolCondition::ReplacedBy(condition) => todo!(),
             PoolCondition::Value(condition) => todo!(),
             PoolCondition::GasPrice(condition) => todo!(),
-            PoolCondition::MaxFeePerGas(condition) => todo!(),
-            PoolCondition::MaxPriorityFee(condition) => todo!(),
-            PoolCondition::Gas(condition) => todo!(),
             PoolCondition::Nonce(condition) => todo!(),
-            PoolCondition::ReplacementCount(condition) => todo!(),
-            PoolCondition::PropagationTime(condition) => todo!(),
-            PoolCondition::FirstSeen(condition) => todo!(),
-            PoolCondition::LastSeen(condition) => todo!(),
+            PoolCondition::GasLimit(numeric_condition) => todo!(),
+            PoolCondition::Timestamp(numeric_condition) => todo!(),
         }
     }
 }

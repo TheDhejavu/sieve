@@ -71,19 +71,19 @@ pub trait ArrayOps<T> {
 ///
 /// This trait is implemented by field types that can be converted into numeric conditions.
 pub trait U8FieldToCondition<C> {
-    fn to_u8_condition(&self, value: NumericCondition<u8>) -> C;
+    fn to_condition(&self, value: NumericCondition<u8>) -> C;
 }
 
 pub trait U64FieldToCondition<C> {
-    fn to_u64_condition(&self, value: NumericCondition<u64>) -> C;
+    fn to_condition(&self, value: NumericCondition<u64>) -> C;
 }
 
 pub trait U256FieldToCondition<C> {
-    fn to_u256_condition(&self, value: NumericCondition<U256>) -> C;
+    fn to_condition(&self, value: NumericCondition<U256>) -> C;
 }
 
 pub trait U128FieldToCondition<C> {
-    fn to_u128_condition(&self, value: NumericCondition<u128>) -> C;
+    fn to_condition(&self, value: NumericCondition<u128>) -> C;
 }
 /// Converts a field to a string condition.
 ///

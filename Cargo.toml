@@ -8,6 +8,7 @@ alloy-consensus = "0.8.1"
 alloy-primitives = "0.8.15"
 alloy-rpc-types = "0.8.1"
 alloy-rpc-types-eth = "0.8.1"
+alloy-rpc-types-txpool = "0.8.1"
 dashmap = "6.1.0"
 
 

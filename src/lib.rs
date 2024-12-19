@@ -166,19 +166,9 @@ fn main() {
             f.pool(|p| {
                 // High value pending transaction
                 p.value().gt(U256::from(1000000000000000000u64));
-
-                // Multiple replacements
-                p.replacement_count().gt(2);
-
-                // Gas price conditions
-                p.max_fee_per_gas().lt(50000000000);
-
                 // Specific sender/receiver
                 p.from().starts_with("0xdead");
                 p.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-
-                // Network propagation
-                p.propagation_time().lt(1000);
             });
         })
         .unless(|f| {

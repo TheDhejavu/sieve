@@ -13,31 +13,31 @@ pub enum LogicalOp {
 
 // Trait to represent any numeric type we want to support
 pub trait NumericType: Clone + PartialEq + PartialOrd {
-    fn from_u64(value: u64) -> Self;
+    fn from_string(value: String) -> Self;
 }
 
 // Implement for our supported numeric types
 impl NumericType for u64 {
-    fn from_u64(value: u64) -> Self {
-        value
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap()
     }
 }
 
 impl NumericType for u8 {
-    fn from_u64(value: u64) -> Self {
-        value.try_into().unwrap()
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap()
     }
 }
 
 impl NumericType for u128 {
-    fn from_u64(value: u64) -> Self {
-        value.into()
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap()
     }
 }
 
 impl NumericType for U256 {
-    fn from_u64(value: u64) -> Self {
-        U256::from(value)
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap()
     }
 }
 
@@ -126,19 +126,13 @@ pub enum EventCondition {
 #[allow(dead_code)]
 pub enum PoolCondition {
     Hash(StringCondition),
-    From(StringCondition),
     To(StringCondition),
-    ReplacedBy(StringCondition),
+    From(StringCondition),
     Value(NumericCondition<U256>),
-    GasPrice(NumericCondition<u128>),
-    MaxFeePerGas(NumericCondition<u128>),
-    MaxPriorityFee(NumericCondition<u128>),
-    Gas(NumericCondition<u64>),
     Nonce(NumericCondition<u64>),
-    ReplacementCount(NumericCondition<u64>),
-    PropagationTime(NumericCondition<u64>),
-    FirstSeen(NumericCondition<u64>),
-    LastSeen(NumericCondition<u64>),
+    GasPrice(NumericCondition<u128>),
+    GasLimit(NumericCondition<u64>),
+    Timestamp(NumericCondition<u64>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
