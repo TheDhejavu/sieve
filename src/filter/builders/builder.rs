@@ -98,19 +98,6 @@ impl FilterBuilder {
         filter.and(f)
     }
 
-    /// Requires that none of the specified conditions are true.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    pub fn none_of<F>(&mut self, f: F) -> LogicalFilterBuilder
-    where
-        F: FnOnce(&mut FilterBuilder),
-    {
-        let filter = LogicalFilterBuilder {
-            filters: &mut self.filters,
-        };
-        filter.none_of(f)
-    }
-
     /// Applies a NOT operation to the given conditions.
     ///
     /// Returns a [`LogicalFilterBuilder`] for further configuration.
@@ -285,13 +272,6 @@ impl LogicalFilterBuilder<'_> {
         F: FnOnce(&mut FilterBuilder),
     {
         self.build_logical_operation(LogicalOp::Not, f)
-    }
-
-    pub fn none_of<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut FilterBuilder),
-    {
-        self.build_logical_operation(LogicalOp::NoneOf, f)
     }
 
     pub fn xor<F>(self, f: F) -> Self

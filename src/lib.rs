@@ -64,7 +64,12 @@ fn main() {
 
             f.and(|f| {
                 f.tx(|t| t.gas_price().between(50, 150));
-                f.event(|e| e.contract().starts_with("0xDex"));
+                f.event(|e| {
+                    e.contract().starts_with("0xDex");
+                    e.topics().contains("Transfer".to_string());
+                    e.param("amount").eq("1000");
+                    e.param("from").starts_with("0xa1b2...");
+                });
             });
 
             f.tx(|t| {

@@ -58,10 +58,16 @@ impl EventBuilder {
         }
     }
 
-    // Array type field
     pub fn topics(&mut self) -> FieldWrapper<'_, ArrayFieldType<EventField>, Self> {
         FieldWrapper {
             field: ArrayFieldType(EventField::Topics),
+            parent: self,
+        }
+    }
+
+    pub fn param(&mut self, name: &str) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
+        FieldWrapper {
+            field: StringFieldType(EventField::DataParameter(name.to_string())),
             parent: self,
         }
     }

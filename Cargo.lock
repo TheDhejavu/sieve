@@ -1659,6 +1659,7 @@ dependencies = [
  "alloy-rpc-types-eth",
  "alloy-rpc-types-txpool",
  "dashmap",
+ "serde_json",
 ]
 
 [[package]]

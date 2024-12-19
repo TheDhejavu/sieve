@@ -1,4 +1,5 @@
 /// Chain configuration settings.
+#[allow(dead_code)]
 pub struct Chain {
     /// RPC endpoint URL for the chain
     rpc_url: String,
@@ -14,6 +15,7 @@ pub struct Chain {
 }
 
 /// Builder for creating a Chain configuration.
+#[allow(dead_code)]
 pub struct ChainConfigBuilder {
     /// Optional RPC endpoint URL
     rpc_url: Option<String>,
@@ -28,6 +30,7 @@ pub struct ChainConfigBuilder {
     peers: Vec<String>,
 }
 
+#[allow(dead_code)]
 impl ChainConfigBuilder {
     /// Sets the RPC endpoint URL for the chain configuration
     ///
@@ -80,6 +83,7 @@ impl ChainConfigBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl Chain {
     // Creates a new ChainConfigBuilder instance to construct a Chain configuration
     ///

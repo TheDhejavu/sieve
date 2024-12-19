@@ -1,7 +1,7 @@
 // Block builder
 use crate::filter::{
     conditions::{BlockCondition, ConditionBuilder},
-    field::{BlockField, FieldWrapper, StringFieldType, U128FieldType, U64FieldType},
+    field::{BlockField, FieldWrapper, StringFieldType, U256FieldType, U64FieldType},
 };
 
 // ===== Block Builder =====
@@ -37,9 +37,9 @@ impl BlockBuilder {
         }
     }
 
-    pub fn size(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
+    pub fn size(&mut self) -> FieldWrapper<'_, U256FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: U64FieldType(BlockField::Size),
+            field: U256FieldType(BlockField::Size),
             parent: self,
         }
     }
@@ -58,9 +58,9 @@ impl BlockBuilder {
         }
     }
 
-    pub fn base_fee(&mut self) -> FieldWrapper<'_, U128FieldType<BlockField>, Self> {
+    pub fn base_fee(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
-            field: U128FieldType(BlockField::BaseFee),
+            field: U64FieldType(BlockField::BaseFee),
             parent: self,
         }
     }
@@ -118,6 +118,8 @@ impl BlockBuilder {
 #[cfg(test)]
 mod tests {
 
+    use alloy_primitives::U256;
+
     use super::*;
     use crate::filter::{
         conditions::{NumericCondition, StringCondition},
@@ -133,7 +135,6 @@ mod tests {
 
     const HASH: &str = "0x123";
     const PREFIX: &str = "0x";
-    const CONTENT: &str = "abc";
     const SUFFIX: &str = "def";
 
     #[test]
@@ -142,7 +143,7 @@ mod tests {
 
         // Test various numeric operations
         builder.number().eq(NUMBER);
-        builder.size().gt(SIZE);
+        builder.size().gt(U256::from(SIZE));
         builder.gas_used().gte(GAS_USED);
         builder.gas_limit().lt(GAS_LIMIT);
         builder.timestamp().lte(TIMESTAMP);
@@ -151,7 +152,7 @@ mod tests {
 
         let conditions = vec![
             BlockCondition::Number(NumericCondition::EqualTo(NUMBER)),
-            BlockCondition::Size(NumericCondition::GreaterThan(SIZE)),
+            BlockCondition::Size(NumericCondition::GreaterThan(U256::from(SIZE))),
             BlockCondition::GasUsed(NumericCondition::GreaterThanOrEqualTo(GAS_USED)),
             BlockCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
             BlockCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
@@ -169,7 +170,6 @@ mod tests {
         // Test all string operations
         builder.hash().eq(HASH);
         builder.parent_hash().starts_with(PREFIX);
-        builder.miner().contains(CONTENT);
         builder.state_root().ends_with(SUFFIX);
         builder.receipts_root().eq(HASH);
         builder.transactions_root().starts_with(PREFIX);
@@ -177,7 +177,6 @@ mod tests {
         let conditions = vec![
             BlockCondition::Hash(StringCondition::EqualTo(HASH.to_string())),
             BlockCondition::ParentHash(StringCondition::StartsWith(PREFIX.to_string())),
-            BlockCondition::Miner(StringCondition::Contains(CONTENT.to_string())),
             BlockCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
             BlockCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
             BlockCondition::TransactionsRoot(StringCondition::StartsWith(PREFIX.to_string())),

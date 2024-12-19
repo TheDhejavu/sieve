@@ -7,11 +7,11 @@ pub enum LogicalOp {
     And,
     Or,
     Not,
-    NoneOf,
     Xor,
 }
 
 // Trait to represent any numeric type we want to support
+#[allow(dead_code)]
 pub trait NumericType: Clone + PartialEq + PartialOrd {
     fn from_string(value: String) -> Self;
 }
@@ -112,6 +112,7 @@ pub enum EventCondition {
     Contract(StringCondition),
     BlockHash(StringCondition),
     TxHash(StringCondition),
+    DataParameter(String, StringCondition),
 
     // Numeric conditions
     LogIndex(NumericCondition<u64>),
@@ -138,17 +139,16 @@ pub enum PoolCondition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum BlockCondition {
-    BaseFee(NumericCondition<u128>),
+    BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
-    Size(NumericCondition<u64>),
+    Size(NumericCondition<U256>),
     GasUsed(NumericCondition<u64>),
     GasLimit(NumericCondition<u64>),
     TransactionCount(NumericCondition<u64>),
 
     Hash(StringCondition),
     ParentHash(StringCondition),
-    Miner(StringCondition),
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),
     TransactionsRoot(StringCondition),

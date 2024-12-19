@@ -1,7 +1,6 @@
-use alloy_consensus::{transaction::PooledTransaction, Transaction, Typed2718};
+use alloy_consensus::{BlockHeader, Transaction, Typed2718};
 use alloy_primitives::U256;
-use alloy_rpc_types::Transaction as RpcTransaction;
-use alloy_rpc_types_txpool::TxpoolContent;
+use alloy_rpc_types::{Block, Transaction as RpcTransaction};
 
 use super::{
     conditions::{
@@ -65,6 +64,7 @@ pub enum EventField {
     BlockHash,   // Hash of the block where this log was
     TxHash,      // Hash of the transaction that created this log
     TxIndex,     // Integer of the transaction's index position
+    DataParameter(String),
 }
 
 // ===  Block-specific fields ===
@@ -162,20 +162,20 @@ impl U64FieldToCondition<BlockCondition> for BlockField {
         match self {
             BlockField::Number => BlockCondition::Number(value),
             BlockField::Timestamp => BlockCondition::Timestamp(value),
-            BlockField::Size => BlockCondition::Size(value),
             BlockField::GasUsed => BlockCondition::GasUsed(value),
             BlockField::GasLimit => BlockCondition::GasLimit(value),
+            BlockField::BaseFee => BlockCondition::BaseFee(value),
             BlockField::TransactionCount => BlockCondition::TransactionCount(value),
             _ => panic!("Field does not support u64 numeric conditions"),
         }
     }
 }
 
-impl U128FieldToCondition<BlockCondition> for BlockField {
-    fn to_condition(&self, value: NumericCondition<u128>) -> BlockCondition {
+impl U256FieldToCondition<BlockCondition> for BlockField {
+    fn to_condition(&self, value: NumericCondition<U256>) -> BlockCondition {
         match self {
-            BlockField::BaseFee => BlockCondition::BaseFee(value),
-            _ => panic!("Field does not support U128 numeric conditions"),
+            BlockField::Size => BlockCondition::Size(value),
+            _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
 }
@@ -308,6 +308,9 @@ impl StringFieldToCondition<EventCondition> for EventField {
             EventField::Contract => EventCondition::Contract(value),
             EventField::BlockHash => EventCondition::BlockHash(value),
             EventField::TxHash => EventCondition::TxHash(value),
+            EventField::DataParameter(param) => {
+                EventCondition::DataParameter(param.to_string(), value)
+            }
             _ => panic!("Field does not support string conditions"),
         }
     }
@@ -330,7 +333,6 @@ impl StringFieldToCondition<BlockCondition> for BlockField {
         match self {
             BlockField::Hash => BlockCondition::Hash(value),
             BlockField::ParentHash => BlockCondition::ParentHash(value),
-            BlockField::Miner => BlockCondition::Miner(value),
             BlockField::StateRoot => BlockCondition::StateRoot(value),
             BlockField::ReceiptsRoot => BlockCondition::ReceiptsRoot(value),
             BlockField::TransactionsRoot => BlockCondition::TransactionsRoot(value),
@@ -471,17 +473,56 @@ impl Evaluable<RpcTransaction> for TransactionCondition {
     }
 }
 
-impl Evaluable<TxpoolContent> for PoolCondition {
-    fn evaluate(&self, tx_pool_content: &TxpoolContent) -> bool {
+impl Evaluable<RpcTransaction> for PoolCondition {
+    fn evaluate(&self, tx_pool: &RpcTransaction) -> bool {
         match self {
-            PoolCondition::Hash(condition) => todo!(),
-            PoolCondition::From(condition) => todo!(),
-            PoolCondition::To(condition) => todo!(),
-            PoolCondition::Value(condition) => todo!(),
-            PoolCondition::GasPrice(condition) => todo!(),
-            PoolCondition::Nonce(condition) => todo!(),
-            PoolCondition::GasLimit(numeric_condition) => todo!(),
-            PoolCondition::Timestamp(numeric_condition) => todo!(),
+            PoolCondition::Value(condition) => condition.evaluate(&tx_pool.value()),
+            PoolCondition::GasPrice(condition) => {
+                condition.evaluate(&tx_pool.gas_price().unwrap_or_default())
+            }
+            PoolCondition::From(condition) => condition.evaluate(&tx_pool.from.to_string()),
+            PoolCondition::Nonce(condition) => condition.evaluate(&tx_pool.nonce()),
+            PoolCondition::GasLimit(condition) => condition.evaluate(&tx_pool.gas_limit()),
+            PoolCondition::Hash(condition) => {
+                condition.evaluate(&tx_pool.inner.tx_hash().to_string())
+            }
+            PoolCondition::To(condition) => {
+                condition.evaluate(&tx_pool.to().unwrap_or_default().to_string())
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Evaluable<Block> for BlockCondition {
+    fn evaluate(&self, block: &Block) -> bool {
+        match self {
+            BlockCondition::BaseFee(condition) => {
+                condition.evaluate(&block.header.base_fee_per_gas().unwrap_or_default())
+            }
+            BlockCondition::Number(condition) => condition.evaluate(&block.header.number),
+            BlockCondition::Timestamp(condition) => condition.evaluate(&block.header.timestamp),
+            BlockCondition::Size(condition) => {
+                condition.evaluate(&block.header.size.unwrap_or_default())
+            }
+            BlockCondition::GasUsed(condition) => condition.evaluate(&block.header.gas_used),
+            BlockCondition::GasLimit(condition) => condition.evaluate(&block.header.gas_limit),
+            BlockCondition::TransactionCount(condition) => {
+                condition.evaluate(&(block.transactions.len() as u64))
+            }
+            BlockCondition::Hash(condition) => condition.evaluate(&block.header.hash.to_string()),
+            BlockCondition::ParentHash(condition) => {
+                condition.evaluate(&block.header.parent_hash.to_string())
+            }
+            BlockCondition::StateRoot(condition) => {
+                condition.evaluate(&block.header.state_root.to_string())
+            }
+            BlockCondition::ReceiptsRoot(condition) => {
+                condition.evaluate(&block.header.receipts_root.to_string())
+            }
+            BlockCondition::TransactionsRoot(condition) => {
+                condition.evaluate(&block.header.transactions_root.to_string())
+            }
         }
     }
 }
