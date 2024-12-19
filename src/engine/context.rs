@@ -1,6 +1,6 @@
 use super::{
     state::{CacheKey, State},
-    DecodedContractCall, DecodedData,
+    DecodedData,
 };
 use crate::filter::{
     conditions::FilterCondition,

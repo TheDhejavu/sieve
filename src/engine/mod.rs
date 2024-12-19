@@ -6,7 +6,7 @@ use crate::filter::conditions::{FilterNode, LogicalOp};
 
 mod context;
 mod state;
-pub(crate) use state::{DecodedContractCall, DecodedData};
+pub(crate) use state::DecodedData;
 
 #[allow(dead_code)]
 struct FilterEngine {
