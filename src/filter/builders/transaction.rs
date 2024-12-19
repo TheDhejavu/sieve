@@ -172,7 +172,7 @@ impl<'a> ContractBuilder<'a, TxBuilder> {
             parent: self.parent,
         }
     }
-    
+
     pub fn path(
         &mut self,
         path: &str,

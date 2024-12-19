@@ -155,10 +155,8 @@ fn main() {
                 t.contract()
                     .params("tokenIn")
                     .exact("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
-            
-                t.contract()
-                    .path("tokenIn")
-                    .starts_with("0x8");
+
+                t.contract().path("tokenIn").starts_with("0x8");
             });
         })
         .build();
