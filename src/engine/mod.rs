@@ -22,15 +22,15 @@ impl FilterEngine {
         }
     }
 
-    fn evaluate<T: EvaluableContext>(&self, filter: &FilterNode, ctx: &T) -> bool {
+    fn evaluate<T: EvaluableContext>(filter: &FilterNode, ctx: &T) -> bool {
         match &filter.condition {
             Some(condition) => ctx.evaluate_condition(condition),
             None => filter.group.as_ref().map_or(false, |(op, nodes)| match op {
-                LogicalOp::And => nodes.iter().all(|node| self.evaluate(node, ctx)),
-                LogicalOp::Or => nodes.iter().any(|node| self.evaluate(node, ctx)),
-                LogicalOp::Not => !nodes.iter().all(|node| self.evaluate(node, ctx)),
+                LogicalOp::And => nodes.iter().all(|node| Self::evaluate(node, ctx)),
+                LogicalOp::Or => nodes.iter().any(|node| Self::evaluate(node, ctx)),
+                LogicalOp::Not => !nodes.iter().all(|node| Self::evaluate(node, ctx)),
                 LogicalOp::Xor => {
-                    let true_count = nodes.iter().filter(|node| self.evaluate(node, ctx)).count();
+                    let true_count = nodes.iter().filter(|node| Self::evaluate(node, ctx)).count();
                     true_count == 1
                 }
             }),
@@ -43,7 +43,7 @@ impl FilterEngine {
         data: T,
     ) -> bool {
         let ctx = EvaluationContext::new(data, &self.state);
-        self.evaluate(filter, &*ctx.data)
+        Self::evaluate(filter, &*ctx.data)
     }
 }
 
