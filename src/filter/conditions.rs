@@ -81,6 +81,13 @@ pub enum FilterCondition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParameterCondition {
+    U256(NumericCondition<U256>),
+    U128(NumericCondition<u128>),
+    String(StringCondition),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum TransactionCondition {
     Gas(NumericCondition<u64>),
@@ -93,16 +100,15 @@ pub enum TransactionCondition {
     GasPrice(NumericCondition<u128>),
     MaxFeePerGas(NumericCondition<u128>),
     MaxPriorityFee(NumericCondition<u128>),
-    TransferAmount(NumericCondition<U256>),
     From(StringCondition),
     To(StringCondition),
     Hash(StringCondition),
     BlockHash(StringCondition),
     AccessList(ArrayCondition<String>),
-    TransferMethod(StringCondition),
-    TransferTo(StringCondition),
-    TransferFrom(StringCondition),
-    TransferSpender(StringCondition),
+
+    Method(StringCondition),
+    Path(String, StringCondition),
+    Parameter(String, ParameterCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,7 +118,7 @@ pub enum EventCondition {
     Contract(StringCondition),
     BlockHash(StringCondition),
     TxHash(StringCondition),
-    DataParameter(String, StringCondition),
+    Parameter(String, StringCondition),
 
     // Numeric conditions
     LogIndex(NumericCondition<u64>),

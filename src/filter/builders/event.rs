@@ -67,7 +67,7 @@ impl EventBuilder {
 
     pub fn param(&mut self, name: &str) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
         FieldWrapper {
-            field: StringFieldType(EventField::DataParameter(name.to_string())),
+            field: StringFieldType(EventField::Parameter(name.to_string())),
             parent: self,
         }
     }
@@ -140,7 +140,7 @@ mod tests {
         let mut builder = EventBuilder::new();
 
         // Test all string operations for contract address
-        builder.contract().eq(ADDRESS);
+        builder.contract().exact(ADDRESS);
         builder.contract().contains(CONTENT);
         builder.contract().starts_with(PREFIX);
         builder.contract().ends_with(SUFFIX);

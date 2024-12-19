@@ -120,7 +120,7 @@ mod tests {
         let mut builder = PoolBuilder::new();
 
         // Test various string operations
-        builder.from().eq(ADDRESS);
+        builder.from().exact(ADDRESS);
         builder.to().contains(HASH);
         builder.hash().starts_with(PREFIX);
 

@@ -48,7 +48,7 @@ pub trait StringOps {
     fn matches(self, substring: &str);
 
     /// Creates a condition that matches strings exactly equal to the specified value.
-    fn eq(self, value: &str);
+    fn exact(self, value: &str);
 }
 
 /// Operations available for array fields that allow various array matching operations.

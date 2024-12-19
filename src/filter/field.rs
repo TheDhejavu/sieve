@@ -5,7 +5,7 @@ use alloy_rpc_types::{Block, Transaction as RpcTransaction};
 use super::{
     conditions::{
         ArrayCondition, BlockCondition, ConditionBuilder, Evaluable, EventCondition,
-        NumericCondition, PoolCondition, StringCondition, TransactionCondition,
+        NumericCondition, ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
     },
     operations::{
         ArrayFieldToCondition, ArrayOps, NumericOps, StringFieldToCondition, StringOps,
@@ -20,16 +20,15 @@ pub struct U256FieldType<T>(pub T);
 pub struct StringFieldType<T>(pub T);
 pub struct ArrayFieldType<T>(pub T);
 
-// === Transaction Fields ======
+pub struct ParamFieldType<T>(pub T);
 
-// Transfer-specific fields
+// === Transaction Fields ======
+// Contract-specific fields
 #[derive(Debug, Clone)]
-pub enum TransferField {
-    Method,  // The transfer method (transfer, transferFrom, approve)
-    To,      // Recipient address
-    From,    // Source address (for transferFrom)
-    Amount,  // Transfer amount
-    Spender, // Spender address (for approvals)
+pub enum ContractField {
+    Method,            // Function name/selector
+    Parameter(String), // Named parameter: "amountIn", "to", "amount" etc
+    Path(String),      // For nested params like "path.tokenIn"
 }
 
 // Transaction specific field
@@ -51,7 +50,7 @@ pub enum TxField {
     BlockNumber,      // Block number where tx was included
     BlockHash,        // Hash of the block where tx was included
     TransactionIndex, // Index of tx in the block
-    Transfer(TransferField),
+    Contract(ContractField),
 }
 
 // Event-specific fields (logs)
@@ -64,7 +63,7 @@ pub enum EventField {
     BlockHash,   // Hash of the block where this log was
     TxHash,      // Hash of the transaction that created this log
     TxIndex,     // Integer of the transaction's index position
-    DataParameter(String),
+    Parameter(String),
 }
 
 // ===  Block-specific fields ===
@@ -120,7 +119,6 @@ impl U256FieldToCondition<TransactionCondition> for TxField {
     fn to_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
         match self {
             TxField::Value => TransactionCondition::Value(value),
-            TxField::Transfer(TransferField::Amount) => TransactionCondition::TransferAmount(value),
             _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
@@ -176,6 +174,40 @@ impl U256FieldToCondition<BlockCondition> for BlockField {
         match self {
             BlockField::Size => BlockCondition::Size(value),
             _ => panic!("Field does not support U256 numeric conditions"),
+        }
+    }
+}
+
+impl U128FieldToCondition<TransactionCondition> for ContractField {
+    fn to_condition(&self, value: NumericCondition<u128>) -> TransactionCondition {
+        match self {
+            ContractField::Parameter(path) => {
+                TransactionCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
+            }
+            _ => panic!("Field does not support U256 numeric conditions"),
+        }
+    }
+}
+
+impl U256FieldToCondition<TransactionCondition> for ContractField {
+    fn to_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
+        match self {
+            ContractField::Parameter(path) => {
+                TransactionCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
+            }
+            _ => panic!("Field does not support U256 numeric conditions"),
+        }
+    }
+}
+
+impl StringFieldToCondition<TransactionCondition> for ContractField {
+    fn to_condition(&self, value: StringCondition) -> TransactionCondition {
+        match self {
+            ContractField::Parameter(path) => {
+                TransactionCondition::Parameter(path.to_string(), ParameterCondition::String(value))
+            }
+            ContractField::Path(path) => TransactionCondition::Path(path.to_string(), value),
+            ContractField::Method => TransactionCondition::Method(value),
         }
     }
 }
@@ -283,6 +315,9 @@ impl_numeric_ops!(u64, U64FieldType, U64FieldToCondition);
 impl_numeric_ops!(u128, U128FieldType, U128FieldToCondition);
 impl_numeric_ops!(U256, U256FieldType, U256FieldToCondition);
 
+impl_numeric_ops!(u128, ParamFieldType, U128FieldToCondition);
+impl_numeric_ops!(U256, ParamFieldType, U256FieldToCondition);
+
 impl StringFieldToCondition<TransactionCondition> for TxField {
     fn to_condition(&self, value: StringCondition) -> TransactionCondition {
         match self {
@@ -290,12 +325,6 @@ impl StringFieldToCondition<TransactionCondition> for TxField {
             TxField::To => TransactionCondition::To(value),
             TxField::Hash => TransactionCondition::Hash(value),
             TxField::BlockHash => TransactionCondition::BlockHash(value),
-            TxField::Transfer(TransferField::Method) => TransactionCondition::TransferMethod(value),
-            TxField::Transfer(TransferField::To) => TransactionCondition::TransferTo(value),
-            TxField::Transfer(TransferField::From) => TransactionCondition::TransferFrom(value),
-            TxField::Transfer(TransferField::Spender) => {
-                TransactionCondition::TransferSpender(value)
-            }
             // Non-string fields should panic
             _ => panic!("Field does not support string conditions"),
         }
@@ -308,9 +337,7 @@ impl StringFieldToCondition<EventCondition> for EventField {
             EventField::Contract => EventCondition::Contract(value),
             EventField::BlockHash => EventCondition::BlockHash(value),
             EventField::TxHash => EventCondition::TxHash(value),
-            EventField::DataParameter(param) => {
-                EventCondition::DataParameter(param.to_string(), value)
-            }
+            EventField::Parameter(param) => EventCondition::Parameter(param.to_string(), value),
             _ => panic!("Field does not support string conditions"),
         }
     }
@@ -322,7 +349,6 @@ impl StringFieldToCondition<PoolCondition> for PoolField {
             PoolField::Hash => PoolCondition::Hash(value),
             PoolField::From => PoolCondition::From(value),
             PoolField::To => PoolCondition::To(value),
-
             _ => panic!("Field does not support string conditions"),
         }
     }
@@ -336,58 +362,64 @@ impl StringFieldToCondition<BlockCondition> for BlockField {
             BlockField::StateRoot => BlockCondition::StateRoot(value),
             BlockField::ReceiptsRoot => BlockCondition::ReceiptsRoot(value),
             BlockField::TransactionsRoot => BlockCondition::TransactionsRoot(value),
-
             _ => panic!("Field does not support string conditions"),
         }
     }
 }
 
 // === StringOps =====
-impl<T, P, C> StringOps for FieldWrapper<'_, StringFieldType<T>, P>
-where
-    T: StringFieldToCondition<C>,
-    P: ConditionBuilder<Condition = C>,
-{
-    fn starts_with(self, prefix: &str) {
-        let condition = self
-            .field
-            .0
-            .to_condition(StringCondition::StartsWith(prefix.to_string()));
-        self.parent.push_condition(condition);
-    }
+macro_rules! impl_string_ops {
+    ($field_type:ident, $field_trait:ident) => {
+        impl<T, P, C> StringOps for FieldWrapper<'_, $field_type<T>, P>
+        where
+            T: $field_trait<C>,
+            P: ConditionBuilder<Condition = C>,
+        {
+            fn starts_with(self, prefix: &str) {
+                let condition = self
+                    .field
+                    .0
+                    .to_condition(StringCondition::StartsWith(prefix.to_string()));
+                self.parent.push_condition(condition);
+            }
 
-    fn ends_with(self, suffix: &str) {
-        let condition = self
-            .field
-            .0
-            .to_condition(StringCondition::EndsWith(suffix.to_string()));
-        self.parent.push_condition(condition);
-    }
+            fn ends_with(self, suffix: &str) {
+                let condition = self
+                    .field
+                    .0
+                    .to_condition(StringCondition::EndsWith(suffix.to_string()));
+                self.parent.push_condition(condition);
+            }
 
-    fn contains(self, substring: &str) {
-        let condition = self
-            .field
-            .0
-            .to_condition(StringCondition::Contains(substring.to_string()));
-        self.parent.push_condition(condition);
-    }
+            fn contains(self, substring: &str) {
+                let condition = self
+                    .field
+                    .0
+                    .to_condition(StringCondition::Contains(substring.to_string()));
+                self.parent.push_condition(condition);
+            }
 
-    fn matches(self, regex_pattern: &str) {
-        let condition = self
-            .field
-            .0
-            .to_condition(StringCondition::Matches(regex_pattern.to_string()));
-        self.parent.push_condition(condition);
-    }
+            fn matches(self, regex_pattern: &str) {
+                let condition = self
+                    .field
+                    .0
+                    .to_condition(StringCondition::Matches(regex_pattern.to_string()));
+                self.parent.push_condition(condition);
+            }
 
-    fn eq(self, value: &str) {
-        let condition = self
-            .field
-            .0
-            .to_condition(StringCondition::EqualTo(value.to_string()));
-        self.parent.push_condition(condition);
-    }
+            fn exact(self, value: &str) {
+                let condition = self
+                    .field
+                    .0
+                    .to_condition(StringCondition::EqualTo(value.to_string()));
+                self.parent.push_condition(condition);
+            }
+        }
+    };
 }
+
+impl_string_ops!(ParamFieldType, StringFieldToCondition);
+impl_string_ops!(StringFieldType, StringFieldToCondition);
 
 impl ArrayFieldToCondition<TransactionCondition, String> for TxField {
     fn to_condition(&self, value: ArrayCondition<String>) -> TransactionCondition {

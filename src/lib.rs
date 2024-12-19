@@ -27,10 +27,9 @@ fn main() {
             f.tx(|t| {
                 t.value().gt(U256::from(100)); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
-                t.transfer().amount().lt(U256::from(100))
             });
             f.event(|e| {
-                e.contract().eq("UniswapV2Factory"); // AND Contract = UniswapV2Factory
+                e.contract().exact("UniswapV2Factory"); // AND Contract = UniswapV2Factory
             });
         })
         .build();
@@ -41,7 +40,7 @@ fn main() {
     let _defi_filter = FilterBuilder::new()
         .any_of(|f| {
             f.all_of(|f| {
-                f.event(|e| e.contract().eq("UniswapV2Factory"));
+                f.event(|e| e.contract().exact("UniswapV2Factory"));
                 f.tx(|t| {
                     t.value().gt(U256::from(100));
                     t.gas_price().lt(150);
@@ -49,7 +48,7 @@ fn main() {
             });
 
             f.all_of(|f| {
-                f.event(|e| e.contract().eq("TetherToken"));
+                f.event(|e| e.contract().exact("TetherToken"));
                 f.tx(|t| t.value().gt(U256::from(100)));
             });
         })
@@ -67,7 +66,7 @@ fn main() {
                 f.event(|e| {
                     e.contract().starts_with("0xDex");
                     e.topics().contains("Transfer".to_string());
-                    e.param("amount").eq("1000");
+                    e.param("amount").exact("1000");
                     e.param("from").starts_with("0xa1b2...");
                 });
             });
@@ -86,18 +85,18 @@ fn main() {
         .any_of(|f| {
             // Monitor multiple tokens & DEX
             f.any_of(|f| {
-                f.event(|e| e.contract().eq("TetherToken"));
-                f.event(|e| e.contract().eq("UniswapV2Factory"));
-                f.event(|e| e.contract().eq("FiatTokenProxy"));
+                f.event(|e| e.contract().exact("TetherToken"));
+                f.event(|e| e.contract().exact("UniswapV2Factory"));
+                f.event(|e| e.contract().exact("FiatTokenProxy"));
             });
 
             // Monitor lending protocols
             f.any_of(|f| {
-                f.event(|e| e.contract().eq("Comp"));
-                f.event(|e| e.contract().eq("InitializableAdminUpgradeabilityProxy"));
+                f.event(|e| e.contract().exact("Comp"));
+                f.event(|e| e.contract().exact("InitializableAdminUpgradeabilityProxy"));
                 f.event(|e| {
                     e.contract()
-                        .eq("0xdAC17F958D2ee523a2206206994597C13D831ec7");
+                        .exact("0xdAC17F958D2ee523a2206206994597C13D831ec7");
                     e.topics().contains(
                         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
                             .to_string(),
@@ -145,20 +144,21 @@ fn main() {
             // Address and hash fields
             f.tx(|t| {
                 t.from().starts_with("0xdead");
-                t.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 t.hash().contains("abc");
                 t.block_hash().starts_with("0x0");
             });
 
-            // Transfer-specific fields
+            // Contract-specific calls fields
             f.tx(|t| {
-                t.transfer().method().eq("transfer");
-                t.transfer().amount().gt(U256::from(1000));
-                t.transfer().to().contains("dead");
-                t.transfer().from().starts_with("0x");
-                t.transfer()
-                    .spender()
-                    .eq("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
+                t.contract().method().exact("transfer");
+                t.contract()
+                    .params("tokenIn")
+                    .exact("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
+            
+                t.contract()
+                    .path("tokenIn")
+                    .starts_with("0x8");
             });
         })
         .build();
@@ -173,7 +173,7 @@ fn main() {
                 p.value().gt(U256::from(1000000000000000000u64));
                 // Specific sender/receiver
                 p.from().starts_with("0xdead");
-                p.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
             });
         })
         .unless(|f| {
@@ -190,7 +190,7 @@ fn main() {
         .any_of(|f| {
             f.block(|b| {
                 b.gas_limit().gt(100);
-                b.hash().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                b.hash().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 b.state_root()
                     .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
 

@@ -168,10 +168,10 @@ mod tests {
         let mut builder = BlockBuilder::new();
 
         // Test all string operations
-        builder.hash().eq(HASH);
+        builder.hash().exact(HASH);
         builder.parent_hash().starts_with(PREFIX);
         builder.state_root().ends_with(SUFFIX);
-        builder.receipts_root().eq(HASH);
+        builder.receipts_root().exact(HASH);
         builder.transactions_root().starts_with(PREFIX);
 
         let conditions = vec![

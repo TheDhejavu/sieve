@@ -2,8 +2,8 @@
 use crate::filter::{
     conditions::{ConditionBuilder, TransactionCondition},
     field::{
-        ArrayFieldType, FieldWrapper, StringFieldType, TransferField, TxField, U128FieldType,
-        U256FieldType, U64FieldType, U8FieldType,
+        ArrayFieldType, ContractField, FieldWrapper, ParamFieldType, StringFieldType, TxField,
+        U128FieldType, U256FieldType, U64FieldType, U8FieldType,
     },
 };
 
@@ -133,16 +133,17 @@ impl TxBuilder {
         }
     }
 
-    pub fn transfer(&mut self) -> TxTransferBuilder<Self> {
-        TxTransferBuilder::new(self)
+    pub fn contract(&mut self) -> ContractBuilder<Self> {
+        ContractBuilder::new(self)
     }
 }
 
-pub struct TxTransferBuilder<'a, B> {
+#[allow(dead_code)]
+pub struct ContractBuilder<'a, B> {
     parent: &'a mut B,
 }
 
-impl ConditionBuilder for TxTransferBuilder<'_, TxBuilder> {
+impl ConditionBuilder for ContractBuilder<'_, TxBuilder> {
     type Condition = TransactionCondition;
 
     fn push_condition(&mut self, condition: TransactionCondition) {
@@ -150,55 +151,48 @@ impl ConditionBuilder for TxTransferBuilder<'_, TxBuilder> {
     }
 }
 
-#[allow(dead_code)]
-impl<'a> TxTransferBuilder<'a, TxBuilder> {
+impl<'a> ContractBuilder<'a, TxBuilder> {
     pub fn new(parent: &'a mut TxBuilder) -> Self {
         Self { parent }
     }
 
-    pub fn amount(&mut self) -> FieldWrapper<'_, U256FieldType<TxField>, TxBuilder> {
+    pub fn method(&mut self) -> FieldWrapper<'_, StringFieldType<ContractField>, TxBuilder> {
         FieldWrapper {
-            field: U256FieldType(TxField::Transfer(TransferField::Amount)),
+            field: StringFieldType(ContractField::Method),
             parent: self.parent,
         }
     }
 
-    pub fn method(&mut self) -> FieldWrapper<'_, StringFieldType<TxField>, TxBuilder> {
+    pub fn params(
+        &mut self,
+        name: &str,
+    ) -> FieldWrapper<'_, ParamFieldType<ContractField>, TxBuilder> {
         FieldWrapper {
-            field: StringFieldType(TxField::Transfer(TransferField::Method)),
+            field: ParamFieldType(ContractField::Parameter(name.to_string())),
             parent: self.parent,
         }
     }
-
-    pub fn to(&mut self) -> FieldWrapper<'_, StringFieldType<TxField>, TxBuilder> {
+    
+    pub fn path(
+        &mut self,
+        path: &str,
+    ) -> FieldWrapper<'_, StringFieldType<ContractField>, TxBuilder> {
         FieldWrapper {
-            field: StringFieldType(TxField::Transfer(TransferField::To)),
-            parent: self.parent,
-        }
-    }
-
-    pub fn from(&mut self) -> FieldWrapper<'_, StringFieldType<TxField>, TxBuilder> {
-        FieldWrapper {
-            field: StringFieldType(TxField::Transfer(TransferField::From)),
-            parent: self.parent,
-        }
-    }
-
-    pub fn spender(&mut self) -> FieldWrapper<'_, StringFieldType<TxField>, TxBuilder> {
-        FieldWrapper {
-            field: StringFieldType(TxField::Transfer(TransferField::Spender)),
+            field: StringFieldType(ContractField::Path(path.to_string())),
             parent: self.parent,
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use alloy_primitives::U256;
 
     use super::*;
     use crate::filter::{
-        conditions::{ArrayCondition, NumericCondition, StringCondition, TransactionCondition},
+        conditions::{
+            ArrayCondition, NumericCondition, ParameterCondition, StringCondition,
+            TransactionCondition,
+        },
         ArrayOps, NumericOps, StringOps,
     };
 
@@ -233,7 +227,7 @@ mod tests {
     fn test_tx_string_field_operations() {
         let mut builder = TxBuilder::new();
 
-        builder.from().eq(ADDRESS);
+        builder.from().exact(ADDRESS);
         builder.to().starts_with(PREFIX);
         builder.block_hash().contains(CONTENT);
         builder.hash().ends_with(CONTENT);
@@ -264,22 +258,27 @@ mod tests {
     }
 
     #[test]
-    fn test_tx_transfer_operations() {
+    fn test_tx_contract_operations() {
         let mut builder = TxBuilder::new();
-        let mut transfer = builder.transfer();
+        let mut transfer = builder.contract();
 
-        transfer.amount().eq(U256::from(100));
-        transfer.method().eq(METHOD);
-        transfer.to().eq(ADDRESS);
-        transfer.from().starts_with(PREFIX);
-        transfer.spender().contains(CONTENT);
+        transfer.method().exact(METHOD);
+        transfer
+            .path("tokenIn")
+            .exact("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+
+        transfer.params("amountIn").gt(100_u128);
 
         let expected_conditions = vec![
-            TransactionCondition::TransferAmount(NumericCondition::EqualTo(U256::from(100))),
-            TransactionCondition::TransferMethod(StringCondition::EqualTo(METHOD.to_string())),
-            TransactionCondition::TransferTo(StringCondition::EqualTo(ADDRESS.to_string())),
-            TransactionCondition::TransferFrom(StringCondition::StartsWith(PREFIX.to_string())),
-            TransactionCondition::TransferSpender(StringCondition::Contains(CONTENT.to_string())),
+            TransactionCondition::Method(StringCondition::EqualTo(METHOD.to_string())),
+            TransactionCondition::Path(
+                "tokenIn".to_string(),
+                StringCondition::EqualTo("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()),
+            ),
+            TransactionCondition::Parameter(
+                "amountIn".to_string(),
+                ParameterCondition::U128(NumericCondition::GreaterThan(100_u128)),
+            ),
         ];
 
         assert_eq!(builder.conditions, expected_conditions);
