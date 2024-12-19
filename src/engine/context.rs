@@ -1,5 +1,11 @@
-use super::state::{CacheKey, DecodedData, State};
-use crate::filter::conditions::{Evaluable, FilterCondition};
+use super::{
+    state::{CacheKey, State},
+    DecodedContractCall, DecodedData,
+};
+use crate::filter::{
+    conditions::FilterCondition,
+    evaluate::{Evaluable, EvaluableWithDecodedData},
+};
 use alloy_rpc_types::{Block, Transaction as RpcTransaction};
 use std::sync::Arc;
 
@@ -12,7 +18,9 @@ pub(crate) trait EvaluableContext {
 impl EvaluableContext for RpcTransaction {
     fn evaluate_condition(&self, condition: &FilterCondition) -> bool {
         match condition {
-            FilterCondition::Transaction(tx_condition) => tx_condition.evaluate(self),
+            FilterCondition::Transaction(tx_condition) => {
+                tx_condition.evaluate(self, None::<&DecodedData>)
+            }
             _ => false, // Non-transaction conditions always return false
         }
     }

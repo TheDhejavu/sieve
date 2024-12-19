@@ -23,6 +23,13 @@ impl EventBuilder {
         }
     }
 
+    pub fn name(&mut self) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
+        FieldWrapper {
+            field: StringFieldType(EventField::Name),
+            parent: self,
+        }
+    }
+
     pub fn block_hash(&mut self) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
         FieldWrapper {
             field: StringFieldType(EventField::BlockHash),

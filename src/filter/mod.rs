@@ -1,5 +1,6 @@
 mod builders;
 pub(crate) mod conditions;
+pub(crate) mod evaluate;
 mod field;
 mod operations;
 

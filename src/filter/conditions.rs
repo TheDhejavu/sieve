@@ -10,34 +10,32 @@ pub enum LogicalOp {
     Xor,
 }
 
-// Trait to represent any numeric type we want to support
 #[allow(dead_code)]
 pub trait NumericType: Clone + PartialEq + PartialOrd {
     fn from_string(value: String) -> Self;
 }
 
-// Implement for our supported numeric types
 impl NumericType for u64 {
     fn from_string(value: String) -> Self {
-        value.parse().unwrap()
+        value.parse().unwrap_or_default()
     }
 }
 
 impl NumericType for u8 {
     fn from_string(value: String) -> Self {
-        value.parse().unwrap()
+        value.parse().unwrap_or_default()
     }
 }
 
 impl NumericType for u128 {
     fn from_string(value: String) -> Self {
-        value.parse().unwrap()
+        value.parse().unwrap_or_default()
     }
 }
 
 impl NumericType for U256 {
     fn from_string(value: String) -> Self {
-        value.parse().unwrap()
+        value.parse().unwrap_or_default()
     }
 }
 
@@ -119,6 +117,7 @@ pub enum EventCondition {
     BlockHash(StringCondition),
     TxHash(StringCondition),
     Parameter(String, StringCondition),
+    Name(StringCondition),
 
     // Numeric conditions
     LogIndex(NumericCondition<u64>),
@@ -165,10 +164,6 @@ pub(crate) trait ConditionBuilder {
     fn push_condition(&mut self, condition: Self::Condition);
 }
 
-pub(crate) trait Evaluable<T> {
-    fn evaluate(&self, value: &T) -> bool;
-}
-
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
 // specific conditions. Each node in the tree represents a logical operator
 // (e.g., AND, OR) or a specific condition (e.g., Value > 100). The structure allows
@@ -185,51 +180,4 @@ pub(crate) trait Evaluable<T> {
 pub(crate) struct FilterNode {
     pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
     pub(crate) condition: Option<FilterCondition>,
-}
-
-impl<T> Evaluable<T> for NumericCondition<T>
-where
-    T: NumericType,
-{
-    fn evaluate(&self, value: &T) -> bool {
-        match self {
-            Self::GreaterThan(threshold) => value > threshold,
-            Self::GreaterThanOrEqualTo(threshold) => value >= threshold,
-            Self::LessThan(threshold) => value < threshold,
-            Self::LessThanOrEqualTo(threshold) => value <= threshold,
-            Self::EqualTo(threshold) => value == threshold,
-            Self::NotEqualTo(threshold) => value != threshold,
-            Self::Between(min, max) => value >= min && value <= max,
-            Self::Outside(min, max) => value < min || value > max,
-        }
-    }
-}
-
-impl Evaluable<String> for StringCondition {
-    fn evaluate(&self, value: &String) -> bool {
-        match self {
-            Self::EqualTo(expected) => value == expected,
-            Self::Contains(substring) => value.contains(substring),
-            Self::StartsWith(prefix) => value.starts_with(prefix),
-            Self::EndsWith(suffix) => value.ends_with(suffix),
-            Self::Matches(pattern) => {
-                // TODO: Use regex pattern matching here
-                value == pattern
-            }
-        }
-    }
-}
-
-impl<T> Evaluable<Vec<T>> for ArrayCondition<T>
-where
-    T: PartialEq,
-{
-    fn evaluate(&self, value: &Vec<T>) -> bool {
-        match self {
-            Self::Contains(item) => value.contains(item),
-            Self::NotIn(items) => !items.iter().any(|item| value.contains(item)),
-            Self::Empty => value.is_empty(),
-            Self::NotEmpty => !value.is_empty(),
-        }
-    }
 }

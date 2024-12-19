@@ -6,6 +6,7 @@ use crate::filter::conditions::{FilterNode, LogicalOp};
 
 mod context;
 mod state;
+pub(crate) use state::{DecodedContractCall, DecodedData};
 
 #[allow(dead_code)]
 struct FilterEngine {
@@ -30,11 +31,11 @@ impl FilterEngine {
                 LogicalOp::Or => nodes.iter().any(|node| Self::evaluate(node, ctx)),
                 LogicalOp::Not => !nodes.iter().all(|node| Self::evaluate(node, ctx)),
                 LogicalOp::Xor => {
-                    let true_count = nodes
+                    let count = nodes
                         .iter()
                         .filter(|node| Self::evaluate(node, ctx))
                         .count();
-                    true_count == 1
+                    count == 1
                 }
             }),
         }
