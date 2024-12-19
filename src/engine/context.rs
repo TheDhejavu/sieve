@@ -11,39 +11,62 @@ use std::sync::Arc;
 
 // Evaluable context
 #[allow(dead_code)]
-pub(crate) trait EvaluableContext {
-    fn evaluate_condition(&self, condition: &FilterCondition) -> bool;
+pub(crate) trait EvaluableData {
+    fn cache_key(&self) -> CacheKey;
+
+    fn evaluate_condition(
+        &self,
+        condition: &FilterCondition,
+        decoded: Option<Arc<DecodedData>>,
+    ) -> bool;
 }
 
-impl EvaluableContext for RpcTransaction {
-    fn evaluate_condition(&self, condition: &FilterCondition) -> bool {
+impl EvaluableData for RpcTransaction {
+    fn evaluate_condition(
+        &self,
+        condition: &FilterCondition,
+        decoded: Option<Arc<DecodedData>>,
+    ) -> bool {
         match condition {
-            FilterCondition::Transaction(tx_condition) => {
-                tx_condition.evaluate(self, None::<&DecodedData>)
-            }
-            _ => false, // Non-transaction conditions always return false
+            FilterCondition::Transaction(tx_condition) => tx_condition.evaluate(self, decoded),
+            _ => false,
         }
+    }
+
+    fn cache_key(&self) -> CacheKey {
+        CacheKey::ContractCall(self.inner.tx_hash().to_string())
     }
 }
 
-impl EvaluableContext for Block {
-    fn evaluate_condition(&self, condition: &FilterCondition) -> bool {
+impl EvaluableData for Block {
+    fn evaluate_condition(
+        &self,
+        condition: &FilterCondition,
+        _decoded: Option<Arc<DecodedData>>,
+    ) -> bool {
         match condition {
-            FilterCondition::Block(block_condition) => block_condition.evaluate(self),
+            FilterCondition::Block(tx_condition) => tx_condition.evaluate(self),
             _ => false,
         }
+    }
+
+    fn cache_key(&self) -> CacheKey {
+        CacheKey::ContractCall(self.header.hash.to_string())
     }
 }
 
 #[allow(dead_code)]
-pub(crate) struct EvaluationContext<'a, T> {
-    pub(crate) data: Arc<T>,
+pub(crate) struct EvaluationContext<'a, D: EvaluableData> {
+    pub(crate) data: Arc<D>,
     pub(crate) state: &'a State,
 }
 
 #[allow(dead_code)]
-impl<'a, T> EvaluationContext<'a, T> {
-    pub(crate) fn new(data: T, state: &'a State) -> Self {
+impl<'a, D> EvaluationContext<'a, D>
+where
+    D: EvaluableData,
+{
+    pub(crate) fn new(data: D, state: &'a State) -> Self {
         Self {
             data: Arc::new(data),
             state,

@@ -1,4 +1,4 @@
-use context::{EvaluableContext, EvaluationContext};
+use context::{EvaluableData, EvaluationContext};
 use dashmap::DashMap;
 use state::State;
 
@@ -23,9 +23,17 @@ impl FilterEngine {
         }
     }
 
-    fn evaluate<T: EvaluableContext>(filter: &FilterNode, ctx: &T) -> bool {
+    fn evaluate<T: EvaluableData>(filter: &FilterNode, ctx: &EvaluationContext<T>) -> bool {
         match &filter.condition {
-            Some(condition) => ctx.evaluate_condition(condition),
+            Some(condition) => {
+                if condition.needs_decoded_data() {
+                    let key = ctx.data.cache_key();
+                    // Get or create decoded data from context
+                    let decoded = ctx.entry(key);
+                    return ctx.data.evaluate_condition(condition, decoded);
+                }
+                ctx.data.evaluate_condition(condition, None)
+            }
             None => filter.group.as_ref().map_or(false, |(op, nodes)| match op {
                 LogicalOp::And => nodes.iter().all(|node| Self::evaluate(node, ctx)),
                 LogicalOp::Or => nodes.iter().any(|node| Self::evaluate(node, ctx)),
@@ -41,13 +49,13 @@ impl FilterEngine {
         }
     }
 
-    pub(crate) fn evaluate_with_context<T: EvaluableContext>(
+    pub(crate) fn evaluate_with_context<D: EvaluableData>(
         &self,
         filter: &FilterNode,
-        data: T,
+        data: D,
     ) -> bool {
         let ctx = EvaluationContext::new(data, &self.state);
-        Self::evaluate(filter, &*ctx.data)
+        Self::evaluate(filter, &ctx)
     }
 }
 

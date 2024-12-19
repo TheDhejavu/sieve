@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use alloy_consensus::{BlockHeader, Transaction, Typed2718};
 use alloy_primitives::U256;
 use alloy_rpc_types::{Block, Log, Transaction as RpcTransaction};
@@ -6,7 +8,7 @@ use crate::engine::DecodedData;
 use serde_json::Value;
 
 use super::conditions::{
-    ArrayCondition, BlockCondition, EventCondition, NumericCondition, NumericType,
+    ArrayCondition, BlockCondition, EventCondition, FilterCondition, NumericCondition, NumericType,
     ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
 };
 
@@ -22,7 +24,27 @@ pub(crate) trait EvaluableWithDecodedData<T> {
         true
     }
 
-    fn evaluate(&self, value: &T, context: Option<&DecodedData>) -> bool;
+    fn evaluate(&self, value: &T, context: Option<Arc<DecodedData>>) -> bool;
+}
+
+impl FilterCondition {
+    pub(crate) fn needs_decoded_data(&self) -> bool {
+        match self {
+            FilterCondition::Transaction(transaction_condition) => {
+                matches!(
+                    transaction_condition,
+                    TransactionCondition::Method(_)
+                        | TransactionCondition::Parameter(_, _)
+                        | TransactionCondition::Path(_, _)
+                )
+            }
+            FilterCondition::Event(event_condition) => {
+                matches!(event_condition, EventCondition::Parameter(_, _))
+            }
+            FilterCondition::Pool(_) => false,
+            FilterCondition::Block(_) => false,
+        }
+    }
 }
 
 impl<T> Evaluable<T> for NumericCondition<T>
@@ -104,7 +126,7 @@ impl Evaluable<Value> for ParameterCondition {
 }
 
 impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
-    fn evaluate(&self, tx: &RpcTransaction, decoded_data: Option<&DecodedData>) -> bool {
+    fn evaluate(&self, tx: &RpcTransaction, decoded_data: Option<Arc<DecodedData>>) -> bool {
         match self {
             TransactionCondition::Value(condition) => condition.evaluate(&tx.value()),
             TransactionCondition::GasPrice(condition) => {
@@ -139,7 +161,9 @@ impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
             }
             // Contract call specific conditions
             TransactionCondition::Method(condition) => {
-                if let Some(DecodedData::ContractCall(decoded)) = decoded_data {
+                if let Some(DecodedData::ContractCall(decoded)) =
+                    decoded_data.as_ref().map(|arc| arc.as_ref())
+                {
                     let method = decoded.get_method();
                     return condition.evaluate(&method.to_string());
                 }
@@ -147,7 +171,9 @@ impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
             }
             TransactionCondition::Path(_path, _condition) => true,
             TransactionCondition::Parameter(param, condition) => {
-                if let Some(DecodedData::ContractCall(decoded)) = decoded_data {
+                if let Some(DecodedData::ContractCall(decoded)) =
+                    decoded_data.as_ref().map(|arc| arc.as_ref())
+                {
                     let parameter_value = decoded.get_parameter(param);
                     if let Some(value) = parameter_value {
                         return condition.evaluate(value);
@@ -161,7 +187,7 @@ impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
 }
 
 impl EvaluableWithDecodedData<RpcTransaction> for PoolCondition {
-    fn evaluate(&self, tx_pool: &RpcTransaction, _decoded_data: Option<&DecodedData>) -> bool {
+    fn evaluate(&self, tx_pool: &RpcTransaction, _decoded_data: Option<Arc<DecodedData>>) -> bool {
         if !self.pre_evaluate(tx_pool) {
             return false;
         }
@@ -219,7 +245,7 @@ impl Evaluable<Block> for BlockCondition {
 }
 
 impl EvaluableWithDecodedData<Log> for EventCondition {
-    fn evaluate(&self, log: &Log, _decoded_data: Option<&DecodedData>) -> bool {
+    fn evaluate(&self, log: &Log, _decoded_data: Option<Arc<DecodedData>>) -> bool {
         if !self.pre_evaluate(log) {
             return false;
         }
