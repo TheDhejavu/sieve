@@ -9,7 +9,6 @@ use crate::filter::{
 use alloy_rpc_types::{Block, Transaction as RpcTransaction};
 use std::sync::Arc;
 
-// Evaluable context
 #[allow(dead_code)]
 pub(crate) trait EvaluableData {
     fn cache_key(&self) -> CacheKey;
@@ -56,7 +55,10 @@ impl EvaluableData for Block {
 }
 
 #[allow(dead_code)]
-pub(crate) struct EvaluationContext<'a, D: EvaluableData> {
+pub(crate) struct EvaluationContext<'a, D>
+where
+    D: EvaluableData + Send + Sync,
+{
     pub(crate) data: Arc<D>,
     pub(crate) state: &'a State,
 }
@@ -64,7 +66,7 @@ pub(crate) struct EvaluationContext<'a, D: EvaluableData> {
 #[allow(dead_code)]
 impl<'a, D> EvaluationContext<'a, D>
 where
-    D: EvaluableData,
+    D: EvaluableData + Send + Sync,
 {
     pub(crate) fn new(data: D, state: &'a State) -> Self {
         Self {

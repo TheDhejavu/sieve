@@ -1,9 +1,12 @@
+//! Filter engine performs CPU-intensive operations (decoding data, evaluating conditions)
+//! against complex filter trees, so we parallelize evaluation using Rayon workers
+//! for better performance.
 use context::{EvaluableData, EvaluationContext};
 use dashmap::DashMap;
+use rayon::prelude::*;
 use state::State;
 
 use crate::filter::conditions::{FilterNode, LogicalOp};
-
 mod context;
 mod state;
 pub(crate) use state::DecodedData;
@@ -23,7 +26,10 @@ impl FilterEngine {
         }
     }
 
-    fn evaluate<T: EvaluableData>(filter: &FilterNode, ctx: &EvaluationContext<T>) -> bool {
+    fn evaluate<D>(filter: &FilterNode, ctx: &EvaluationContext<D>) -> bool
+    where
+        D: EvaluableData + Send + Sync,
+    {
         match &filter.condition {
             Some(condition) => {
                 if condition.needs_decoded_data() {
@@ -34,26 +40,28 @@ impl FilterEngine {
                 }
                 ctx.data.evaluate_condition(condition, None)
             }
-            None => filter.group.as_ref().map_or(false, |(op, nodes)| match op {
-                LogicalOp::And => nodes.iter().all(|node| Self::evaluate(node, ctx)),
-                LogicalOp::Or => nodes.iter().any(|node| Self::evaluate(node, ctx)),
-                LogicalOp::Not => !nodes.iter().all(|node| Self::evaluate(node, ctx)),
-                LogicalOp::Xor => {
-                    let count = nodes
-                        .iter()
-                        .filter(|node| Self::evaluate(node, ctx))
-                        .count();
-                    count == 1
+            None => filter.group.as_ref().map_or(false, |(op, nodes)| {
+                let parallel_iter = nodes.par_iter();
+
+                match op {
+                    LogicalOp::And => parallel_iter.all(|node| Self::evaluate(node, ctx)),
+                    LogicalOp::Or => parallel_iter.any(|node| Self::evaluate(node, ctx)),
+                    LogicalOp::Not => !parallel_iter.all(|node| Self::evaluate(node, ctx)),
+                    LogicalOp::Xor => {
+                        let count = parallel_iter
+                            .filter(|node| Self::evaluate(node, ctx))
+                            .count();
+                        count == 1
+                    }
                 }
             }),
         }
     }
 
-    pub(crate) fn evaluate_with_context<D: EvaluableData>(
-        &self,
-        filter: &FilterNode,
-        data: D,
-    ) -> bool {
+    pub(crate) fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
+    where
+        D: EvaluableData + Send + Sync,
+    {
         let ctx = EvaluationContext::new(data, &self.state);
         Self::evaluate(filter, &ctx)
     }

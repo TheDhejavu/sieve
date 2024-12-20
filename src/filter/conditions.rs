@@ -1,6 +1,8 @@
 use alloy_primitives::U256;
 use std::cmp::PartialOrd;
 
+use super::priority::{Prioritized, Priority};
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum LogicalOp {
@@ -180,4 +182,14 @@ pub(crate) trait ConditionBuilder {
 pub(crate) struct FilterNode {
     pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
     pub(crate) condition: Option<FilterCondition>,
+}
+
+impl FilterNode {
+    pub(crate) fn optimize(self) -> FilterNode {
+        // TODO:
+        // 1. Re-order conditions based on priority (basic to complex)
+        // 2. Re-order Logical operations to enable short-circuit
+        // 3. Flatten nested logical operations if possible to reduce unnecessary recursive calls during evaluation.
+        self
+    }
 }

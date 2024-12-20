@@ -1,4 +1,7 @@
-use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
+use crate::filter::{
+    conditions::{FilterCondition, FilterNode, LogicalOp},
+    priority::Prioritized,
+};
 
 use super::{block::BlockBuilder, event::EventBuilder, pool::PoolBuilder, transaction::TxBuilder};
 
@@ -218,6 +221,7 @@ impl MainFilterBuilder<'_> {
             group: Some((LogicalOp::And, self.filters.clone())),
             condition: None,
         }
+        .optimize()
     }
 }
 
