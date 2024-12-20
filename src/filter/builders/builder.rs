@@ -1,7 +1,4 @@
-use crate::filter::{
-    conditions::{FilterCondition, FilterNode, LogicalOp},
-    priority::Prioritized,
-};
+use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
 
 use super::{block::BlockBuilder, event::EventBuilder, pool::PoolBuilder, transaction::TxBuilder};
 

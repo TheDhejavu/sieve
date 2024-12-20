@@ -5,11 +5,14 @@ edition = "2021"
 
 [dependencies]
 alloy-consensus = "0.8.1"
+alloy-dyn-abi = "0.8.15"
+alloy-json-abi = "0.8.15"
 alloy-primitives = "0.8.15"
 alloy-rpc-types = "0.8.1"
 alloy-rpc-types-eth = "0.8.1"
 alloy-rpc-types-txpool = "0.8.1"
 dashmap = "6.1.0"
+ethabi = "18.0.0"
 rayon = "1.10.0"
 serde_json = "1.0.133"
 

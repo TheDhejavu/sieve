@@ -5,6 +5,7 @@ use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 mod config;
 mod engine;
 mod filter;
+mod utils;
 
 #[allow(dead_code)]
 fn main() {
