@@ -2,17 +2,12 @@
 //! against complex filter trees, so we parallelize evaluation using Rayon workers
 //! for better performance.
 //!
-use std::sync::Arc;
-
 use context::{EvaluableData, EvaluationContext};
 use dashmap::DashMap;
 use rayon::prelude::*;
 use state::State;
 
-use crate::filter::{
-    conditions::{FilterNode, LogicalOp},
-    evaluate::EvaluableWithCondition,
-};
+use crate::filter::conditions::{FilterNode, LogicalOp};
 mod context;
 mod state;
 pub(crate) use state::DecodedData;
@@ -34,34 +29,10 @@ impl FilterEngine {
 
     fn evaluate<D>(filter: &FilterNode, ctx: &EvaluationContext<D>) -> bool
     where
-        D: EvaluableData + Send + Sync + EvaluableWithCondition<D::Condition>,
+        D: EvaluableData + Send + Sync,
     {
         match &filter.condition {
-            Some(condition) => {
-                if !D::matches_condition(condition) {
-                    return false;
-                }
-
-                let decoded = if condition.needs_decoded_data() {
-                    let key = ctx.data.cache_key();
-                    let decoded_cache_entry = ctx.entry(&key);
-                    if decoded_cache_entry.is_none() {
-                        let cond = D::as_condition(condition);
-                        if let Some(evaluation_condition) = cond {
-                            let decoded = ctx.data.decode_data(evaluation_condition);
-                            Some(Arc::new(decoded.into()))
-                        } else {
-                            None
-                        }
-                    } else {
-                        decoded_cache_entry
-                    }
-                } else {
-                    None
-                };
-
-                ctx.data.evaluate_condition(condition, decoded)
-            }
+            Some(condition) => ctx.evaluate(condition),
             None => filter.group.as_ref().map_or(false, |(op, nodes)| {
                 let parallel_iter = nodes.par_iter();
 
@@ -82,7 +53,7 @@ impl FilterEngine {
 
     pub(crate) fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
     where
-        D: EvaluableData + Send + Sync + EvaluableWithCondition<D::Condition>,
+        D: EvaluableData + Send + Sync,
     {
         let ctx = EvaluationContext::new(data, &self.state);
         Self::evaluate(filter, &ctx)

@@ -11,10 +11,14 @@ pub(crate) enum CacheKey {
     Event(String),        // [log:txhash] => event
     ContractCall(String), // [input:txhash] => contract call
 }
+
+#[derive(Clone)]
 pub(crate) enum DecodedData {
     ContractCall(DecodedContractCall),
     Event(DecodedLog),
 }
+
+#[derive(Clone)]
 pub(crate) struct DecodedContractCall {
     pub(crate) method: String,
     pub(crate) parameters: HashMap<String, Value>,
