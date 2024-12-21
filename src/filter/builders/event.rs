@@ -1,11 +1,22 @@
 use crate::filter::{
-    conditions::{ConditionBuilder, EventCondition},
-    field::{ArrayFieldType, EventField, FieldWrapper, StringFieldType, U64FieldType},
+    conditions::{ConditionBuilder, EventCondition, EventExCondition},
+    field::{
+        ArrayFieldType, ContractField, EventField, FieldWrapper, ParamFieldType, StringFieldType,
+        U64FieldType,
+    },
 };
 
 // ===== Event Builder ========
 pub(crate) struct EventBuilder {
     pub(crate) conditions: Vec<EventCondition>,
+}
+
+impl ConditionBuilder for EventBuilder {
+    type Condition = EventCondition;
+
+    fn push_condition(&mut self, condition: EventCondition) {
+        self.conditions.push(condition)
+    }
 }
 
 #[allow(dead_code)]
@@ -72,22 +83,58 @@ impl EventBuilder {
         }
     }
 
-    pub fn param(&mut self, name: &str) -> FieldWrapper<'_, StringFieldType<EventField>, Self> {
+    pub fn signature(&mut self, signature: &str) -> SignatureEventBuilder<Self> {
+        SignatureEventBuilder::new(self, signature.to_string())
+    }
+}
+
+#[allow(dead_code)]
+pub struct SignatureEventBuilder<'a, B> {
+    parent: &'a mut B,
+    signature: String,
+    parameter_current_index: Option<usize>,
+}
+
+impl ConditionBuilder for SignatureEventBuilder<'_, EventBuilder> {
+    type Condition = EventExCondition;
+
+    fn push_condition(&mut self, condition: EventExCondition) {
+        match condition {
+            EventExCondition::Parameter(param, parameter_condition) => {
+                if let Some(idx) = self.parameter_current_index {
+                    if let Some(EventCondition::EventMatch { parameters, .. }) =
+                        self.parent.conditions.get_mut(idx)
+                    {
+                        parameters.push((param, parameter_condition));
+                    }
+                } else {
+                    self.parent.push_condition(EventCondition::EventMatch {
+                        signature: self.signature.clone(),
+                        parameters: vec![(param, parameter_condition)],
+                    });
+                    self.parameter_current_index = Some(self.parent.conditions.len() - 1);
+                }
+            }
+        };
+    }
+}
+
+impl<'a> SignatureEventBuilder<'a, EventBuilder> {
+    pub fn new(parent: &'a mut EventBuilder, signature: String) -> Self {
+        Self {
+            parent,
+            signature,
+            parameter_current_index: None,
+        }
+    }
+
+    pub fn params(&mut self, name: &str) -> FieldWrapper<'_, ParamFieldType<ContractField>, Self> {
         FieldWrapper {
-            field: StringFieldType(EventField::Parameter(name.to_string())),
+            field: ParamFieldType(ContractField::Parameter(name.to_string())),
             parent: self,
         }
     }
 }
-
-impl ConditionBuilder for EventBuilder {
-    type Condition = EventCondition;
-
-    fn push_condition(&mut self, condition: EventCondition) {
-        self.conditions.push(condition)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

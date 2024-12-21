@@ -1,8 +1,6 @@
 use alloy_primitives::U256;
 use std::cmp::PartialOrd;
 
-use super::priority::{Prioritized, Priority};
-
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum LogicalOp {
@@ -77,7 +75,7 @@ pub enum FilterCondition {
     Transaction(TransactionCondition),
     Event(EventCondition),
     Pool(PoolCondition),
-    Block(BlockCondition),
+    BlockHeader(BlockHeaderCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -118,7 +116,6 @@ pub enum EventCondition {
     Contract(StringCondition),
     BlockHash(StringCondition),
     TxHash(StringCondition),
-    Parameter(String, StringCondition),
     Name(StringCondition),
 
     // Numeric conditions
@@ -126,8 +123,18 @@ pub enum EventCondition {
     BlockNumber(NumericCondition<u64>),
     TxIndex(NumericCondition<u64>),
 
+    EventMatch {
+        signature: String,
+        parameters: Vec<(String, ParameterCondition)>,
+    },
+
     // Array condition
     Topics(ArrayCondition<String>),
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum EventExCondition {
+    Parameter(String, ParameterCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,14 +152,13 @@ pub enum PoolCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum BlockCondition {
+pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
     Size(NumericCondition<U256>),
     GasUsed(NumericCondition<u64>),
     GasLimit(NumericCondition<u64>),
-    TransactionCount(NumericCondition<u64>),
 
     Hash(StringCondition),
     ParentHash(StringCondition),

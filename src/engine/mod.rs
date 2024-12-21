@@ -1,12 +1,18 @@
 //! Filter engine performs CPU-intensive operations (decoding data, evaluating conditions)
 //! against complex filter trees, so we parallelize evaluation using Rayon workers
 //! for better performance.
+//!
+use std::sync::Arc;
+
 use context::{EvaluableData, EvaluationContext};
 use dashmap::DashMap;
 use rayon::prelude::*;
 use state::State;
 
-use crate::filter::conditions::{FilterNode, LogicalOp};
+use crate::filter::{
+    conditions::{FilterNode, LogicalOp},
+    evaluate::EvaluableWithCondition,
+};
 mod context;
 mod state;
 pub(crate) use state::DecodedData;
@@ -28,17 +34,33 @@ impl FilterEngine {
 
     fn evaluate<D>(filter: &FilterNode, ctx: &EvaluationContext<D>) -> bool
     where
-        D: EvaluableData + Send + Sync,
+        D: EvaluableData + Send + Sync + EvaluableWithCondition<D::Condition>,
     {
         match &filter.condition {
             Some(condition) => {
-                if condition.needs_decoded_data() {
-                    let key = ctx.data.cache_key();
-                    // Get or create decoded data from context
-                    let decoded = ctx.entry(key);
-                    return ctx.data.evaluate_condition(condition, decoded);
+                if !D::matches_condition(condition) {
+                    return false;
                 }
-                ctx.data.evaluate_condition(condition, None)
+
+                let decoded = if condition.needs_decoded_data() {
+                    let key = ctx.data.cache_key();
+                    let decoded_cache_entry = ctx.entry(&key);
+                    if decoded_cache_entry.is_none() {
+                        let cond = D::as_condition(condition);
+                        if let Some(evaluation_condition) = cond {
+                            let decoded = ctx.data.decode_data(evaluation_condition);
+                            Some(Arc::new(decoded.into()))
+                        } else {
+                            None
+                        }
+                    } else {
+                        decoded_cache_entry
+                    }
+                } else {
+                    None
+                };
+
+                ctx.data.evaluate_condition(condition, decoded)
             }
             None => filter.group.as_ref().map_or(false, |(op, nodes)| {
                 let parallel_iter = nodes.par_iter();
@@ -60,13 +82,12 @@ impl FilterEngine {
 
     pub(crate) fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
     where
-        D: EvaluableData + Send + Sync,
+        D: EvaluableData + Send + Sync + EvaluableWithCondition<D::Condition>,
     {
         let ctx = EvaluationContext::new(data, &self.state);
         Self::evaluate(filter, &ctx)
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

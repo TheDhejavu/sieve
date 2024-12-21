@@ -67,32 +67,32 @@ pub trait ArrayOps<T> {
     fn not_in(self, values: Vec<T>);
 }
 
-/// Converts a field to a numeric condition.
-///
-/// This trait is implemented by field types that can be converted into numeric conditions.
-pub trait U8FieldToCondition<C> {
-    fn to_condition(&self, value: NumericCondition<u8>) -> C;
-}
+// /// Converts a field to a numeric condition.
+// ///
+// /// This trait is implemented by field types that can be converted into numeric conditions.
+// pub trait U8FieldToCondition<C> {
+//     fn to_condition(&self, value: NumericCondition<u8>) -> C;
+// }
 
-pub trait U64FieldToCondition<C> {
-    fn to_condition(&self, value: NumericCondition<u64>) -> C;
-}
+// pub trait U64FieldToCondition<C> {
+//     fn to_condition(&self, value: NumericCondition<u64>) -> C;
+// }
 
-pub trait U256FieldToCondition<C> {
-    fn to_condition(&self, value: NumericCondition<U256>) -> C;
-}
+// pub trait U256FieldToCondition<C> {
+//     fn to_condition(&self, value: NumericCondition<U256>) -> C;
+// }
 
-pub trait U128FieldToCondition<C> {
-    fn to_condition(&self, value: NumericCondition<u128>) -> C;
-}
-/// Converts a field to a string condition.
-///
-/// This trait is implemented by field types that can be converted into string conditions.
-pub trait StringFieldToCondition<C> {
-    fn to_condition(&self, value: StringCondition) -> C;
-}
+// pub trait U128FieldToCondition<C> {
+//     fn to_condition(&self, value: NumericCondition<u128>) -> C;
+// }
+// /// Converts a field to a string condition.
+// ///
+// /// This trait is implemented by field types that can be converted into string conditions.
+// pub trait StringFieldToCondition<C> {
+//     fn to_condition(&self, value: StringCondition) -> C;
+// }
 
-/// Converts a field to an array condition.
-pub trait ArrayFieldToCondition<C, T> {
-    fn to_condition(&self, value: ArrayCondition<T>) -> C;
-}
+// /// Converts a field to an array condition.
+// pub trait ArrayFieldToCondition<C, T> {
+//     fn to_condition(&self, value: ArrayCondition<T>) -> C;
+// }

@@ -1839,6 +1839,7 @@ dependencies = [
  "dashmap",
  "ethabi",
  "rayon",
+ "serde",
  "serde_json",
 ]
 

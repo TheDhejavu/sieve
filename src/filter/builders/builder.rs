@@ -1,6 +1,9 @@
 use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
 
-use super::{block::BlockBuilder, event::EventBuilder, pool::PoolBuilder, transaction::TxBuilder};
+use super::{
+    block_header::BlockHeaderBuilder, event::EventBuilder, pool::PoolBuilder,
+    transaction::TxBuilder,
+};
 
 /// FilterBuilder allows constructing complex filter conditions using a builder pattern.
 pub struct FilterBuilder {
@@ -60,7 +63,7 @@ impl FilterBuilder {
     /// Returns a [`MainFilterBuilder`] for further configuration.
     pub fn block<F>(&mut self, f: F) -> MainFilterBuilder
     where
-        F: FnOnce(&mut BlockBuilder),
+        F: FnOnce(&mut BlockHeaderBuilder),
     {
         let filter = MainFilterBuilder {
             filters: &mut self.filters,
@@ -193,20 +196,21 @@ impl MainFilterBuilder<'_> {
             };
             self.filters.push(node);
         }
+
         self
     }
 
     pub fn block<F>(self, f: F) -> Self
     where
-        F: FnOnce(&mut BlockBuilder),
+        F: FnOnce(&mut BlockHeaderBuilder),
     {
-        let mut builder = BlockBuilder::new();
+        let mut builder = BlockHeaderBuilder::new();
         f(&mut builder);
 
         for condition in builder.conditions {
             let node = FilterNode {
                 group: None,
-                condition: Some(FilterCondition::Block(condition)),
+                condition: Some(FilterCondition::BlockHeader(condition)),
             };
             self.filters.push(node);
         }

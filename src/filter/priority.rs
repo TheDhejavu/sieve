@@ -1,5 +1,5 @@
 use super::conditions::{
-    BlockCondition, EventCondition, FilterCondition, PoolCondition, TransactionCondition,
+    BlockHeaderCondition, EventCondition, FilterCondition, PoolCondition, TransactionCondition,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,8 +81,8 @@ impl_condition_priority!(
         Self::Topics(_)
     ],
     complex: [
-        Self::Parameter(_, _),
-        Self::Name(_)
+        Self::EventMatch{..},
+        Self::Name(_),
     ]
 );
 
@@ -106,14 +106,13 @@ impl_condition_priority!(
 );
 
 impl_condition_priority!(
-    BlockCondition,
+    BlockHeaderCondition,
     basic: [
         Self::BaseFee(_),
         Self::Number(_),
         Self::Timestamp(_),
         Self::GasUsed(_),
         Self::GasLimit(_),
-        Self::TransactionCount(_),
         Self::Size(_)
     ],
     hash: [
@@ -133,7 +132,7 @@ impl Prioritized for FilterCondition {
             Self::Transaction(cond) => cond.priority(),
             Self::Event(cond) => cond.priority(),
             Self::Pool(cond) => cond.priority(),
-            Self::Block(cond) => cond.priority(),
+            Self::BlockHeader(cond) => cond.priority(),
         }
     }
 }

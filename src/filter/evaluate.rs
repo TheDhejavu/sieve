@@ -1,30 +1,27 @@
 use std::sync::Arc;
 
-use alloy_consensus::{BlockHeader, Transaction, Typed2718};
-use alloy_primitives::U256;
-use alloy_rpc_types::{Block, Log, Transaction as RpcTransaction};
-
 use crate::engine::DecodedData;
-use serde_json::Value;
+use alloy_consensus::{BlockHeader, Transaction, Typed2718};
+use alloy_dyn_abi::DynSolValue;
+use alloy_rpc_types::{Block, Header, Log, Transaction as RpcTransaction};
 
 use super::conditions::{
-    ArrayCondition, BlockCondition, EventCondition, FilterCondition, NumericCondition, NumericType,
-    ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
+    ArrayCondition, BlockHeaderCondition, EventCondition, FilterCondition, NumericCondition,
+    NumericType, ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
 };
-
 pub(crate) trait Evaluable<T> {
     fn evaluate(&self, value: &T) -> bool;
 }
 
-pub(crate) trait EvaluableWithDecodedData<T> {
+pub(crate) trait EvaluableWithCondition<C> {
     // Check if we should proceed with full evaluation
-    fn pre_evaluate(&self, value: &T) -> bool {
+    fn pre_evaluate(&self, _condition: &C) -> bool {
         // Default implementation always returns true
         // Individual implementations will override this
         true
     }
 
-    fn evaluate(&self, value: &T, context: Option<Arc<DecodedData>>) -> bool;
+    fn evaluate(&self, condition: &C, decoded_data: Option<Arc<DecodedData>>) -> bool;
 }
 
 impl FilterCondition {
@@ -39,10 +36,10 @@ impl FilterCondition {
                 )
             }
             FilterCondition::Event(event_condition) => {
-                matches!(event_condition, EventCondition::Parameter(_, _))
+                matches!(event_condition, EventCondition::EventMatch { .. })
             }
             FilterCondition::Pool(_) => false,
-            FilterCondition::Block(_) => false,
+            FilterCondition::BlockHeader(_) => false,
         }
     }
 }
@@ -94,23 +91,31 @@ where
     }
 }
 
-impl Evaluable<Value> for ParameterCondition {
-    fn evaluate(&self, value: &Value) -> bool {
+impl Evaluable<DynSolValue> for ParameterCondition {
+    fn evaluate(&self, value: &DynSolValue) -> bool {
         match self {
             Self::U256(condition) => {
-                if let Some(val_str) = value.as_str() {
-                    // Convert string value to U256
-                    let val = U256::from_string(val_str.to_string());
-                    return condition.evaluate(&val);
+                if let Some((value_uint, size)) = value.as_uint() {
+                    // Check that we have a uint256
+                    if size == 256 {
+                        return condition.evaluate(&value_uint);
+                    }
                 }
                 false
             }
 
             Self::U128(condition) => {
-                if let Some(val_str) = value.as_str() {
-                    // Convert string value to u128
-                    let val = u128::from_string(val_str.to_string());
-                    return condition.evaluate(&val);
+                if let Some((value_uint, size)) = value.as_uint() {
+                    // Check that we have a uint128 or smaller
+                    if size <= 128 {
+                        // If the value fits in u128, we can evaluate it
+                        let limbs = value_uint.as_limbs();
+                        if limbs[2] == 0 && limbs[3] == 0 {
+                            // Only lower 128 bits are used
+                            let value_u128 = (limbs[1] as u128) << 64 | (limbs[0] as u128);
+                            return condition.evaluate(&value_u128);
+                        }
+                    }
                 }
                 false
             }
@@ -125,41 +130,48 @@ impl Evaluable<Value> for ParameterCondition {
     }
 }
 
-impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
-    fn evaluate(&self, tx: &RpcTransaction, decoded_data: Option<Arc<DecodedData>>) -> bool {
-        match self {
-            TransactionCondition::Value(condition) => condition.evaluate(&tx.value()),
+impl EvaluableWithCondition<TransactionCondition> for RpcTransaction {
+    fn evaluate(
+        &self,
+        condition: &TransactionCondition,
+        decoded_data: Option<Arc<DecodedData>>,
+    ) -> bool {
+        if !self.pre_evaluate(condition) {
+            return false;
+        }
+
+        match condition {
+            TransactionCondition::Value(condition) => condition.evaluate(&self.value()),
             TransactionCondition::GasPrice(condition) => {
-                condition.evaluate(&tx.gas_price().unwrap_or_default())
+                condition.evaluate(&self.gas_price().unwrap_or_default())
             }
-            TransactionCondition::From(condition) => condition.evaluate(&tx.from.to_string()),
+            TransactionCondition::From(condition) => condition.evaluate(&self.from.to_string()),
             TransactionCondition::MaxFeePerGas(condition) => {
-                condition.evaluate(&tx.max_fee_per_gas())
+                condition.evaluate(&self.max_fee_per_gas())
             }
             TransactionCondition::MaxPriorityFee(condition) => {
-                condition.evaluate(&tx.max_priority_fee_per_gas().unwrap_or_default())
+                condition.evaluate(&self.max_priority_fee_per_gas().unwrap_or_default())
             }
             TransactionCondition::BlockNumber(condition) => {
-                condition.evaluate(&tx.block_number.unwrap_or_default())
+                condition.evaluate(&self.block_number.unwrap_or_default())
             }
             TransactionCondition::BlockHash(condition) => {
-                condition.evaluate(&tx.block_hash.unwrap_or_default().to_string())
+                condition.evaluate(&self.block_hash.unwrap_or_default().to_string())
             }
             TransactionCondition::ChainId(condition) => {
-                condition.evaluate(&tx.chain_id().unwrap_or_default())
+                condition.evaluate(&self.chain_id().unwrap_or_default())
             }
             TransactionCondition::To(condition) => {
-                condition.evaluate(&tx.to().unwrap_or_default().to_string())
+                condition.evaluate(&self.to().unwrap_or_default().to_string())
             }
-            TransactionCondition::Nonce(condition) => condition.evaluate(&tx.nonce()),
-            TransactionCondition::Type(condition) => condition.evaluate(&tx.ty()),
+            TransactionCondition::Nonce(condition) => condition.evaluate(&self.nonce()),
+            TransactionCondition::Type(condition) => condition.evaluate(&self.ty()),
             TransactionCondition::TransactionIndex(condition) => {
-                condition.evaluate(&tx.transaction_index.unwrap_or_default())
+                condition.evaluate(&self.transaction_index.unwrap_or_default())
             }
             TransactionCondition::Hash(condition) => {
-                condition.evaluate(&tx.inner.tx_hash().to_string())
+                condition.evaluate(&self.inner.tx_hash().to_string())
             }
-            // Contract call specific conditions
             TransactionCondition::Method(condition) => {
                 if let Some(DecodedData::ContractCall(decoded)) =
                     decoded_data.as_ref().map(|arc| arc.as_ref())
@@ -176,7 +188,7 @@ impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
                 {
                     let parameter_value = decoded.get_parameter(param);
                     if let Some(value) = parameter_value {
-                        return condition.evaluate(value);
+                        // return condition.evaluate(value);
                     }
                 }
                 false
@@ -186,91 +198,94 @@ impl EvaluableWithDecodedData<RpcTransaction> for TransactionCondition {
     }
 }
 
-impl EvaluableWithDecodedData<RpcTransaction> for PoolCondition {
-    fn evaluate(&self, tx_pool: &RpcTransaction, _decoded_data: Option<Arc<DecodedData>>) -> bool {
-        if !self.pre_evaluate(tx_pool) {
+impl EvaluableWithCondition<PoolCondition> for RpcTransaction {
+    fn evaluate(&self, condition: &PoolCondition, _decoded_data: Option<Arc<DecodedData>>) -> bool {
+        if !self.pre_evaluate(condition) {
             return false;
         }
 
-        match self {
-            PoolCondition::Value(condition) => condition.evaluate(&tx_pool.value()),
+        match condition {
+            PoolCondition::Value(condition) => condition.evaluate(&self.value()),
             PoolCondition::GasPrice(condition) => {
-                condition.evaluate(&tx_pool.gas_price().unwrap_or_default())
+                condition.evaluate(&self.gas_price().unwrap_or_default())
             }
-            PoolCondition::From(condition) => condition.evaluate(&tx_pool.from.to_string()),
-            PoolCondition::Nonce(condition) => condition.evaluate(&tx_pool.nonce()),
-            PoolCondition::GasLimit(condition) => condition.evaluate(&tx_pool.gas_limit()),
-            PoolCondition::Hash(condition) => {
-                condition.evaluate(&tx_pool.inner.tx_hash().to_string())
-            }
+            PoolCondition::From(condition) => condition.evaluate(&self.from.to_string()),
+            PoolCondition::Nonce(condition) => condition.evaluate(&self.nonce()),
+            PoolCondition::GasLimit(condition) => condition.evaluate(&self.gas_limit()),
+            PoolCondition::Hash(condition) => condition.evaluate(&self.inner.tx_hash().to_string()),
             PoolCondition::To(condition) => {
-                condition.evaluate(&tx_pool.to().unwrap_or_default().to_string())
+                condition.evaluate(&self.to().unwrap_or_default().to_string())
             }
             _ => false,
         }
     }
 }
 
-impl Evaluable<Block> for BlockCondition {
-    fn evaluate(&self, block: &Block) -> bool {
-        match self {
-            BlockCondition::BaseFee(condition) => {
-                condition.evaluate(&block.header.base_fee_per_gas().unwrap_or_default())
+impl EvaluableWithCondition<BlockHeaderCondition> for Header {
+    fn evaluate(
+        &self,
+        condition: &BlockHeaderCondition,
+        _decoded_data: Option<Arc<DecodedData>>,
+    ) -> bool {
+        match condition {
+            BlockHeaderCondition::BaseFee(condition) => {
+                condition.evaluate(&self.base_fee_per_gas().unwrap_or_default())
             }
-            BlockCondition::Number(condition) => condition.evaluate(&block.header.number),
-            BlockCondition::Timestamp(condition) => condition.evaluate(&block.header.timestamp),
-            BlockCondition::Size(condition) => {
-                condition.evaluate(&block.header.size.unwrap_or_default())
+            BlockHeaderCondition::Number(condition) => condition.evaluate(&self.number),
+            BlockHeaderCondition::Timestamp(condition) => condition.evaluate(&self.timestamp),
+            BlockHeaderCondition::Size(condition) => {
+                condition.evaluate(&self.size.unwrap_or_default())
             }
-            BlockCondition::GasUsed(condition) => condition.evaluate(&block.header.gas_used),
-            BlockCondition::GasLimit(condition) => condition.evaluate(&block.header.gas_limit),
-            BlockCondition::TransactionCount(condition) => {
-                condition.evaluate(&(block.transactions.len() as u64))
+            BlockHeaderCondition::GasUsed(condition) => condition.evaluate(&self.gas_used),
+            BlockHeaderCondition::GasLimit(condition) => condition.evaluate(&self.gas_limit),
+            BlockHeaderCondition::Hash(condition) => condition.evaluate(&self.hash.to_string()),
+            BlockHeaderCondition::ParentHash(condition) => {
+                condition.evaluate(&self.parent_hash.to_string())
             }
-            BlockCondition::Hash(condition) => condition.evaluate(&block.header.hash.to_string()),
-            BlockCondition::ParentHash(condition) => {
-                condition.evaluate(&block.header.parent_hash.to_string())
+            BlockHeaderCondition::StateRoot(condition) => {
+                condition.evaluate(&self.state_root.to_string())
             }
-            BlockCondition::StateRoot(condition) => {
-                condition.evaluate(&block.header.state_root.to_string())
+            BlockHeaderCondition::ReceiptsRoot(condition) => {
+                condition.evaluate(&self.receipts_root.to_string())
             }
-            BlockCondition::ReceiptsRoot(condition) => {
-                condition.evaluate(&block.header.receipts_root.to_string())
-            }
-            BlockCondition::TransactionsRoot(condition) => {
-                condition.evaluate(&block.header.transactions_root.to_string())
+            BlockHeaderCondition::TransactionsRoot(condition) => {
+                condition.evaluate(&self.transactions_root.to_string())
             }
         }
     }
 }
 
-impl EvaluableWithDecodedData<Log> for EventCondition {
-    fn evaluate(&self, log: &Log, _decoded_data: Option<Arc<DecodedData>>) -> bool {
-        if !self.pre_evaluate(log) {
+// For Log
+impl EvaluableWithCondition<EventCondition> for Log {
+    fn evaluate(
+        &self,
+        condition: &EventCondition,
+        _decoded_data: Option<Arc<DecodedData>>,
+    ) -> bool {
+        if !self.pre_evaluate(condition) {
             return false;
         }
 
-        match self {
+        match condition {
             EventCondition::Contract(condition) => todo!(),
             EventCondition::BlockHash(condition) => todo!(),
             EventCondition::TxHash(condition) => todo!(),
-            EventCondition::Parameter(_, condition) => todo!(),
             EventCondition::LogIndex(condition) => todo!(),
             EventCondition::BlockNumber(condition) => todo!(),
             EventCondition::TxIndex(condition) => todo!(),
             EventCondition::Topics(condition) => todo!(),
             EventCondition::Name(string_condition) => todo!(),
+            EventCondition::EventMatch {
+                signature,
+                parameters,
+            } => todo!(),
         }
     }
 
-    fn pre_evaluate(&self, log: &Log) -> bool {
-        match self {
-            Self::Contract(condition) => {
+    fn pre_evaluate(&self, condition: &EventCondition) -> bool {
+        match condition {
+            EventCondition::Contract(_) => {
                 // TODO: Check if address is in bloom filter
-                true
-            }
-            Self::Parameter(name, _) => {
-                // TODO: Check if topic is in bloom filter
                 true
             }
             _ => true,

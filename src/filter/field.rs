@@ -1,12 +1,9 @@
 use super::{
     conditions::{
-        ArrayCondition, BlockCondition, ConditionBuilder, EventCondition, NumericCondition,
-        ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
+        ArrayCondition, BlockHeaderCondition, ConditionBuilder, EventCondition, EventExCondition,
+        NumericCondition, ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
     },
-    operations::{
-        ArrayFieldToCondition, ArrayOps, NumericOps, StringFieldToCondition, StringOps,
-        U128FieldToCondition, U256FieldToCondition, U64FieldToCondition, U8FieldToCondition,
-    },
+    operations::{ArrayOps, NumericOps, StringOps},
 };
 use alloy_primitives::U256;
 
@@ -16,6 +13,13 @@ pub struct U128FieldType<T>(pub T);
 pub struct U256FieldType<T>(pub T);
 pub struct StringFieldType<T>(pub T);
 pub struct ArrayFieldType<T>(pub T);
+
+pub struct U8FieldCondition<T>(pub T, pub NumericCondition<u8>);
+pub struct U64FieldCondition<T>(pub T, pub NumericCondition<u64>);
+pub struct U128FieldCondition<T>(pub T, pub NumericCondition<u128>);
+pub struct U256FieldCondition<T>(pub T, pub NumericCondition<U256>);
+pub struct StringFieldCondition<T>(pub T, pub StringCondition);
+pub struct ArrayFieldCondition<T, V>(pub T, pub ArrayCondition<V>);
 
 pub struct ParamFieldType<T>(pub T);
 
@@ -60,8 +64,9 @@ pub enum EventField {
     BlockHash,   // Hash of the block where this log was
     TxHash,      // Hash of the transaction that created this log
     TxIndex,     // Integer of the transaction's index position
-    Parameter(String),
     Name,
+    Signature, // topic[0]
+    Data(ContractField),
 }
 
 // ===  Block-specific fields ===
@@ -100,9 +105,10 @@ pub(crate) struct FieldWrapper<'a, T, P> {
     pub(crate) parent: &'a mut P,
 }
 
-impl U64FieldToCondition<TransactionCondition> for TxField {
-    fn to_condition(&self, value: NumericCondition<u64>) -> TransactionCondition {
-        match self {
+impl From<U64FieldCondition<TxField>> for TransactionCondition {
+    fn from(fc: U64FieldCondition<TxField>) -> TransactionCondition {
+        let U64FieldCondition(field, value) = fc;
+        match field {
             TxField::Nonce => TransactionCondition::Nonce(value),
             TxField::Gas => TransactionCondition::Gas(value),
             TxField::ChainId => TransactionCondition::ChainId(value),
@@ -113,27 +119,30 @@ impl U64FieldToCondition<TransactionCondition> for TxField {
     }
 }
 
-impl U256FieldToCondition<TransactionCondition> for TxField {
-    fn to_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
-        match self {
+impl From<U256FieldCondition<TxField>> for TransactionCondition {
+    fn from(fc: U256FieldCondition<TxField>) -> TransactionCondition {
+        let U256FieldCondition(field, value) = fc;
+        match field {
             TxField::Value => TransactionCondition::Value(value),
             _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
 }
 
-impl U8FieldToCondition<TransactionCondition> for TxField {
-    fn to_condition(&self, value: NumericCondition<u8>) -> TransactionCondition {
-        match self {
+impl From<U8FieldCondition<TxField>> for TransactionCondition {
+    fn from(fc: U8FieldCondition<TxField>) -> TransactionCondition {
+        let U8FieldCondition(field, value) = fc;
+        match field {
             TxField::Type => TransactionCondition::Type(value),
             _ => panic!("Field does not support U8 numeric conditions"),
         }
     }
 }
 
-impl U128FieldToCondition<TransactionCondition> for TxField {
-    fn to_condition(&self, value: NumericCondition<u128>) -> TransactionCondition {
-        match self {
+impl From<U128FieldCondition<TxField>> for TransactionCondition {
+    fn from(fc: U128FieldCondition<TxField>) -> TransactionCondition {
+        let U128FieldCondition(field, value) = fc;
+        match field {
             TxField::GasPrice => TransactionCondition::GasPrice(value),
             TxField::MaxFeePerGas => TransactionCondition::MaxFeePerGas(value),
             TxField::MaxPriorityFee => TransactionCondition::MaxPriorityFee(value),
@@ -142,9 +151,10 @@ impl U128FieldToCondition<TransactionCondition> for TxField {
     }
 }
 
-impl U64FieldToCondition<EventCondition> for EventField {
-    fn to_condition(&self, value: NumericCondition<u64>) -> EventCondition {
-        match self {
+impl From<U64FieldCondition<EventField>> for EventCondition {
+    fn from(fc: U64FieldCondition<EventField>) -> EventCondition {
+        let U64FieldCondition(field, value) = fc;
+        match field {
             EventField::LogIndex => EventCondition::LogIndex(value),
             EventField::BlockNumber => EventCondition::BlockNumber(value),
             EventField::TxIndex => EventCondition::TxIndex(value),
@@ -153,32 +163,34 @@ impl U64FieldToCondition<EventCondition> for EventField {
     }
 }
 
-impl U64FieldToCondition<BlockCondition> for BlockField {
-    fn to_condition(&self, value: NumericCondition<u64>) -> BlockCondition {
-        match self {
-            BlockField::Number => BlockCondition::Number(value),
-            BlockField::Timestamp => BlockCondition::Timestamp(value),
-            BlockField::GasUsed => BlockCondition::GasUsed(value),
-            BlockField::GasLimit => BlockCondition::GasLimit(value),
-            BlockField::BaseFee => BlockCondition::BaseFee(value),
-            BlockField::TransactionCount => BlockCondition::TransactionCount(value),
+impl From<U64FieldCondition<BlockField>> for BlockHeaderCondition {
+    fn from(fc: U64FieldCondition<BlockField>) -> BlockHeaderCondition {
+        let U64FieldCondition(field, value) = fc;
+        match field {
+            BlockField::Number => BlockHeaderCondition::Number(value),
+            BlockField::Timestamp => BlockHeaderCondition::Timestamp(value),
+            BlockField::GasUsed => BlockHeaderCondition::GasUsed(value),
+            BlockField::GasLimit => BlockHeaderCondition::GasLimit(value),
+            BlockField::BaseFee => BlockHeaderCondition::BaseFee(value),
             _ => panic!("Field does not support u64 numeric conditions"),
         }
     }
 }
 
-impl U256FieldToCondition<BlockCondition> for BlockField {
-    fn to_condition(&self, value: NumericCondition<U256>) -> BlockCondition {
-        match self {
-            BlockField::Size => BlockCondition::Size(value),
+impl From<U256FieldCondition<BlockField>> for BlockHeaderCondition {
+    fn from(fc: U256FieldCondition<BlockField>) -> BlockHeaderCondition {
+        let U256FieldCondition(field, value) = fc;
+        match field {
+            BlockField::Size => BlockHeaderCondition::Size(value),
             _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
 }
 
-impl U128FieldToCondition<TransactionCondition> for ContractField {
-    fn to_condition(&self, value: NumericCondition<u128>) -> TransactionCondition {
-        match self {
+impl From<U128FieldCondition<ContractField>> for TransactionCondition {
+    fn from(fc: U128FieldCondition<ContractField>) -> TransactionCondition {
+        let U128FieldCondition(field, value) = fc;
+        match field {
             ContractField::Parameter(path) => {
                 TransactionCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
             }
@@ -187,9 +199,10 @@ impl U128FieldToCondition<TransactionCondition> for ContractField {
     }
 }
 
-impl U256FieldToCondition<TransactionCondition> for ContractField {
-    fn to_condition(&self, value: NumericCondition<U256>) -> TransactionCondition {
-        match self {
+impl From<U256FieldCondition<ContractField>> for TransactionCondition {
+    fn from(fc: U256FieldCondition<ContractField>) -> TransactionCondition {
+        let U256FieldCondition(field, value) = fc;
+        match field {
             ContractField::Parameter(path) => {
                 TransactionCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
             }
@@ -198,9 +211,34 @@ impl U256FieldToCondition<TransactionCondition> for ContractField {
     }
 }
 
-impl StringFieldToCondition<TransactionCondition> for ContractField {
-    fn to_condition(&self, value: StringCondition) -> TransactionCondition {
-        match self {
+impl From<U128FieldCondition<ContractField>> for EventExCondition {
+    fn from(fc: U128FieldCondition<ContractField>) -> EventExCondition {
+        let U128FieldCondition(field, value) = fc;
+        match field {
+            ContractField::Parameter(path) => {
+                EventExCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
+            }
+            _ => panic!("Field does not support U128 numeric conditions"),
+        }
+    }
+}
+
+impl From<U256FieldCondition<ContractField>> for EventExCondition {
+    fn from(fc: U256FieldCondition<ContractField>) -> EventExCondition {
+        let U256FieldCondition(field, value) = fc;
+        match field {
+            ContractField::Parameter(path) => {
+                EventExCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
+            }
+            _ => panic!("Field does not support U256 numeric conditions"),
+        }
+    }
+}
+
+impl From<StringFieldCondition<ContractField>> for TransactionCondition {
+    fn from(fc: StringFieldCondition<ContractField>) -> TransactionCondition {
+        let StringFieldCondition(field, value) = fc;
+        match field {
             ContractField::Parameter(path) => {
                 TransactionCondition::Parameter(path.to_string(), ParameterCondition::String(value))
             }
@@ -210,9 +248,10 @@ impl StringFieldToCondition<TransactionCondition> for ContractField {
     }
 }
 
-impl U64FieldToCondition<PoolCondition> for PoolField {
-    fn to_condition(&self, value: NumericCondition<u64>) -> PoolCondition {
-        match self {
+impl From<U64FieldCondition<PoolField>> for PoolCondition {
+    fn from(fc: U64FieldCondition<PoolField>) -> PoolCondition {
+        let U64FieldCondition(field, value) = fc;
+        match field {
             PoolField::Nonce => PoolCondition::Nonce(value),
             PoolField::GasLimit => PoolCondition::GasLimit(value),
             PoolField::Timestamp => PoolCondition::Timestamp(value),
@@ -221,18 +260,20 @@ impl U64FieldToCondition<PoolCondition> for PoolField {
     }
 }
 
-impl U128FieldToCondition<PoolCondition> for PoolField {
-    fn to_condition(&self, value: NumericCondition<u128>) -> PoolCondition {
-        match self {
+impl From<U128FieldCondition<PoolField>> for PoolCondition {
+    fn from(fc: U128FieldCondition<PoolField>) -> PoolCondition {
+        let U128FieldCondition(field, value) = fc;
+        match field {
             PoolField::GasPrice => PoolCondition::GasPrice(value),
             _ => panic!("Field does not support U128 numeric conditions"),
         }
     }
 }
 
-impl U256FieldToCondition<PoolCondition> for PoolField {
-    fn to_condition(&self, value: NumericCondition<U256>) -> PoolCondition {
-        match self {
+impl From<U256FieldCondition<PoolField>> for PoolCondition {
+    fn from(fc: U256FieldCondition<PoolField>) -> PoolCondition {
+        let U256FieldCondition(field, value) = fc;
+        match field {
             PoolField::Value => PoolCondition::Value(value),
             _ => panic!("Field does not support U256 numeric conditions"),
         }
@@ -240,67 +281,59 @@ impl U256FieldToCondition<PoolCondition> for PoolField {
 }
 
 macro_rules! impl_numeric_ops {
-    ($type:ty, $field_type:ident, $field_trait:ident) => {
+    ($type:ty, $field_type:ident, $condition_type:ident) => {
         impl<T, P, C> NumericOps<$type> for FieldWrapper<'_, $field_type<T>, P>
         where
-            T: $field_trait<C>,
+            $condition_type<T>: Into<C>,
             P: ConditionBuilder<Condition = C>,
         {
             fn gt(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::GreaterThan(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::GreaterThan(value)).into();
                 self.parent.push_condition(condition);
             }
 
             fn lt(self, value: $type) {
-                let condition = self.field.0.to_condition(NumericCondition::LessThan(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::LessThan(value)).into();
                 self.parent.push_condition(condition);
             }
 
             fn eq(self, value: $type) {
-                let condition = self.field.0.to_condition(NumericCondition::EqualTo(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::EqualTo(value)).into();
                 self.parent.push_condition(condition);
             }
 
             fn lte(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::LessThanOrEqualTo(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::LessThanOrEqualTo(value))
+                        .into();
                 self.parent.push_condition(condition);
             }
 
             fn gte(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::GreaterThanOrEqualTo(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::GreaterThanOrEqualTo(value))
+                        .into();
                 self.parent.push_condition(condition);
             }
 
             fn neq(self, value: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::NotEqualTo(value));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::NotEqualTo(value)).into();
                 self.parent.push_condition(condition);
             }
 
             fn between(self, min: $type, max: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::Between(min, max));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::Between(min, max)).into();
                 self.parent.push_condition(condition);
             }
 
             fn outside(self, min: $type, max: $type) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(NumericCondition::Outside(min, max));
+                let condition =
+                    $condition_type(self.field.0, NumericCondition::Outside(min, max)).into();
                 self.parent.push_condition(condition);
             }
         }
@@ -308,17 +341,19 @@ macro_rules! impl_numeric_ops {
 }
 
 // NumericOps for each Types
-impl_numeric_ops!(u8, U8FieldType, U8FieldToCondition);
-impl_numeric_ops!(u64, U64FieldType, U64FieldToCondition);
-impl_numeric_ops!(u128, U128FieldType, U128FieldToCondition);
-impl_numeric_ops!(U256, U256FieldType, U256FieldToCondition);
+impl_numeric_ops!(u8, U8FieldType, U8FieldCondition);
+impl_numeric_ops!(u64, U64FieldType, U64FieldCondition);
+impl_numeric_ops!(u128, U128FieldType, U128FieldCondition);
+impl_numeric_ops!(U256, U256FieldType, U256FieldCondition);
 
-impl_numeric_ops!(u128, ParamFieldType, U128FieldToCondition);
-impl_numeric_ops!(U256, ParamFieldType, U256FieldToCondition);
+impl_numeric_ops!(u64, ParamFieldType, U64FieldCondition);
+impl_numeric_ops!(u128, ParamFieldType, U128FieldCondition);
+impl_numeric_ops!(U256, ParamFieldType, U256FieldCondition);
 
-impl StringFieldToCondition<TransactionCondition> for TxField {
-    fn to_condition(&self, value: StringCondition) -> TransactionCondition {
-        match self {
+impl From<StringFieldCondition<TxField>> for TransactionCondition {
+    fn from(fc: StringFieldCondition<TxField>) -> TransactionCondition {
+        let StringFieldCondition(field, value) = fc;
+        match field {
             TxField::From => TransactionCondition::From(value),
             TxField::To => TransactionCondition::To(value),
             TxField::Hash => TransactionCondition::Hash(value),
@@ -329,22 +364,24 @@ impl StringFieldToCondition<TransactionCondition> for TxField {
     }
 }
 
-impl StringFieldToCondition<EventCondition> for EventField {
-    fn to_condition(&self, value: StringCondition) -> EventCondition {
-        match self {
+impl From<StringFieldCondition<EventField>> for EventCondition {
+    fn from(fc: StringFieldCondition<EventField>) -> EventCondition {
+        let StringFieldCondition(field, value) = fc;
+        match field {
             EventField::Contract => EventCondition::Contract(value),
             EventField::BlockHash => EventCondition::BlockHash(value),
             EventField::TxHash => EventCondition::TxHash(value),
             EventField::Name => EventCondition::Name(value),
-            EventField::Parameter(param) => EventCondition::Parameter(param.to_string(), value),
+            // EventField::Parameter(param) => EventCondition::Parameter(param.to_string(), value),
             _ => panic!("Field does not support string conditions"),
         }
     }
 }
 
-impl StringFieldToCondition<PoolCondition> for PoolField {
-    fn to_condition(&self, value: StringCondition) -> PoolCondition {
-        match self {
+impl From<StringFieldCondition<PoolField>> for PoolCondition {
+    fn from(fc: StringFieldCondition<PoolField>) -> PoolCondition {
+        let StringFieldCondition(field, value) = fc;
+        match field {
             PoolField::Hash => PoolCondition::Hash(value),
             PoolField::From => PoolCondition::From(value),
             PoolField::To => PoolCondition::To(value),
@@ -353,14 +390,15 @@ impl StringFieldToCondition<PoolCondition> for PoolField {
     }
 }
 
-impl StringFieldToCondition<BlockCondition> for BlockField {
-    fn to_condition(&self, value: StringCondition) -> BlockCondition {
-        match self {
-            BlockField::Hash => BlockCondition::Hash(value),
-            BlockField::ParentHash => BlockCondition::ParentHash(value),
-            BlockField::StateRoot => BlockCondition::StateRoot(value),
-            BlockField::ReceiptsRoot => BlockCondition::ReceiptsRoot(value),
-            BlockField::TransactionsRoot => BlockCondition::TransactionsRoot(value),
+impl From<StringFieldCondition<BlockField>> for BlockHeaderCondition {
+    fn from(fc: StringFieldCondition<BlockField>) -> BlockHeaderCondition {
+        let StringFieldCondition(field, value) = fc;
+        match field {
+            BlockField::Hash => BlockHeaderCondition::Hash(value),
+            BlockField::ParentHash => BlockHeaderCondition::ParentHash(value),
+            BlockField::StateRoot => BlockHeaderCondition::StateRoot(value),
+            BlockField::ReceiptsRoot => BlockHeaderCondition::ReceiptsRoot(value),
+            BlockField::TransactionsRoot => BlockHeaderCondition::TransactionsRoot(value),
             _ => panic!("Field does not support string conditions"),
         }
     }
@@ -368,99 +406,109 @@ impl StringFieldToCondition<BlockCondition> for BlockField {
 
 // === StringOps =====
 macro_rules! impl_string_ops {
-    ($field_type:ident, $field_trait:ident) => {
+    ($field_type:ident, $condition_type:ident) => {
         impl<T, P, C> StringOps for FieldWrapper<'_, $field_type<T>, P>
         where
-            T: $field_trait<C>,
+            $condition_type<T>: Into<C>,
             P: ConditionBuilder<Condition = C>,
         {
             fn starts_with(self, prefix: &str) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(StringCondition::StartsWith(prefix.to_string()));
+                let condition = $condition_type(
+                    self.field.0,
+                    StringCondition::StartsWith(prefix.to_string()),
+                )
+                .into();
                 self.parent.push_condition(condition);
             }
 
             fn ends_with(self, suffix: &str) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(StringCondition::EndsWith(suffix.to_string()));
+                let condition =
+                    $condition_type(self.field.0, StringCondition::EndsWith(suffix.to_string()))
+                        .into();
                 self.parent.push_condition(condition);
             }
 
             fn contains(self, substring: &str) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(StringCondition::Contains(substring.to_string()));
+                let condition = $condition_type(
+                    self.field.0,
+                    StringCondition::Contains(substring.to_string()),
+                )
+                .into();
                 self.parent.push_condition(condition);
             }
 
             fn matches(self, regex_pattern: &str) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(StringCondition::Matches(regex_pattern.to_string()));
+                let condition = $condition_type(
+                    self.field.0,
+                    StringCondition::Matches(regex_pattern.to_string()),
+                )
+                .into();
                 self.parent.push_condition(condition);
             }
 
             fn exact(self, value: &str) {
-                let condition = self
-                    .field
-                    .0
-                    .to_condition(StringCondition::EqualTo(value.to_string()));
+                let condition =
+                    $condition_type(self.field.0, StringCondition::EqualTo(value.to_string()))
+                        .into();
                 self.parent.push_condition(condition);
             }
         }
     };
 }
 
-impl_string_ops!(ParamFieldType, StringFieldToCondition);
-impl_string_ops!(StringFieldType, StringFieldToCondition);
+impl_string_ops!(ParamFieldType, StringFieldCondition);
+impl_string_ops!(StringFieldType, StringFieldCondition);
 
-impl ArrayFieldToCondition<TransactionCondition, String> for TxField {
-    fn to_condition(&self, value: ArrayCondition<String>) -> TransactionCondition {
-        match self {
+impl From<ArrayFieldCondition<TxField, String>> for TransactionCondition {
+    fn from(fc: ArrayFieldCondition<TxField, String>) -> TransactionCondition {
+        let ArrayFieldCondition(field, value) = fc;
+        match field {
             TxField::AccessList => TransactionCondition::AccessList(value),
             _ => panic!("Field does not support string array conditions"),
         }
     }
 }
 
-impl ArrayFieldToCondition<EventCondition, String> for EventField {
-    fn to_condition(&self, value: ArrayCondition<String>) -> EventCondition {
-        match self {
+impl From<ArrayFieldCondition<EventField, String>> for EventCondition {
+    fn from(fc: ArrayFieldCondition<EventField, String>) -> EventCondition {
+        let ArrayFieldCondition(field, value) = fc;
+        match field {
             EventField::Topics => EventCondition::Topics(value),
             _ => panic!("Field does not support array conditions"),
         }
     }
 }
 
-impl<F, B, C, T> ArrayOps<T> for FieldWrapper<'_, ArrayFieldType<F>, B>
-where
-    F: ArrayFieldToCondition<C, T>,
-    B: ConditionBuilder<Condition = C>,
-    T: Clone,
-{
-    fn contains(self, value: T) {
-        let condition = self.field.0.to_condition(ArrayCondition::Contains(value));
-        self.parent.push_condition(condition);
-    }
+macro_rules! impl_array_ops {
+    ($value_type:ty) => {
+        impl<F, B, C> ArrayOps<$value_type> for FieldWrapper<'_, ArrayFieldType<F>, B>
+        where
+            ArrayFieldCondition<F, $value_type>: Into<C>,
+            B: ConditionBuilder<Condition = C>,
+        {
+            fn contains(self, value: $value_type) {
+                let condition =
+                    ArrayFieldCondition(self.field.0, ArrayCondition::Contains(value)).into();
+                self.parent.push_condition(condition);
+            }
 
-    fn not_in(self, values: Vec<T>) {
-        let condition = self.field.0.to_condition(ArrayCondition::NotIn(values));
-        self.parent.push_condition(condition);
-    }
+            fn not_in(self, values: Vec<$value_type>) {
+                let condition =
+                    ArrayFieldCondition(self.field.0, ArrayCondition::NotIn(values)).into();
+                self.parent.push_condition(condition);
+            }
 
-    fn empty(self) {
-        let condition = self.field.0.to_condition(ArrayCondition::Empty);
-        self.parent.push_condition(condition);
-    }
+            fn empty(self) {
+                let condition = ArrayFieldCondition(self.field.0, ArrayCondition::Empty).into();
+                self.parent.push_condition(condition);
+            }
 
-    fn not_empty(self) {
-        let condition = self.field.0.to_condition(ArrayCondition::NotEmpty);
-        self.parent.push_condition(condition);
-    }
+            fn not_empty(self) {
+                let condition = ArrayFieldCondition(self.field.0, ArrayCondition::NotEmpty).into();
+                self.parent.push_condition(condition);
+            }
+        }
+    };
 }
+
+impl_array_ops!(String);

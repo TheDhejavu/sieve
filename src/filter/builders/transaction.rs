@@ -156,30 +156,24 @@ impl<'a> ContractBuilder<'a, TxBuilder> {
         Self { parent }
     }
 
-    pub fn method(&mut self) -> FieldWrapper<'_, StringFieldType<ContractField>, TxBuilder> {
+    pub fn method(&mut self) -> FieldWrapper<'_, StringFieldType<ContractField>, Self> {
         FieldWrapper {
             field: StringFieldType(ContractField::Method),
-            parent: self.parent,
+            parent: self,
         }
     }
 
-    pub fn params(
-        &mut self,
-        name: &str,
-    ) -> FieldWrapper<'_, ParamFieldType<ContractField>, TxBuilder> {
+    pub fn params(&mut self, name: &str) -> FieldWrapper<'_, ParamFieldType<ContractField>, Self> {
         FieldWrapper {
             field: ParamFieldType(ContractField::Parameter(name.to_string())),
-            parent: self.parent,
+            parent: self,
         }
     }
 
-    pub fn path(
-        &mut self,
-        path: &str,
-    ) -> FieldWrapper<'_, StringFieldType<ContractField>, TxBuilder> {
+    pub fn path(&mut self, path: &str) -> FieldWrapper<'_, StringFieldType<ContractField>, Self> {
         FieldWrapper {
             field: StringFieldType(ContractField::Path(path.to_string())),
-            parent: self.parent,
+            parent: self,
         }
     }
 }

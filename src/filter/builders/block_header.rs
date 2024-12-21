@@ -1,23 +1,23 @@
-// Block builder
+// Block Header builder
 use crate::filter::{
-    conditions::{BlockCondition, ConditionBuilder},
+    conditions::{BlockHeaderCondition, ConditionBuilder},
     field::{BlockField, FieldWrapper, StringFieldType, U256FieldType, U64FieldType},
 };
 
-// ===== Block Builder =====
-pub(crate) struct BlockBuilder {
-    pub(crate) conditions: Vec<BlockCondition>,
+// ===== BlockHeader Builder =====
+pub(crate) struct BlockHeaderBuilder {
+    pub(crate) conditions: Vec<BlockHeaderCondition>,
 }
 
-impl ConditionBuilder for BlockBuilder {
-    type Condition = BlockCondition;
+impl ConditionBuilder for BlockHeaderBuilder {
+    type Condition = BlockHeaderCondition;
 
-    fn push_condition(&mut self, condition: BlockCondition) {
+    fn push_condition(&mut self, condition: BlockHeaderCondition) {
         self.conditions.push(condition)
     }
 }
 #[allow(dead_code)]
-impl BlockBuilder {
+impl BlockHeaderBuilder {
     pub fn new() -> Self {
         Self {
             conditions: Vec::new(),
@@ -61,13 +61,6 @@ impl BlockBuilder {
     pub fn base_fee(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
             field: U64FieldType(BlockField::BaseFee),
-            parent: self,
-        }
-    }
-
-    pub fn transaction_count(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
-        FieldWrapper {
-            field: U64FieldType(BlockField::TransactionCount),
             parent: self,
         }
     }
@@ -139,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_numeric_field_operations() {
-        let mut builder = BlockBuilder::new();
+        let mut builder = BlockHeaderBuilder::new();
 
         // Test various numeric operations
         builder.number().eq(NUMBER);
@@ -148,16 +141,14 @@ mod tests {
         builder.gas_limit().lt(GAS_LIMIT);
         builder.timestamp().lte(TIMESTAMP);
         builder.base_fee().eq(100);
-        builder.transaction_count().eq(TRANSACTION_COUNT);
 
         let conditions = vec![
-            BlockCondition::Number(NumericCondition::EqualTo(NUMBER)),
-            BlockCondition::Size(NumericCondition::GreaterThan(U256::from(SIZE))),
-            BlockCondition::GasUsed(NumericCondition::GreaterThanOrEqualTo(GAS_USED)),
-            BlockCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
-            BlockCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
-            BlockCondition::BaseFee(NumericCondition::EqualTo(100)),
-            BlockCondition::TransactionCount(NumericCondition::EqualTo(TRANSACTION_COUNT)),
+            BlockHeaderCondition::Number(NumericCondition::EqualTo(NUMBER)),
+            BlockHeaderCondition::Size(NumericCondition::GreaterThan(U256::from(SIZE))),
+            BlockHeaderCondition::GasUsed(NumericCondition::GreaterThanOrEqualTo(GAS_USED)),
+            BlockHeaderCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
+            BlockHeaderCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
+            BlockHeaderCondition::BaseFee(NumericCondition::EqualTo(100)),
         ];
 
         assert_eq!(builder.conditions, conditions);
@@ -165,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_string_field_operations() {
-        let mut builder = BlockBuilder::new();
+        let mut builder = BlockHeaderBuilder::new();
 
         // Test all string operations
         builder.hash().exact(HASH);
@@ -175,11 +166,11 @@ mod tests {
         builder.transactions_root().starts_with(PREFIX);
 
         let conditions = vec![
-            BlockCondition::Hash(StringCondition::EqualTo(HASH.to_string())),
-            BlockCondition::ParentHash(StringCondition::StartsWith(PREFIX.to_string())),
-            BlockCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
-            BlockCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
-            BlockCondition::TransactionsRoot(StringCondition::StartsWith(PREFIX.to_string())),
+            BlockHeaderCondition::Hash(StringCondition::EqualTo(HASH.to_string())),
+            BlockHeaderCondition::ParentHash(StringCondition::StartsWith(PREFIX.to_string())),
+            BlockHeaderCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
+            BlockHeaderCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
+            BlockHeaderCondition::TransactionsRoot(StringCondition::StartsWith(PREFIX.to_string())),
         ];
 
         assert_eq!(builder.conditions, conditions);
@@ -187,7 +178,7 @@ mod tests {
 
     #[test]
     fn builder_new() {
-        let builder = BlockBuilder::new();
+        let builder = BlockHeaderBuilder::new();
         assert!(builder.conditions.is_empty());
     }
 }

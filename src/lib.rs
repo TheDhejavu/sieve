@@ -1,5 +1,5 @@
+/// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
 use alloy_primitives::U256;
-// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
 use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 
 mod config;
@@ -15,7 +15,7 @@ fn main() {
     let _simple_or_filter = FilterBuilder::new()
         .any_of(|f| {
             f.tx(|t| t.value().gt(U256::from(1000))); // Value > 1000
-            f.tx(|t| t.gas_price().lt(50)); // OR Gas price < 50
+            f.tx(|t| t.gas_price().lt(50000)); // OR Gas price < 50
             f.tx(|t| t.nonce().eq(5)); // OR Nonce = 5
         })
         .build();
@@ -67,8 +67,8 @@ fn main() {
                 f.event(|e| {
                     e.contract().starts_with("0xDex");
                     e.topics().contains("Transfer".to_string());
-                    e.param("amount").exact("1000");
-                    e.param("from").starts_with("0xa1b2...");
+                    // e.param("amount").exact("1000");
+                    // e.param("from").starts_with("0xa1b2...");
                 });
             });
 
@@ -102,7 +102,10 @@ fn main() {
                         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
                             .to_string(),
                     );
-                    e.topics().not_empty();
+
+                    e.signature("Transfer(address indexed from,address indexed to,uint256 value)")
+                        .params("value")
+                        .gt(100_u128);
                 });
             });
         })
@@ -153,9 +156,7 @@ fn main() {
             // Contract-specific calls fields
             f.tx(|t| {
                 t.contract().method().exact("transfer");
-                t.contract()
-                    .params("tokenIn")
-                    .exact("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
+                t.contract().params("tokenIn").gt(100);
 
                 t.contract().path("tokenIn").starts_with("0x8");
             });
