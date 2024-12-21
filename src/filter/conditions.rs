@@ -116,7 +116,6 @@ pub enum EventCondition {
     Contract(StringCondition),
     BlockHash(StringCondition),
     TxHash(StringCondition),
-    Name(StringCondition),
 
     // Numeric conditions
     LogIndex(NumericCondition<u64>),

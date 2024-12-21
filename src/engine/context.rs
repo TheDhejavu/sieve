@@ -177,22 +177,52 @@ impl EvaluableData for Log {
     fn evaluate(
         &self,
         condition: &FilterCondition,
-        _decoded_data: Option<Arc<DecodedData>>,
+        decoded_data: Option<Arc<DecodedData>>,
     ) -> bool {
         match condition {
             FilterCondition::Event(event_condition) => match event_condition {
-                EventCondition::Contract(condition) => todo!(),
-                EventCondition::BlockHash(condition) => todo!(),
-                EventCondition::TxHash(condition) => todo!(),
-                EventCondition::LogIndex(condition) => todo!(),
-                EventCondition::BlockNumber(condition) => todo!(),
-                EventCondition::TxIndex(condition) => todo!(),
-                EventCondition::Topics(condition) => todo!(),
-                EventCondition::Name(string_condition) => todo!(),
-                EventCondition::EventMatch {
-                    signature,
-                    parameters,
-                } => todo!(),
+                EventCondition::Contract(condition) => {
+                    condition.evaluate(&self.address().to_string())
+                }
+                EventCondition::BlockHash(condition) => {
+                    condition.evaluate(&self.block_hash.unwrap_or_default().to_string())
+                }
+                EventCondition::TxHash(condition) => {
+                    condition.evaluate(&self.transaction_hash.unwrap_or_default().to_string())
+                }
+                EventCondition::LogIndex(condition) => {
+                    condition.evaluate(&self.log_index.unwrap_or_default())
+                }
+                EventCondition::BlockNumber(condition) => {
+                    condition.evaluate(&self.block_number.unwrap_or_default())
+                }
+                EventCondition::TxIndex(condition) => {
+                    condition.evaluate(&self.transaction_index.unwrap_or_default())
+                }
+                EventCondition::Topics(condition) => {
+                    let topics: Vec<String> = self
+                        .topics()
+                        .iter()
+                        .map(|topic| topic.to_string())
+                        .collect();
+                    condition.evaluate(&topics)
+                }
+                EventCondition::EventMatch { parameters, .. } => {
+                    match decoded_data {
+                        Some(data) => {
+                            if let DecodedData::Event(decoded_log) = data.as_ref() {
+                                parameters.iter().all(|(param, condition)| {
+                                    decoded_log
+                                        .get_parameter(param)
+                                        .map_or(false, |value| condition.evaluate(value))
+                                })
+                            } else {
+                                false
+                            }
+                        }
+                        None => false
+                    }
+                }
             },
             _ => false,
         }

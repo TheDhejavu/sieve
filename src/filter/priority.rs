@@ -81,8 +81,7 @@ impl_condition_priority!(
         Self::Topics(_)
     ],
     complex: [
-        Self::EventMatch{..},
-        Self::Name(_),
+        Self::EventMatch{..}
     ]
 );
 
