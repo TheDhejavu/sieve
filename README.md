@@ -49,7 +49,34 @@ It is composed of **three main components** that work together to provide a reli
     - `logs`
 
 ## L2 (Superchain)
-*Still researching......*
+Supporting L2s through chain context and dynamic fields. Rather than hardcoding chain-specific logic, developers can specify chain context and use flexible field conditions, while still maintaining harcoded cross-chain specific name
+
+### Idea ?
+**Basic filter**:
+
+```rust
+let filter = FilterBuilder::new()
+    .any_of(|f| {
+        // Cross-Chain filter
+        f.optimisim()  // Chain context
+         .tx(|t| t.field("l1BlockNumber").gt(1000));
+        
+        f.ethereum()  // Chain context
+         .tx(|t| t.field("blockNumber").gt(1000));
+    })
+    .build();
+```
+
+**Within:**
+The `within` context allows for time-bounded cross-chain correlation:
+```rust
+let filter = FilterBuilder::new()
+    .within(Duration::hours(1), |f| {
+        f.optimisim().tx(|t| t.field("l1BlockNumber").gt(1000));
+        f.ethereum().tx(|t| t.field("blockNumber").gt(1000));
+    })
+    .build();
+```
 
 ### Proposed Usage (*stream*):
 ```rust
