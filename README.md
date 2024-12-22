@@ -2,10 +2,12 @@
 A real-time data streaming & filtering engine for Ethereum & the superchain.
 
 ## Overview
-Sieve provides a simple and expressive way to filter blockchain data streams:
-- Transactions (confirmed and pending)
-- Events (logs)
-- Blocks
+Sieve offers a simple and expressive way for filtering blockchain data streams and emitting events when specified conditions are met. 
+
+### Supported Emitted Events
+- Transactions: Both confirmed and pending.
+- Events (Logs): Filtered logs from smart contract interactions.
+- Block Headers: Key details from block headers.
 
 ## Streaming Layer 
 The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
@@ -16,7 +18,8 @@ It is composed of **three main components** that work together to provide a reli
 - Connection Orchestrator
 - Ingestion Pipeline
 
-### v1.0 (watcher):
+## L1 (Ethereum)
+### v1.0 (ingest):
 **RPC Calls (*busy-polling*):**
 
 - Pending Transactions:
@@ -45,10 +48,8 @@ It is composed of **three main components** that work together to provide a reli
     - `newPendingTransactions`
     - `logs`
 
-## Emitted Events
-- Transaction
-- Event (log)
-- Block Header 
+## L2 (Superchain)
+*Still researching......*
 
 ### Proposed Usage (*stream*):
 ```rust
