@@ -73,12 +73,19 @@ Supporting L2s through chain context and dynamic fields. Rather than hardcoding 
 **Basic filter**:
 
 ```rust
-let filter = FilterBuilder::new()
+let op_filter = FilterBuilder::new()
     .optimism(|op| {
         op.field("l1BlockNumber").gt(1000000000000000000u128);
 
         op.field("l1TxOrigin").starts_with("0x");
         op.field("queueIndex").lt(100u64);
+
+    })
+    .build();
+
+let base_filter = FilterBuilder::new()
+    .base(|op| {
+        op.field("l1BlockNumber").gt(1000000000000000000u128);
 
     })
     .build();
@@ -156,7 +163,49 @@ fn main() {
     let op_filter = FilterBuilder::new()
         .optimism(|op| op.field("l1BlockNumber").gt(2000))
         .build();
+}
+```
 
+## Stream Listeners
+**Subsribe:**
+```rust
+use sieve::{FilterBuilder, NumericOps, StringOps};
+
+fn main() {
+    let mut stream = runtime.subsribe(eth_filter);
+
+    while let Some(event) = stream.next().await {
+        match event {
+           println!("{:?} new event", event);
+        }
+    }
+}
+```
+
+**Subscribe All:**
+The `subscribe_all` context allows you to subscribe to indepedent filters
+
+```rust
+use sieve::{FilterBuilder, NumericOps, StringOps};
+
+fn main() {
+    let mut stream = runtime.subscribe_all([eth_filter, op_filter]);
+
+    while let Some(event) = stream.next().await {
+        match event {
+           println!("{:?} new event", event);
+        }
+    }
+}
+```
+
+**Watch Within:**
+The `watch_within` context allows for time-bounded cross-chain correlation
+
+```rust
+use sieve::{FilterBuilder, NumericOps, StringOps};
+
+fn main() {
     let mut stream = runtime.watch_within(
         Duration::from_secs(1800),  // 30 min window
         eth_filter,
@@ -175,9 +224,6 @@ fn main() {
     }
 }
 ```
-
-**Watch Within:**
-The `watch_within` context allows for time-bounded cross-chain correlation
 
 ## Status
 🚧 Experimental - Not ready for production use 
