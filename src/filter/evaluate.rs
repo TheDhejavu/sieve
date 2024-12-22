@@ -74,7 +74,7 @@ where
     }
 }
 
-// Eveluation for decoded data gotten from [`alloy_dyn_abi::DynSolValue`]
+// Evaluation for decoded data gotten from [`alloy_dyn_abi::DynSolValue`]
 impl Evaluable<DynSolValue> for ValueCondition {
     fn evaluate(&self, value: &DynSolValue) -> bool {
         match self {
@@ -127,7 +127,7 @@ impl Evaluable<DynSolValue> for ValueCondition {
     }
 }
 
-// Eveluation for blockchain data gotten from [`serde_json::Value`]
+// Evaluation for blockchain data gotten from [`serde_json::Value`]
 impl Evaluable<Value> for DynFieldCondition {
     fn evaluate(&self, value: &Value) -> bool {
         match self {
