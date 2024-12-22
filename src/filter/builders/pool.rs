@@ -1,20 +1,18 @@
 // Pool builder
 use crate::filter::{
-    conditions::{ConditionBuilder, PoolCondition},
+    conditions::{FilterCondition, FilterNode, NodeBuilder, PoolCondition},
     field::{FieldWrapper, PoolField, StringFieldType, U128FieldType, U256FieldType, U64FieldType},
 };
 
 // ===== Pool Builder =====
 pub(crate) struct PoolBuilder {
-    pub(crate) conditions: Vec<PoolCondition>,
+    pub(crate) nodes: Vec<FilterNode>,
 }
 
 #[allow(dead_code)]
 impl PoolBuilder {
     pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
+        Self { nodes: Vec::new() }
     }
 
     pub fn nonce(&mut self) -> FieldWrapper<'_, U64FieldType<PoolField>, Self> {
@@ -74,11 +72,15 @@ impl PoolBuilder {
     }
 }
 
-impl ConditionBuilder for PoolBuilder {
+impl NodeBuilder for PoolBuilder {
     type Condition = PoolCondition;
 
-    fn push_condition(&mut self, condition: PoolCondition) {
-        self.conditions.push(condition)
+    fn append_node(&mut self, condition: PoolCondition) {
+        // root node is a condition without a
+        self.nodes.push(FilterNode {
+            group: None,
+            condition: Some(FilterCondition::Pool(condition)),
+        })
     }
 }
 
@@ -106,13 +108,28 @@ mod tests {
         builder.value().gt(U256::from(100));
         builder.gas_price().gte(100);
 
-        let conditions = vec![
-            PoolCondition::Nonce(NumericCondition::EqualTo(NONCE)),
-            PoolCondition::Value(NumericCondition::GreaterThan(U256::from(100))),
-            PoolCondition::GasPrice(NumericCondition::GreaterThanOrEqualTo(100)),
+        let expected_conditions = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::Nonce(
+                    NumericCondition::EqualTo(NONCE),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::Value(
+                    NumericCondition::GreaterThan(U256::from(100)),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::GasPrice(
+                    NumericCondition::GreaterThanOrEqualTo(100),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, conditions);
+        assert_eq!(builder.nodes, expected_conditions);
     }
 
     #[test]
@@ -124,38 +141,72 @@ mod tests {
         builder.to().contains(HASH);
         builder.hash().starts_with(PREFIX);
 
-        let conditions = vec![
-            PoolCondition::From(StringCondition::EqualTo(ADDRESS.to_string())),
-            PoolCondition::To(StringCondition::Contains(HASH.to_string())),
-            PoolCondition::Hash(StringCondition::StartsWith(PREFIX.to_string())),
+        let expected_conditions = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::From(
+                    StringCondition::EqualTo(ADDRESS.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::To(
+                    StringCondition::Contains(HASH.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::Hash(
+                    StringCondition::StartsWith(PREFIX.to_string()),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, conditions);
+        assert_eq!(builder.nodes, expected_conditions);
     }
 
     #[test]
     fn test_pool_fields() {
         let mut builder = PoolBuilder::new();
 
-        // Mix different types of conditions
         builder.nonce().eq(NONCE);
         builder.from().contains(ADDRESS);
         builder.gas_price().gt(100);
         builder.hash().starts_with(PREFIX);
 
-        let conditions = vec![
-            PoolCondition::Nonce(NumericCondition::EqualTo(NONCE)),
-            PoolCondition::From(StringCondition::Contains(ADDRESS.to_string())),
-            PoolCondition::GasPrice(NumericCondition::GreaterThan(100)),
-            PoolCondition::Hash(StringCondition::StartsWith(PREFIX.to_string())),
+        let expected_conditions = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::Nonce(
+                    NumericCondition::EqualTo(NONCE),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::From(
+                    StringCondition::Contains(ADDRESS.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::GasPrice(
+                    NumericCondition::GreaterThan(100),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Pool(PoolCondition::Hash(
+                    StringCondition::StartsWith(PREFIX.to_string()),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, conditions);
+        assert_eq!(builder.nodes, expected_conditions);
     }
 
     #[test]
     fn builder_new() {
         let builder = PoolBuilder::new();
-        assert!(builder.conditions.is_empty());
+        assert!(builder.nodes.is_empty());
     }
 }

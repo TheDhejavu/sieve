@@ -1,7 +1,7 @@
 use super::{
     conditions::{
-        ArrayCondition, BlockHeaderCondition, ConditionBuilder, DynFieldCondition, EventCondition,
-        EventExCondition, FilterCondition, NumericCondition, PoolCondition, StringCondition,
+        ArrayCondition, BlockHeaderCondition, DynFieldCondition, EventCondition, EventExCondition,
+        FilterCondition, NodeBuilder, NumericCondition, PoolCondition, StringCondition,
         TransactionCondition, ValueCondition,
     },
     operations::{ArrayOps, NumericOps, StringOps},
@@ -358,56 +358,56 @@ macro_rules! impl_numeric_ops {
         impl<T, P, C> NumericOps<$type> for FieldWrapper<'_, $field_type<T>, P>
         where
             $condition_type<T>: Into<C>,
-            P: ConditionBuilder<Condition = C>,
+            P: NodeBuilder<Condition = C>,
         {
             fn gt(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::GreaterThan(value)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn lt(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::LessThan(value)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn eq(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::EqualTo(value)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn lte(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::LessThanOrEqualTo(value))
                         .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn gte(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::GreaterThanOrEqualTo(value))
                         .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn neq(self, value: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::NotEqualTo(value)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn between(self, min: $type, max: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::Between(min, max)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn outside(self, min: $type, max: $type) {
                 let condition =
                     $condition_type(self.field.0, NumericCondition::Outside(min, max)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
         }
     };
@@ -482,7 +482,7 @@ macro_rules! impl_string_ops {
         impl<T, P, C> StringOps for FieldWrapper<'_, $field_type<T>, P>
         where
             $condition_type<T>: Into<C>,
-            P: ConditionBuilder<Condition = C>,
+            P: NodeBuilder<Condition = C>,
         {
             fn starts_with(self, prefix: &str) {
                 let condition = $condition_type(
@@ -490,14 +490,14 @@ macro_rules! impl_string_ops {
                     StringCondition::StartsWith(prefix.to_string()),
                 )
                 .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn ends_with(self, suffix: &str) {
                 let condition =
                     $condition_type(self.field.0, StringCondition::EndsWith(suffix.to_string()))
                         .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn contains(self, substring: &str) {
@@ -506,7 +506,7 @@ macro_rules! impl_string_ops {
                     StringCondition::Contains(substring.to_string()),
                 )
                 .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn matches(self, regex_pattern: &str) {
@@ -515,14 +515,14 @@ macro_rules! impl_string_ops {
                     StringCondition::Matches(regex_pattern.to_string()),
                 )
                 .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn exact(self, value: &str) {
                 let condition =
                     $condition_type(self.field.0, StringCondition::EqualTo(value.to_string()))
                         .into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
         }
     };
@@ -556,28 +556,28 @@ macro_rules! impl_array_ops {
         impl<F, B, C> ArrayOps<$value_type> for FieldWrapper<'_, ArrayFieldType<F>, B>
         where
             ArrayFieldCondition<F, $value_type>: Into<C>,
-            B: ConditionBuilder<Condition = C>,
+            B: NodeBuilder<Condition = C>,
         {
             fn contains(self, value: $value_type) {
                 let condition =
                     ArrayFieldCondition(self.field.0, ArrayCondition::Contains(value)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn not_in(self, values: Vec<$value_type>) {
                 let condition =
                     ArrayFieldCondition(self.field.0, ArrayCondition::NotIn(values)).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn empty(self) {
                 let condition = ArrayFieldCondition(self.field.0, ArrayCondition::Empty).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
 
             fn not_empty(self) {
                 let condition = ArrayFieldCondition(self.field.0, ArrayCondition::NotEmpty).into();
-                self.parent.push_condition(condition);
+                self.parent.append_node(condition);
             }
         }
     };

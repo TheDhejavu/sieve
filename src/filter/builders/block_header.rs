@@ -1,6 +1,6 @@
 // Block Header builder
 use crate::filter::{
-    conditions::{BlockHeaderCondition, ConditionBuilder},
+    conditions::{BlockHeaderCondition, FilterCondition, FilterNode, NodeBuilder},
     field::{
         BlockField, DynField, DynValueFieldType, FieldWrapper, StringFieldType, U256FieldType,
         U64FieldType,
@@ -9,22 +9,24 @@ use crate::filter::{
 
 // ===== BlockHeader Builder =====
 pub(crate) struct BlockHeaderBuilder {
-    pub(crate) conditions: Vec<BlockHeaderCondition>,
+    pub(crate) nodes: Vec<FilterNode>,
 }
 
-impl ConditionBuilder for BlockHeaderBuilder {
+impl NodeBuilder for BlockHeaderBuilder {
     type Condition = BlockHeaderCondition;
 
-    fn push_condition(&mut self, condition: BlockHeaderCondition) {
-        self.conditions.push(condition)
+    fn append_node(&mut self, condition: BlockHeaderCondition) {
+        self.nodes.push(FilterNode {
+            group: None,
+            condition: Some(FilterCondition::BlockHeader(condition)),
+        })
     }
 }
+
 #[allow(dead_code)]
 impl BlockHeaderBuilder {
     pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
+        Self { nodes: Vec::new() }
     }
     pub fn number(&mut self) -> FieldWrapper<'_, U64FieldType<BlockField>, Self> {
         FieldWrapper {
@@ -117,15 +119,13 @@ impl BlockHeaderBuilder {
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
-
     use alloy_primitives::U256;
 
     use super::*;
     use crate::filter::{
-        conditions::{NumericCondition, StringCondition},
+        conditions::{FilterCondition, NumericCondition, StringCondition},
         NumericOps, StringOps,
     };
 
@@ -152,16 +152,46 @@ mod tests {
         builder.timestamp().lte(TIMESTAMP);
         builder.base_fee().eq(100);
 
-        let conditions = vec![
-            BlockHeaderCondition::Number(NumericCondition::EqualTo(NUMBER)),
-            BlockHeaderCondition::Size(NumericCondition::GreaterThan(U256::from(SIZE))),
-            BlockHeaderCondition::GasUsed(NumericCondition::GreaterThanOrEqualTo(GAS_USED)),
-            BlockHeaderCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
-            BlockHeaderCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
-            BlockHeaderCondition::BaseFee(NumericCondition::EqualTo(100)),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Number(
+                    NumericCondition::EqualTo(NUMBER),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Size(
+                    NumericCondition::GreaterThan(U256::from(SIZE)),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::GasUsed(
+                    NumericCondition::GreaterThanOrEqualTo(GAS_USED),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::BaseFee(
+                    NumericCondition::EqualTo(100),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, conditions);
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
@@ -175,20 +205,49 @@ mod tests {
         builder.receipts_root().exact(HASH);
         builder.transactions_root().starts_with(PREFIX);
 
-        let conditions = vec![
-            BlockHeaderCondition::Hash(StringCondition::EqualTo(HASH.to_string())),
-            BlockHeaderCondition::ParentHash(StringCondition::StartsWith(PREFIX.to_string())),
-            BlockHeaderCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
-            BlockHeaderCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
-            BlockHeaderCondition::TransactionsRoot(StringCondition::StartsWith(PREFIX.to_string())),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Hash(
+                    StringCondition::EqualTo(HASH.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::ParentHash(StringCondition::StartsWith(
+                        PREFIX.to_string(),
+                    )),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::BlockHeader(
+                    BlockHeaderCondition::TransactionsRoot(StringCondition::StartsWith(
+                        PREFIX.to_string(),
+                    )),
+                )),
+            },
         ];
 
-        assert_eq!(builder.conditions, conditions);
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
     fn builder_new() {
         let builder = BlockHeaderBuilder::new();
-        assert!(builder.conditions.is_empty());
+        assert!(builder.nodes.is_empty());
     }
 }

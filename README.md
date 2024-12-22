@@ -74,13 +74,12 @@ Supporting L2s through chain context and dynamic fields. Rather than hardcoding 
 
 ```rust
 let filter = FilterBuilder::new()
-    .any_of(|f| {
-        // Cross-Chain filter
-        f.optimisim()  // Chain context
-         .tx(|t| t.field("l1BlockNumber").gt(1000));
-        
-        f.ethereum()  // Chain context
-         .tx(|t| t.field("blockNumber").gt(1000));
+    .optimism(|op| {
+        op.field("l1BlockNumber").gt(1000000000000000000u128);
+
+        op.field("l1TxOrigin").starts_with("0x");
+        op.field("queueIndex").lt(100u64);
+
     })
     .build();
 ```
@@ -91,7 +90,7 @@ The `within` context allows for time-bounded cross-chain correlation:
 let filter = FilterBuilder::new()
     .within(Duration::hours(1), |f| {
         f.optimisim().tx(|t| t.field("l1BlockNumber").gt(1000));
-        f.ethereum().tx(|t| t.field("blockNumber").gt(1000));
+        f.tx(|t| t.field("blockNumber").gt(1000));
     })
     .build();
 ```
@@ -156,18 +155,27 @@ The filter engine uses a tree structure to represent complex logical combination
 use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
-    // Filter for high-value transactions
-    let value_filter = FilterBuilder::new()
+    // Single chain (L1)
+    let eth_filter = FilterBuilder::new()
         .tx(|t| {
             t.value().gt(1000);          // Value > 1000
             t.gas_price().lt(50);        // Gas price < 50
         })
         .build();
 
-    // Filter for Uniswap events
-    let event_filter = FilterBuilder::new()
-        .event(|e| {
-            e.contract().eq("UniswapV2Factory");
+    // Single chain (L2 - Optimisim)
+    let op_filter = FilterBuilder::new()
+        .optimism(|op| op.field("l1BlockNumber").gt(2000))
+        .build();
+
+    // Cross-chain operations must be within a time window
+    let cross_chain = FilterBuilder::new()
+        .within(Duration::hours(1), |f| {
+            f.tx(|t| {
+                t.block_number().gt(2000)
+            })
+            f.optimism(|t| t.field("l1BlockNumber").gt(2000));
+            f.base(|t| t.field("sequenceNumber").gt(500));
         })
         .build();
 }

@@ -1,7 +1,7 @@
 use alloy_primitives::U256;
 use std::cmp::PartialOrd;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum LogicalOp {
     And,
@@ -186,9 +186,9 @@ pub enum BlockHeaderCondition {
     DynField(DynFieldCondition),
 }
 
-pub(crate) trait ConditionBuilder {
+pub(crate) trait NodeBuilder {
     type Condition;
-    fn push_condition(&mut self, condition: Self::Condition);
+    fn append_node(&mut self, condition: Self::Condition);
 }
 
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
@@ -202,7 +202,7 @@ pub(crate) trait ConditionBuilder {
 //       [AND]             [AND]
 //      /     \           /     \
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(dead_code)]
 pub(crate) struct FilterNode {
     pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,

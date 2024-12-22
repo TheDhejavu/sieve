@@ -1,6 +1,6 @@
 // transaction builder
 use crate::filter::{
-    conditions::{ConditionBuilder, TransactionCondition},
+    conditions::{FilterCondition, FilterNode, NodeBuilder, TransactionCondition},
     field::{
         ArrayFieldType, ContractField, DynValueFieldType, FieldWrapper, StringFieldType, TxField,
         U128FieldType, U256FieldType, U64FieldType, U8FieldType,
@@ -9,23 +9,24 @@ use crate::filter::{
 
 // ===== Transaction Builder =====
 pub(crate) struct TxBuilder {
-    pub(crate) conditions: Vec<TransactionCondition>,
+    pub(crate) nodes: Vec<FilterNode>,
 }
 
-impl ConditionBuilder for TxBuilder {
+impl NodeBuilder for TxBuilder {
     type Condition = TransactionCondition;
 
-    fn push_condition(&mut self, condition: TransactionCondition) {
-        self.conditions.push(condition)
+    fn append_node(&mut self, condition: TransactionCondition) {
+        self.nodes.push(FilterNode {
+            group: None,
+            condition: Some(FilterCondition::Transaction(condition)),
+        })
     }
 }
 
 #[allow(dead_code)]
 impl TxBuilder {
     pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
+        Self { nodes: Vec::new() }
     }
 
     pub fn value(&mut self) -> FieldWrapper<'_, U256FieldType<TxField>, Self> {
@@ -143,11 +144,11 @@ pub struct ContractBuilder<'a, B> {
     parent: &'a mut B,
 }
 
-impl ConditionBuilder for ContractBuilder<'_, TxBuilder> {
+impl NodeBuilder for ContractBuilder<'_, TxBuilder> {
     type Condition = TransactionCondition;
 
-    fn push_condition(&mut self, condition: TransactionCondition) {
-        self.parent.push_condition(condition)
+    fn append_node(&mut self, condition: TransactionCondition) {
+        self.parent.append_node(condition)
     }
 }
 
@@ -187,7 +188,8 @@ mod tests {
     use super::*;
     use crate::filter::{
         conditions::{
-            ArrayCondition, NumericCondition, StringCondition, TransactionCondition, ValueCondition,
+            ArrayCondition, FilterCondition, NumericCondition, StringCondition,
+            TransactionCondition,
         },
         ArrayOps, NumericOps, StringOps,
     };
@@ -195,7 +197,6 @@ mod tests {
     const ADDRESS: &str = "0x123";
     const PREFIX: &str = "0x";
     const CONTENT: &str = "abc";
-    const METHOD: &str = "transfer";
 
     #[test]
     fn test_tx_numeric_field_operations() {
@@ -207,16 +208,48 @@ mod tests {
         builder.max_fee_per_gas().lte(100_u128);
         builder.max_priority_fee().gte(100_u128);
 
-        let expected_conditions = vec![
-            TransactionCondition::Value(NumericCondition::EqualTo(U256::from(100))),
-            TransactionCondition::GasPrice(NumericCondition::GreaterThan(100)),
-            TransactionCondition::Gas(NumericCondition::LessThan(100)),
-            TransactionCondition::Nonce(NumericCondition::Between(100, 200)),
-            TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(100)),
-            TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(100)),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                    NumericCondition::EqualTo(U256::from(100)),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::GasPrice(NumericCondition::GreaterThan(100)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::Gas(
+                    NumericCondition::LessThan(100),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::Nonce(
+                    NumericCondition::Between(100, 200),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(100)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(
+                        100,
+                    )),
+                )),
+            },
         ];
 
-        assert_eq!(builder.conditions, expected_conditions);
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
@@ -228,14 +261,34 @@ mod tests {
         builder.block_hash().contains(CONTENT);
         builder.hash().ends_with(CONTENT);
 
-        let expected_conditions = vec![
-            TransactionCondition::From(StringCondition::EqualTo(ADDRESS.to_string())),
-            TransactionCondition::To(StringCondition::StartsWith(PREFIX.to_string())),
-            TransactionCondition::BlockHash(StringCondition::Contains(CONTENT.to_string())),
-            TransactionCondition::Hash(StringCondition::EndsWith(CONTENT.to_string())),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::From(
+                    StringCondition::EqualTo(ADDRESS.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::To(
+                    StringCondition::StartsWith(PREFIX.to_string()),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::BlockHash(StringCondition::Contains(CONTENT.to_string())),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::Hash(
+                    StringCondition::EndsWith(CONTENT.to_string()),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, expected_conditions);
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
@@ -245,39 +298,31 @@ mod tests {
         builder.access_list().empty();
         builder.access_list().not_empty();
 
-        let expected_conditions = vec![
-            TransactionCondition::AccessList(ArrayCondition::Empty),
-            TransactionCondition::AccessList(ArrayCondition::NotEmpty),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::AccessList(ArrayCondition::Empty),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::AccessList(ArrayCondition::NotEmpty),
+                )),
+            },
         ];
 
-        assert_eq!(builder.conditions, expected_conditions);
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
     fn test_tx_contract_operations() {
         let mut builder = TxBuilder::new();
-        let mut transfer = builder.contract();
+        let mut _transfer = builder.contract();
 
-        // transfer.method().exact(METHOD);
-        // transfer
-        //     .path("tokenIn")
-        //     .exact("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
-
-        // transfer.params("amountIn").gt(100_u128);
-
-        let expected_conditions = vec![
-            // TransactionCondition::Method(StringCondition::EqualTo(METHOD.to_string())),
-            // TransactionCondition::Path(
-            //     "tokenIn".to_string(),
-            //     StringCondition::EqualTo("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()),
-            // ),
-            // TransactionCondition::Parameter(
-            //     "amountIn".to_string(),
-            //     ValueCondition::U128(NumericCondition::GreaterThan(100_u128)),
-            // ),
-        ];
-
-        assert_eq!(builder.conditions, expected_conditions);
+        let expected_nodes = vec![];
+        assert_eq!(builder.nodes, expected_nodes);
     }
 
     #[test]
@@ -289,13 +334,39 @@ mod tests {
         builder.index().lt(100);
         builder.tx_type().eq(1);
 
-        let expected_conditions = vec![
-            TransactionCondition::ChainId(NumericCondition::EqualTo(100)),
-            TransactionCondition::BlockNumber(NumericCondition::GreaterThan(100)),
-            TransactionCondition::TransactionIndex(NumericCondition::LessThan(100)),
-            TransactionCondition::Type(NumericCondition::EqualTo(1)),
+        let expected_nodes = vec![
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::ChainId(
+                    NumericCondition::EqualTo(100),
+                ))),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::BlockNumber(NumericCondition::GreaterThan(100)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(
+                    TransactionCondition::TransactionIndex(NumericCondition::LessThan(100)),
+                )),
+            },
+            FilterNode {
+                group: None,
+                condition: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                    NumericCondition::EqualTo(1),
+                ))),
+            },
         ];
 
-        assert_eq!(builder.conditions, expected_conditions);
+        assert_eq!(builder.nodes, expected_nodes);
+    }
+
+    #[test]
+    fn builder_new() {
+        let builder = TxBuilder::new();
+        assert!(builder.nodes.is_empty());
     }
 }

@@ -1,31 +1,30 @@
 use std::marker::PhantomData;
 
-use crate::filter::conditions::FilterNode;
+use crate::filter::conditions::{FilterNode, LogicalOp};
 
 use super::{
-    block_header::BlockHeaderBuilder,
-    ethereum::{EthereumFilterBuilder, MainFilterBuilder, PoolFilterBuilder},
-    event::EventBuilder,
-    logical_builder::LogicalFilterBuilder,
-    optimism::{MainOptimismFilterBuilder, OptimismFilterBuilder},
-    pool::PoolBuilder,
-    transaction::TxBuilder,
+    block_header::BlockHeaderBuilder, builder_ops::FilterBuilderOps, event::EventBuilder,
+    logical_builder::LogicalFilterBuilder, pool::PoolBuilder, transaction::TxBuilder,
 };
 
-/// FilterBuilder allows constructing complex filter conditions using a builder pattern.
-pub struct FilterBuilder {
-    filters: Vec<FilterNode>,
+// ===== ETHEREUM FILTER BUILDER ============
+pub(crate) struct EthereumFilterBuilder {
+    pub(crate) filters: Vec<FilterNode>,
 }
 
-#[allow(dead_code)]
-impl FilterBuilder {
-    /// Creates a new empty [`FilterBuilder`].
-    pub fn new() -> Self {
+impl FilterBuilderOps for EthereumFilterBuilder {
+    fn new() -> Self {
         Self {
             filters: Vec::new(),
         }
     }
 
+    fn take_filters(&mut self) -> Vec<FilterNode> {
+        std::mem::take(&mut self.filters)
+    }
+}
+
+impl EthereumFilterBuilder {
     /// Adds transaction conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
@@ -77,21 +76,6 @@ impl FilterBuilder {
         };
         filter.block_header(f)
     }
-
-    // ====== Layer 2 ========
-    /// Adds Optimism L2-specific conditions to the filter.
-    ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn optimism<F>(&mut self, f: F) -> MainOptimismFilterBuilder
-    where
-        F: FnOnce(&mut OptimismFilterBuilder),
-    {
-        MainOptimismFilterBuilder {
-            filters: &mut self.filters,
-        }
-    }
-
-    // ====== Logical Operations for L1 ========
 
     /// Combines conditions with AND logic, requiring all conditions to be true.
     ///
@@ -180,5 +164,73 @@ impl FilterBuilder {
             _builder: PhantomData,
         };
         filter.or(f)
+    }
+}
+
+// ===== Main Filter Builder =====
+#[allow(dead_code)]
+pub struct MainFilterBuilder<'a> {
+    pub(crate) filters: &'a mut Vec<FilterNode>,
+}
+
+#[allow(dead_code)]
+impl MainFilterBuilder<'_> {
+    pub fn tx<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let mut builder = TxBuilder::new();
+        f(&mut builder);
+
+        self.filters.extend(builder.nodes);
+        self
+    }
+
+    pub fn event<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut EventBuilder),
+    {
+        let mut builder = EventBuilder::new();
+        f(&mut builder);
+
+        self.filters.extend(builder.nodes);
+        self
+    }
+
+    pub fn block_header<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let mut builder = BlockHeaderBuilder::new();
+        f(&mut builder);
+
+        self.filters.extend(builder.nodes);
+        self
+    }
+
+    pub fn build(&self) -> FilterNode {
+        FilterNode {
+            group: Some((LogicalOp::And, self.filters.clone())),
+            condition: None,
+        }
+        .optimize()
+    }
+}
+
+// ===== Pool Filter Builder =====
+#[allow(dead_code)]
+pub(crate) struct PoolFilterBuilder<'a> {
+    pub(crate) filters: &'a mut Vec<FilterNode>,
+}
+
+impl PoolFilterBuilder<'_> {
+    pub fn pool<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut PoolBuilder),
+    {
+        let mut builder = PoolBuilder::new();
+        f(&mut builder);
+        self.filters.extend(builder.nodes);
+        self
     }
 }
