@@ -46,7 +46,8 @@ impl_condition_priority!(
         Self::TransactionIndex(_),
         Self::GasPrice(_),
         Self::MaxFeePerGas(_),
-        Self::MaxPriorityFee(_)
+        Self::MaxPriorityFee(_),
+        Self::DynField(_),
     ],
     hash: [
         Self::From(_),
@@ -69,7 +70,8 @@ impl_condition_priority!(
     basic: [
         Self::LogIndex(_),
         Self::BlockNumber(_),
-        Self::TxIndex(_)
+        Self::TxIndex(_),
+        Self::DynField(_),
     ],
     hash: [
         Self::Contract(_),
@@ -90,7 +92,8 @@ impl_condition_priority!(
         Self::Nonce(_),
         Self::GasPrice(_),
         Self::GasLimit(_),
-        Self::Timestamp(_)
+        Self::Timestamp(_),
+        Self::DynField(_),
     ],
     hash: [
         Self::Hash(_),
@@ -111,7 +114,8 @@ impl_condition_priority!(
         Self::Timestamp(_),
         Self::GasUsed(_),
         Self::GasLimit(_),
-        Self::Size(_)
+        Self::Size(_),
+        Self::DynField(_),
     ],
     hash: [
         Self::Hash(_),
@@ -131,6 +135,7 @@ impl Prioritized for FilterCondition {
             Self::Event(cond) => cond.priority(),
             Self::Pool(cond) => cond.priority(),
             Self::BlockHeader(cond) => cond.priority(),
+            Self::DynField(cond) => Priority::Basic,
         }
     }
 }

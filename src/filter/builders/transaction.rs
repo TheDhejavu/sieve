@@ -2,7 +2,7 @@
 use crate::filter::{
     conditions::{ConditionBuilder, TransactionCondition},
     field::{
-        ArrayFieldType, ContractField, FieldWrapper, ParamFieldType, StringFieldType, TxField,
+        ArrayFieldType, ContractField, DynValueFieldType, FieldWrapper, StringFieldType, TxField,
         U128FieldType, U256FieldType, U64FieldType, U8FieldType,
     },
 };
@@ -163,9 +163,12 @@ impl<'a> ContractBuilder<'a, TxBuilder> {
         }
     }
 
-    pub fn params(&mut self, name: &str) -> FieldWrapper<'_, ParamFieldType<ContractField>, Self> {
+    pub fn params(
+        &mut self,
+        name: &str,
+    ) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
         FieldWrapper {
-            field: ParamFieldType(ContractField::Parameter(name.to_string())),
+            field: DynValueFieldType(ContractField::Parameter(name.to_string())),
             parent: self,
         }
     }
@@ -184,8 +187,7 @@ mod tests {
     use super::*;
     use crate::filter::{
         conditions::{
-            ArrayCondition, NumericCondition, ParameterCondition, StringCondition,
-            TransactionCondition,
+            ArrayCondition, NumericCondition, StringCondition, TransactionCondition, ValueCondition,
         },
         ArrayOps, NumericOps, StringOps,
     };
@@ -271,7 +273,7 @@ mod tests {
             // ),
             // TransactionCondition::Parameter(
             //     "amountIn".to_string(),
-            //     ParameterCondition::U128(NumericCondition::GreaterThan(100_u128)),
+            //     ValueCondition::U128(NumericCondition::GreaterThan(100_u128)),
             // ),
         ];
 

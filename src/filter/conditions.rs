@@ -76,12 +76,19 @@ pub enum FilterCondition {
     Event(EventCondition),
     Pool(PoolCondition),
     BlockHeader(BlockHeaderCondition),
+    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ParameterCondition {
-    U256(NumericCondition<U256>),
+pub enum DynFieldCondition {
+    SingleEntry { path: String, value: ValueCondition },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueCondition {
+    U64(NumericCondition<u64>),
     U128(NumericCondition<u128>),
+    U256(NumericCondition<U256>),
     String(StringCondition),
 }
 
@@ -108,10 +115,12 @@ pub enum TransactionCondition {
 
     CallData {
         abi: String,
-        path: Vec<(String, ParameterCondition)>,
+        path: Vec<(String, ValueCondition)>,
         method_selector: String,
-        parameters: Vec<(String, ParameterCondition)>,
+        parameters: Vec<(String, ValueCondition)>,
     },
+
+    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,16 +138,18 @@ pub enum EventCondition {
 
     EventData {
         signature: String,
-        parameters: Vec<(String, ParameterCondition)>,
+        parameters: Vec<(String, ValueCondition)>,
     },
 
     // Array condition
     Topics(ArrayCondition<String>),
+
+    DynField(DynFieldCondition),
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum EventExCondition {
-    Parameter(String, ParameterCondition),
+    Parameter(String, ValueCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -152,6 +163,8 @@ pub enum PoolCondition {
     GasPrice(NumericCondition<u128>),
     GasLimit(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
+
+    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,6 +182,8 @@ pub enum BlockHeaderCondition {
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),
     TransactionsRoot(StringCondition),
+
+    DynField(DynFieldCondition),
 }
 
 pub(crate) trait ConditionBuilder {

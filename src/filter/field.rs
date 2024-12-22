@@ -1,7 +1,8 @@
 use super::{
     conditions::{
-        ArrayCondition, BlockHeaderCondition, ConditionBuilder, EventCondition, EventExCondition,
-        NumericCondition, ParameterCondition, PoolCondition, StringCondition, TransactionCondition,
+        ArrayCondition, BlockHeaderCondition, ConditionBuilder, DynFieldCondition, EventCondition,
+        EventExCondition, FilterCondition, NumericCondition, PoolCondition, StringCondition,
+        TransactionCondition, ValueCondition,
     },
     operations::{ArrayOps, NumericOps, StringOps},
 };
@@ -14,14 +15,14 @@ pub struct U256FieldType<T>(pub T);
 pub struct StringFieldType<T>(pub T);
 pub struct ArrayFieldType<T>(pub T);
 
+pub struct DynValueFieldType<T>(pub T);
+
 pub struct U8FieldCondition<T>(pub T, pub NumericCondition<u8>);
 pub struct U64FieldCondition<T>(pub T, pub NumericCondition<u64>);
 pub struct U128FieldCondition<T>(pub T, pub NumericCondition<u128>);
 pub struct U256FieldCondition<T>(pub T, pub NumericCondition<U256>);
 pub struct StringFieldCondition<T>(pub T, pub StringCondition);
 pub struct ArrayFieldCondition<T, V>(pub T, pub ArrayCondition<V>);
-
-pub struct ParamFieldType<T>(pub T);
 
 // === Transaction Fields ======
 // Contract-specific fields
@@ -31,6 +32,8 @@ pub enum ContractField {
     Parameter(String), // Named parameter: "amountIn", "to", "amount" etc
     Path(String),      // For nested params like "path.tokenIn"
 }
+
+pub struct DynField(pub String);
 
 // Transaction specific field
 #[derive(Debug, Clone)]
@@ -81,7 +84,6 @@ pub enum BlockField {
     GasLimit,   // Block gas limit
     BaseFee,    // Base fee per gas (EIP-1559)
     Miner,
-    TransactionCount, // Number of transactions
     StateRoot,        // State root hash
     ReceiptsRoot,     // Receipts root hash
     TransactionsRoot, // Transactions root hash
@@ -192,7 +194,7 @@ impl From<U128FieldCondition<ContractField>> for TransactionCondition {
         let U128FieldCondition(field, value) = fc;
         match field {
             // ContractField::Parameter(path) => {
-            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
+            //     TransactionCondition::Parameter(path.to_string(), ValueCondition::U128(value))
             // }
             _ => panic!("Field does not support U128 numeric conditions"),
         }
@@ -204,7 +206,7 @@ impl From<U256FieldCondition<ContractField>> for TransactionCondition {
         let U256FieldCondition(field, value) = fc;
         match field {
             // ContractField::Parameter(path) => {
-            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
+            //     TransactionCondition::Parameter(path.to_string(), ValueCondition::U256(value))
             // }
             _ => panic!("Field does not support U256 numeric conditions"),
         }
@@ -216,7 +218,7 @@ impl From<U128FieldCondition<ContractField>> for EventExCondition {
         let U128FieldCondition(field, value) = fc;
         match field {
             ContractField::Parameter(path) => {
-                EventExCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
+                EventExCondition::Parameter(path.to_string(), ValueCondition::U128(value))
             }
             _ => panic!("Field does not support U128 numeric conditions"),
         }
@@ -228,7 +230,7 @@ impl From<U256FieldCondition<ContractField>> for EventExCondition {
         let U256FieldCondition(field, value) = fc;
         match field {
             ContractField::Parameter(path) => {
-                EventExCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
+                EventExCondition::Parameter(path.to_string(), ValueCondition::U256(value))
             }
             _ => panic!("Field does not support U256 numeric conditions"),
         }
@@ -240,7 +242,7 @@ impl From<StringFieldCondition<ContractField>> for TransactionCondition {
         let StringFieldCondition(field, value) = fc;
         match field {
             // ContractField::Parameter(path) => {
-            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::String(value))
+            //     TransactionCondition::Parameter(path.to_string(), ValueCondition::String(value))
             // }
             // ContractField::Path(path) => TransactionCondition::Path(path.to_string(), value),
             // ContractField::Method => TransactionCondition::Method(value),
@@ -278,6 +280,76 @@ impl From<U256FieldCondition<PoolField>> for PoolCondition {
             PoolField::Value => PoolCondition::Value(value),
             _ => panic!("Field does not support U256 numeric conditions"),
         }
+    }
+}
+
+impl From<U64FieldCondition<DynField>> for BlockHeaderCondition {
+    fn from(fc: U64FieldCondition<DynField>) -> BlockHeaderCondition {
+        let U64FieldCondition(field, value) = fc;
+        BlockHeaderCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U64(value),
+        })
+    }
+}
+
+impl From<U128FieldCondition<DynField>> for BlockHeaderCondition {
+    fn from(fc: U128FieldCondition<DynField>) -> BlockHeaderCondition {
+        let U128FieldCondition(field, value) = fc;
+        BlockHeaderCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U128(value),
+        })
+    }
+}
+
+impl From<U256FieldCondition<DynField>> for BlockHeaderCondition {
+    fn from(fc: U256FieldCondition<DynField>) -> BlockHeaderCondition {
+        let U256FieldCondition(field, value) = fc;
+        BlockHeaderCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U256(value),
+        })
+    }
+}
+
+impl From<U64FieldCondition<DynField>> for FilterCondition {
+    fn from(fc: U64FieldCondition<DynField>) -> FilterCondition {
+        let U64FieldCondition(field, value) = fc;
+        FilterCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U64(value),
+        })
+    }
+}
+
+impl From<U128FieldCondition<DynField>> for FilterCondition {
+    fn from(fc: U128FieldCondition<DynField>) -> FilterCondition {
+        let U128FieldCondition(field, value) = fc;
+        FilterCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U128(value),
+        })
+    }
+}
+
+impl From<U256FieldCondition<DynField>> for FilterCondition {
+    fn from(fc: U256FieldCondition<DynField>) -> FilterCondition {
+        let U256FieldCondition(field, value) = fc;
+        FilterCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::U256(value),
+        })
+    }
+}
+
+impl From<StringFieldCondition<DynField>> for FilterCondition {
+    fn from(fc: StringFieldCondition<DynField>) -> FilterCondition {
+        let StringFieldCondition(field, value) = fc;
+        FilterCondition::DynField(DynFieldCondition::SingleEntry {
+            path: field.0,
+            value: ValueCondition::String(value),
+        })
     }
 }
 
@@ -347,9 +419,9 @@ impl_numeric_ops!(u64, U64FieldType, U64FieldCondition);
 impl_numeric_ops!(u128, U128FieldType, U128FieldCondition);
 impl_numeric_ops!(U256, U256FieldType, U256FieldCondition);
 
-impl_numeric_ops!(u64, ParamFieldType, U64FieldCondition);
-impl_numeric_ops!(u128, ParamFieldType, U128FieldCondition);
-impl_numeric_ops!(U256, ParamFieldType, U256FieldCondition);
+impl_numeric_ops!(u64, DynValueFieldType, U64FieldCondition);
+impl_numeric_ops!(u128, DynValueFieldType, U128FieldCondition);
+impl_numeric_ops!(U256, DynValueFieldType, U256FieldCondition);
 
 impl From<StringFieldCondition<TxField>> for TransactionCondition {
     fn from(fc: StringFieldCondition<TxField>) -> TransactionCondition {
@@ -456,7 +528,7 @@ macro_rules! impl_string_ops {
     };
 }
 
-impl_string_ops!(ParamFieldType, StringFieldCondition);
+impl_string_ops!(DynValueFieldType, StringFieldCondition);
 impl_string_ops!(StringFieldType, StringFieldCondition);
 
 impl From<ArrayFieldCondition<TxField, String>> for TransactionCondition {
@@ -512,3 +584,4 @@ macro_rules! impl_array_ops {
 }
 
 impl_array_ops!(String);
+// impl_array_ops!(DynField);

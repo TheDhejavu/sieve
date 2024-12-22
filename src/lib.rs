@@ -179,6 +179,7 @@ fn main() {
         .unless(|f| {
             f.block_header(|b| {
                 b.gas_used().lt(1000);
+                b.field("l1BlockNumber").gt(100_u128);
             });
         })
         .build();
@@ -199,6 +200,34 @@ fn main() {
 
                 b.gas_used().lt(1000);
             });
+        })
+        .build();
+
+    //===============================================================================================
+    //                            7. L2 FILTER
+    //===============================================================================================
+    let _filter = FilterBuilder::new()
+        .any_of(|f| {
+            // L1 deposit transaction fields
+            let mut op = f.optimism();
+            
+            op.field("l1BlockNumber")
+                .gt(1000000000000000000u128);
+
+            op.field("l1TxOrigin").starts_with("0x");
+            op.field("queueIndex").lt(100u64);
+
+            // L2 block fields
+            op.field("sequenceNumber").gt(500u64);
+            op
+                .field("prevTotalElements")
+                .between(1000u64, 2000u64);
+
+            // Nested fields.
+            op.field("batch.index").gt(100u128);
+            op
+                .field("state.withdrawal.root")
+                .starts_with("0x");
         })
         .build();
 }

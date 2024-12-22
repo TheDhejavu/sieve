@@ -1,6 +1,6 @@
 use super::conditions::{
     ArrayCondition, EventCondition, FilterCondition, NumericCondition, NumericType,
-    ParameterCondition, StringCondition, TransactionCondition,
+    StringCondition, TransactionCondition, ValueCondition,
 };
 use alloy_dyn_abi::DynSolValue;
 pub(crate) trait Evaluable<T> {
@@ -18,6 +18,7 @@ impl FilterCondition {
             }
             FilterCondition::Pool(_) => false,
             FilterCondition::BlockHeader(_) => false,
+            FilterCondition::DynField(_) => false,
         }
     }
 }
@@ -69,7 +70,7 @@ where
     }
 }
 
-impl Evaluable<DynSolValue> for ParameterCondition {
+impl Evaluable<DynSolValue> for ValueCondition {
     fn evaluate(&self, value: &DynSolValue) -> bool {
         match self {
             Self::U256(condition) => {
@@ -102,6 +103,7 @@ impl Evaluable<DynSolValue> for ParameterCondition {
                 }
                 false
             }
+            Self::U64(numeric_condition) => false,
         }
     }
 }

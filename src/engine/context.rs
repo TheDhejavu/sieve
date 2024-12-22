@@ -159,6 +159,7 @@ impl EvaluableData for Header {
                 BlockHeaderCondition::TransactionsRoot(condition) => {
                     condition.evaluate(&self.transactions_root.to_string())
                 }
+                BlockHeaderCondition::DynField(dyn_field_condition) => false,
             },
             _ => false,
         }
@@ -221,6 +222,7 @@ impl EvaluableData for Log {
                     }
                     None => false,
                 },
+                EventCondition::DynField(dyn_field_condition) => false,
             },
             _ => false,
         }

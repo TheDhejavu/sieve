@@ -1,4 +1,9 @@
-use crate::filter::conditions::{FilterCondition, FilterNode, LogicalOp};
+use std::marker::PhantomData;
+
+use crate::filter::{
+    conditions::{ConditionBuilder, FilterCondition, FilterNode, LogicalOp},
+    field::{DynField, DynValueFieldType, FieldWrapper},
+};
 
 use super::{
     block_header::BlockHeaderBuilder, event::EventBuilder, pool::PoolBuilder,
@@ -69,6 +74,13 @@ impl FilterBuilder {
             filters: &mut self.filters,
         };
         filter.block_header(f)
+    }
+
+    // ====== Layer 2 ========
+    pub fn optimism(&mut self) -> DynamicFilterBuilder {
+        DynamicFilterBuilder {
+            conditions: Vec::new(),
+        }
     }
 
     // ====== Logical Operations ========
@@ -154,6 +166,30 @@ impl FilterBuilder {
             filters: &mut self.filters,
         };
         filter.or(f)
+    }
+}
+
+// / ===== Optimisim Filter Builder =====
+#[allow(dead_code)]
+pub struct DynamicFilterBuilder {
+    conditions: Vec<FilterCondition>,
+}
+
+impl ConditionBuilder for DynamicFilterBuilder {
+    type Condition = FilterCondition;
+
+    fn push_condition(&mut self, condition: Self::Condition) {
+        self.conditions.push(condition)
+    }
+}
+
+#[allow(dead_code)]
+impl DynamicFilterBuilder {
+    pub fn field(&mut self, path: &str) -> FieldWrapper<'_, DynValueFieldType<DynField>, Self> {
+        FieldWrapper {
+            field: DynValueFieldType(DynField(path.to_string())),
+            parent: self,
+        }
     }
 }
 

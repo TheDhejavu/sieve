@@ -1,7 +1,10 @@
 // Block Header builder
 use crate::filter::{
     conditions::{BlockHeaderCondition, ConditionBuilder},
-    field::{BlockField, FieldWrapper, StringFieldType, U256FieldType, U64FieldType},
+    field::{
+        BlockField, DynField, DynValueFieldType, FieldWrapper, StringFieldType, U256FieldType,
+        U64FieldType,
+    },
 };
 
 // ===== BlockHeader Builder =====
@@ -103,6 +106,13 @@ impl BlockHeaderBuilder {
     pub fn transactions_root(&mut self) -> FieldWrapper<'_, StringFieldType<BlockField>, Self> {
         FieldWrapper {
             field: StringFieldType(BlockField::TransactionsRoot),
+            parent: self,
+        }
+    }
+
+    pub fn field(&mut self, path: &str) -> FieldWrapper<'_, DynValueFieldType<DynField>, Self> {
+        FieldWrapper {
+            field: DynValueFieldType(DynField(path.to_string())),
             parent: self,
         }
     }

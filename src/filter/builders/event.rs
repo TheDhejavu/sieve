@@ -1,8 +1,8 @@
 use crate::filter::{
     conditions::{ConditionBuilder, EventCondition, EventExCondition},
     field::{
-        ArrayFieldType, ContractField, EventField, FieldWrapper, ParamFieldType, StringFieldType,
-        U64FieldType,
+        ArrayFieldType, ContractField, DynValueFieldType, EventField, FieldWrapper,
+        StringFieldType, U64FieldType,
     },
 };
 
@@ -128,9 +128,12 @@ impl<'a> SignatureEventBuilder<'a, EventBuilder> {
         }
     }
 
-    pub fn params(&mut self, name: &str) -> FieldWrapper<'_, ParamFieldType<ContractField>, Self> {
+    pub fn params(
+        &mut self,
+        name: &str,
+    ) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
         FieldWrapper {
-            field: ParamFieldType(ContractField::Parameter(name.to_string())),
+            field: DynValueFieldType(ContractField::Parameter(name.to_string())),
             parent: self,
         }
     }
