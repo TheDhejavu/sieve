@@ -84,8 +84,8 @@ let op_filter = FilterBuilder::new()
     .build();
 
 let base_filter = FilterBuilder::new()
-    .base(|op| {
-        op.field("l1BlockNumber").gt(1000000000000000000u128);
+    .base(|base| {
+        base.field("l1BlockNumber").gt(1000000000000000000u128);
 
     })
     .build();
@@ -183,7 +183,7 @@ fn main() {
 ```
 
 **Subscribe All:**
-The `subscribe_all` context allows you to subscribe to indepedent filters
+The `subscribe_all` context allows you to subscribe to independent filters
 
 ```rust
 use sieve::{FilterBuilder, NumericOps, StringOps};
