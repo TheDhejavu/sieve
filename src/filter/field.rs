@@ -191,9 +191,9 @@ impl From<U128FieldCondition<ContractField>> for TransactionCondition {
     fn from(fc: U128FieldCondition<ContractField>) -> TransactionCondition {
         let U128FieldCondition(field, value) = fc;
         match field {
-            ContractField::Parameter(path) => {
-                TransactionCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
-            }
+            // ContractField::Parameter(path) => {
+            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::U128(value))
+            // }
             _ => panic!("Field does not support U128 numeric conditions"),
         }
     }
@@ -203,9 +203,9 @@ impl From<U256FieldCondition<ContractField>> for TransactionCondition {
     fn from(fc: U256FieldCondition<ContractField>) -> TransactionCondition {
         let U256FieldCondition(field, value) = fc;
         match field {
-            ContractField::Parameter(path) => {
-                TransactionCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
-            }
+            // ContractField::Parameter(path) => {
+            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::U256(value))
+            // }
             _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
@@ -239,11 +239,12 @@ impl From<StringFieldCondition<ContractField>> for TransactionCondition {
     fn from(fc: StringFieldCondition<ContractField>) -> TransactionCondition {
         let StringFieldCondition(field, value) = fc;
         match field {
-            ContractField::Parameter(path) => {
-                TransactionCondition::Parameter(path.to_string(), ParameterCondition::String(value))
-            }
-            ContractField::Path(path) => TransactionCondition::Path(path.to_string(), value),
-            ContractField::Method => TransactionCondition::Method(value),
+            // ContractField::Parameter(path) => {
+            //     TransactionCondition::Parameter(path.to_string(), ParameterCondition::String(value))
+            // }
+            // ContractField::Path(path) => TransactionCondition::Path(path.to_string(), value),
+            // ContractField::Method => TransactionCondition::Method(value),
+            _ => panic!("Field does not support string conditions"),
         }
     }
 }

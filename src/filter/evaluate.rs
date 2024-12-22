@@ -11,15 +11,10 @@ impl FilterCondition {
     pub(crate) fn needs_decoded_data(&self) -> bool {
         match self {
             FilterCondition::Transaction(transaction_condition) => {
-                matches!(
-                    transaction_condition,
-                    TransactionCondition::Method(_)
-                        | TransactionCondition::Parameter(_, _)
-                        | TransactionCondition::Path(_, _)
-                )
+                matches!(transaction_condition, TransactionCondition::CallData { .. })
             }
             FilterCondition::Event(event_condition) => {
-                matches!(event_condition, EventCondition::EventMatch { .. })
+                matches!(event_condition, EventCondition::EventData { .. })
             }
             FilterCondition::Pool(_) => false,
             FilterCondition::BlockHeader(_) => false,

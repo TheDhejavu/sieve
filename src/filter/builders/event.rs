@@ -102,13 +102,13 @@ impl ConditionBuilder for SignatureEventBuilder<'_, EventBuilder> {
         match condition {
             EventExCondition::Parameter(param, parameter_condition) => {
                 if let Some(idx) = self.parameter_current_index {
-                    if let Some(EventCondition::EventMatch { parameters, .. }) =
+                    if let Some(EventCondition::EventData { parameters, .. }) =
                         self.parent.conditions.get_mut(idx)
                     {
                         parameters.push((param, parameter_condition));
                     }
                 } else {
-                    self.parent.push_condition(EventCondition::EventMatch {
+                    self.parent.push_condition(EventCondition::EventData {
                         signature: self.signature.clone(),
                         parameters: vec![(param, parameter_condition)],
                     });

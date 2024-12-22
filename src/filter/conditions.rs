@@ -105,8 +105,13 @@ pub enum TransactionCondition {
     AccessList(ArrayCondition<String>),
 
     Method(StringCondition),
-    Path(String, StringCondition),
-    Parameter(String, ParameterCondition),
+
+    CallData {
+        abi: String,
+        path: Vec<(String, ParameterCondition)>,
+        method_selector: String,
+        parameters: Vec<(String, ParameterCondition)>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,7 +127,7 @@ pub enum EventCondition {
     BlockNumber(NumericCondition<u64>),
     TxIndex(NumericCondition<u64>),
 
-    EventMatch {
+    EventData {
         signature: String,
         parameters: Vec<(String, ParameterCondition)>,
     },

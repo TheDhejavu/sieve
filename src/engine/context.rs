@@ -78,18 +78,18 @@ impl EvaluableData for RpcTransaction {
                     }
                     false
                 }
-                TransactionCondition::Path(_path, _condition) => true,
-                TransactionCondition::Parameter(param, condition) => {
-                    if let Some(DecodedData::ContractCall(decoded)) =
-                        decoded_data.as_ref().map(|arc| arc.as_ref())
-                    {
-                        let parameter_value = decoded.get_parameter(param);
-                        if let Some(value) = parameter_value {
-                            // return condition.evaluate(value);
-                        }
-                    }
-                    false
-                }
+                // TransactionCondition::Path(_path, _condition) => true,
+                // TransactionCondition::Parameter(param, condition) => {
+                //     if let Some(DecodedData::ContractCall(decoded)) =
+                //         decoded_data.as_ref().map(|arc| arc.as_ref())
+                //     {
+                //         let parameter_value = decoded.get_parameter(param);
+                //         if let Some(value) = parameter_value {
+                //             // return condition.evaluate(value);
+                //         }
+                //     }
+                //     false
+                // }
                 _ => false,
             },
             FilterCondition::Pool(pool_condition) => match pool_condition {
@@ -207,7 +207,7 @@ impl EvaluableData for Log {
                         .collect();
                     condition.evaluate(&topics)
                 }
-                EventCondition::EventMatch { parameters, .. } => match decoded_data {
+                EventCondition::EventData { parameters, .. } => match decoded_data {
                     Some(data) => {
                         if let DecodedData::Event(decoded_log) = data.as_ref() {
                             parameters.iter().all(|(param, condition)| {
@@ -227,9 +227,12 @@ impl EvaluableData for Log {
     }
 
     fn decode_data(&self, condition: &FilterCondition) -> Option<Arc<DecodedData>> {
-        let FilterCondition::Event(EventCondition::EventMatch { signature, .. }) = condition else {
+        let FilterCondition::Event(EventCondition::EventData { signature, .. }) = condition else {
             return None;
         };
+
+        // TODO: Verify method signature hash against topic[0] to determine if
+        // this log is valid enough to be decoded.
 
         let event = parse_event_signature(signature).ok()?;
         let event_log = event.decode_log(&self.inner.data).ok()?;

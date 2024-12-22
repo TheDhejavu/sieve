@@ -60,8 +60,7 @@ impl_condition_priority!(
     complex: [
         Self::Value(_),
         Self::Method(_),
-        Self::Path(_, _),
-        Self::Parameter(_, _)
+        Self::CallData{..}
     ]
 );
 
@@ -81,7 +80,7 @@ impl_condition_priority!(
         Self::Topics(_)
     ],
     complex: [
-        Self::EventMatch{..}
+        Self::EventData{..}
     ]
 );
 
