@@ -84,17 +84,6 @@ let filter = FilterBuilder::new()
     .build();
 ```
 
-**Within:**
-The `within` context allows for time-bounded cross-chain correlation:
-```rust
-let filter = FilterBuilder::new()
-    .within(Duration::hours(1), |f| {
-        f.optimisim().tx(|t| t.field("l1BlockNumber").gt(1000));
-        f.tx(|t| t.field("blockNumber").gt(1000));
-    })
-    .build();
-```
-
 ### Proposed Usage (*stream*):
 ```rust
 use sieve::{runtime::Runtime, config::Chain, FilterBuilder, NumericOps, StringOps};
@@ -168,18 +157,27 @@ fn main() {
         .optimism(|op| op.field("l1BlockNumber").gt(2000))
         .build();
 
-    // Cross-chain operations must be within a time window
-    let cross_chain = FilterBuilder::new()
-        .within(Duration::hours(1), |f| {
-            f.tx(|t| {
-                t.block_number().gt(2000)
-            })
-            f.optimism(|t| t.field("l1BlockNumber").gt(2000));
-            f.base(|t| t.field("sequenceNumber").gt(500));
-        })
-        .build();
+    let mut stream = runtime.watch_within(
+        Duration::from_secs(1800),  // 30 min window
+        eth_filter,
+        op_filter
+    );
+
+    while let Some(event) = stream.next().await {
+        match event {
+            Event::Match { event_1, event_2 } => {
+                println!("Matched events within time window");
+            }
+            Event::Timeout(event) => {
+                println!("Event timed out");
+            }
+        }
+    }
 }
 ```
+
+**Watch Within:**
+The `watch_within` context allows for time-bounded cross-chain correlation
 
 ## Status
 🚧 Experimental - Not ready for production use 
