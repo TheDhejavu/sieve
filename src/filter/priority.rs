@@ -92,8 +92,6 @@ impl_condition_priority!(
         Self::Nonce(_),
         Self::GasPrice(_),
         Self::GasLimit(_),
-        Self::Timestamp(_),
-        Self::DynField(_),
     ],
     hash: [
         Self::Hash(_),

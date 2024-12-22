@@ -162,9 +162,6 @@ pub enum PoolCondition {
     Nonce(NumericCondition<u64>),
     GasPrice(NumericCondition<u128>),
     GasLimit(NumericCondition<u64>),
-    Timestamp(NumericCondition<u64>),
-
-    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

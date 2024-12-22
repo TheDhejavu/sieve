@@ -257,7 +257,6 @@ impl From<U64FieldCondition<PoolField>> for PoolCondition {
         match field {
             PoolField::Nonce => PoolCondition::Nonce(value),
             PoolField::GasLimit => PoolCondition::GasLimit(value),
-            PoolField::Timestamp => PoolCondition::Timestamp(value),
             _ => panic!("Field does not support u64 numeric conditions"),
         }
     }

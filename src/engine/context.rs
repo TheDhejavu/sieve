@@ -90,6 +90,10 @@ impl EvaluableData for RpcTransaction {
                 //     }
                 //     false
                 // }
+                TransactionCondition::DynField(dyn_condition) => {
+                    let json_value = serde_json::to_value(self).unwrap_or_default();
+                    dyn_condition.evaluate(&json_value)
+                }
                 _ => false,
             },
             FilterCondition::Pool(pool_condition) => match pool_condition {
@@ -106,8 +110,11 @@ impl EvaluableData for RpcTransaction {
                 PoolCondition::To(condition) => {
                     condition.evaluate(&self.to().unwrap_or_default().to_string())
                 }
-                _ => false,
             },
+            FilterCondition::DynField(dyn_condition) => {
+                let json_value = serde_json::to_value(self).unwrap_or_default();
+                dyn_condition.evaluate(&json_value)
+            }
             _ => false,
         }
     }
@@ -159,7 +166,10 @@ impl EvaluableData for Header {
                 BlockHeaderCondition::TransactionsRoot(condition) => {
                     condition.evaluate(&self.transactions_root.to_string())
                 }
-                BlockHeaderCondition::DynField(dyn_field_condition) => false,
+                BlockHeaderCondition::DynField(dyn_condition) => {
+                    let json_value = serde_json::to_value(self).unwrap_or_default();
+                    dyn_condition.evaluate(&json_value)
+                }
             },
             _ => false,
         }
@@ -222,7 +232,10 @@ impl EvaluableData for Log {
                     }
                     None => false,
                 },
-                EventCondition::DynField(dyn_field_condition) => false,
+                EventCondition::DynField(dyn_condition) => {
+                    let json_value = serde_json::to_value(self).unwrap_or_default();
+                    dyn_condition.evaluate(&json_value)
+                }
             },
             _ => false,
         }
