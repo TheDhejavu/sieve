@@ -19,7 +19,24 @@ It is composed of **three main components** that work together to provide a reli
 - Ingestion Pipeline
 
 ## L1 (Ethereum)
-### v1.0 (ingest):
+We prioritize Ethereum data expressiveness by hardcoding commonly used fields, since these fields are relatively stable across the Ethereum ecosystem and often share relationships with L2s. 
+
+### Filter (*v1.0*)
+```rust
+let value_filter = FilterBuilder::new()
+    .tx(|t| {
+        t.value().gt(U256::from(1000000));
+        t.gas_price().lt(50_000_000_000);
+        t.gas().between(21000, 100000);
+        t.nonce().eq(5);
+
+        t.access_list()
+            .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+    });
+    .build();
+```
+
+### ingest / watcher (*v1.0*):
 **RPC Calls (*busy-polling*):**
 
 - Pending Transactions:
