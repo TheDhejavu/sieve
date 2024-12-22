@@ -86,7 +86,6 @@ impl Evaluable<DynSolValue> for ParameterCondition {
                 }
                 false
             }
-
             Self::U128(condition) => {
                 if let Some((value_uint, size)) = value.as_uint() {
                     // Check that we have a uint128 or smaller
@@ -102,7 +101,6 @@ impl Evaluable<DynSolValue> for ParameterCondition {
                 }
                 false
             }
-
             Self::String(condition) => {
                 if let Some(val_str) = value.as_str() {
                     return condition.evaluate(&val_str.to_string());

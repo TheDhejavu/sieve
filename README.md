@@ -12,9 +12,9 @@ The system ingests blockchain data through both RPC and Gossipsub protocols, eac
 
 It is composed of **three main components** that work together to provide a reliable block & transaction stream. 
 
-- ***Node Manager layer***
-- ***Connection Orchestrator***
-- ***Ingestion Pipeline***
+- Node Manager layer
+- Connection Orchestrator
+- Ingestion Pipeline
 
 ### v1.0 (watcher):
 **RPC Calls (*busy-polling*):**
@@ -44,6 +44,11 @@ It is composed of **three main components** that work together to provide a reli
     - `newHeads`
     - `newPendingTransactions`
     - `logs`
+
+## Emitted Events
+- Transaction
+- Event (log)
+- Block Header 
 
 ### Proposed Usage (*stream*):
 ```rust

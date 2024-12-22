@@ -207,22 +207,20 @@ impl EvaluableData for Log {
                         .collect();
                     condition.evaluate(&topics)
                 }
-                EventCondition::EventMatch { parameters, .. } => {
-                    match decoded_data {
-                        Some(data) => {
-                            if let DecodedData::Event(decoded_log) = data.as_ref() {
-                                parameters.iter().all(|(param, condition)| {
-                                    decoded_log
-                                        .get_parameter(param)
-                                        .map_or(false, |value| condition.evaluate(value))
-                                })
-                            } else {
-                                false
-                            }
+                EventCondition::EventMatch { parameters, .. } => match decoded_data {
+                    Some(data) => {
+                        if let DecodedData::Event(decoded_log) = data.as_ref() {
+                            parameters.iter().all(|(param, condition)| {
+                                decoded_log
+                                    .get_parameter(param)
+                                    .map_or(false, |value| condition.evaluate(value))
+                            })
+                        } else {
+                            false
                         }
-                        None => false
                     }
-                }
+                    None => false,
+                },
             },
             _ => false,
         }

@@ -177,18 +177,18 @@ fn main() {
             });
         })
         .unless(|f| {
-            f.block(|b| {
+            f.block_header(|b| {
                 b.gas_used().lt(1000);
             });
         })
         .build();
 
     //===============================================================================================
-    //                            6. BLOCK FILTER
+    //                            6. BLOCK HEADER FILTER
     //===============================================================================================
     let _block_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.block(|b| {
+            f.block_header(|b| {
                 b.gas_limit().gt(100);
                 b.hash().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 b.state_root()

@@ -58,17 +58,17 @@ impl FilterBuilder {
         filter.pool(f)
     }
 
-    /// Adds block conditions to the filter.
+    /// Adds block header conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn block<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn block_header<F>(&mut self, f: F) -> MainFilterBuilder
     where
         F: FnOnce(&mut BlockHeaderBuilder),
     {
         let filter = MainFilterBuilder {
             filters: &mut self.filters,
         };
-        filter.block(f)
+        filter.block_header(f)
     }
 
     // ====== Logical Operations ========
@@ -200,7 +200,7 @@ impl MainFilterBuilder<'_> {
         self
     }
 
-    pub fn block<F>(self, f: F) -> Self
+    pub fn block_header<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut BlockHeaderBuilder),
     {
