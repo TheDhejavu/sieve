@@ -86,9 +86,11 @@ impl FilterBuilder {
     where
         F: FnOnce(&mut OptimismFilterBuilder),
     {
-        MainOptimismFilterBuilder {
+        let filter = MainOptimismFilterBuilder {
             filters: &mut self.filters,
-        }
+        };
+
+        filter.optimisim(f)
     }
 
     // ====== Logical Operations for L1 ========

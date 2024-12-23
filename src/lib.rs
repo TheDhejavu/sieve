@@ -28,6 +28,11 @@ fn main() {
             f.tx(|t| {
                 t.value().gt(U256::from(100)); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
+
+                let mut call_data = t.call_data("execute((address,uint256))");
+                call_data.params("amount").exact("1000");
+                call_data.params("from").starts_with("0xa1b2...");
+                call_data.path("order.data.tokenIn").gt(100);
             });
             f.event(|e| {
                 e.contract().exact("UniswapV2Factory"); // AND Contract = UniswapV2Factory
@@ -67,8 +72,6 @@ fn main() {
                 f.event(|e| {
                     e.contract().starts_with("0xDex");
                     e.topics().contains("Transfer".to_string());
-                    // e.param("amount").exact("1000");
-                    // e.param("from").starts_with("0xa1b2...");
                 });
             });
 
@@ -103,9 +106,11 @@ fn main() {
                             .to_string(),
                     );
 
-                    e.signature("Transfer(address indexed from,address indexed to,uint256 value)")
-                        .params("value")
-                        .gt(100_u128);
+                    let mut sig = e.signature(
+                        "Transfer(address indexed from,address indexed to,uint256 value)",
+                    );
+                    sig.params("value1").gt(100_u128);
+                    sig.params("value2").gt(200_u128);
                 });
             });
         })
@@ -151,14 +156,6 @@ fn main() {
                 t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 t.hash().contains("abc");
                 t.block_hash().starts_with("0x0");
-            });
-
-            // Contract-specific calls fields
-            f.tx(|t| {
-                t.contract().method().exact("transfer");
-                t.contract().params("tokenIn").gt(100);
-
-                t.contract().path("tokenIn").starts_with("0x8");
             });
         })
         .build();

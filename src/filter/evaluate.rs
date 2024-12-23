@@ -7,6 +7,7 @@ use super::conditions::{
 use alloy_dyn_abi::DynSolValue;
 use alloy_primitives::U256;
 use serde_json::Value;
+
 pub(crate) trait Evaluable<T> {
     fn evaluate(&self, value: &T) -> bool;
 }
@@ -130,60 +131,55 @@ impl Evaluable<DynSolValue> for ValueCondition {
 // Evaluation for blockchain data gotten from [`serde_json::Value`]
 impl Evaluable<Value> for DynFieldCondition {
     fn evaluate(&self, value: &Value) -> bool {
-        match self {
-            Self::SingleEntry {
-                path,
-                value: condition,
-            } => {
-                if let Some(field_value) = resolve_path(path, value) {
-                    match (field_value, condition) {
-                        (Value::String(s), ValueCondition::String(string_condition)) => {
-                            string_condition.evaluate(&s.to_string())
-                        }
-                        (Value::Number(n), ValueCondition::U64(num_condition)) => {
-                            if let Some(num) = n.as_u64() {
-                                num_condition.evaluate(&num)
-                            } else {
-                                false
-                            }
-                        }
-                        (Value::Number(n), ValueCondition::U128(num_condition)) => {
-                            if let Some(num) = n.as_u128() {
-                                num_condition.evaluate(&num)
-                            } else {
-                                false
-                            }
-                        }
-                        (Value::String(hex_str), ValueCondition::U256(num_condition)) => {
-                            if let Some(stripped) = hex_str.strip_prefix("0x") {
-                                if let Ok(num) = U256::from_str_radix(stripped, 16) {
-                                    return num_condition.evaluate(&num);
-                                }
-                            }
-                            false
-                        }
-                        (Value::String(hex_str), ValueCondition::U128(num_condition)) => {
-                            if let Some(stripped) = hex_str.strip_prefix("0x") {
-                                if let Ok(num) = u128::from_str_radix(stripped, 16) {
-                                    return num_condition.evaluate(&num);
-                                }
-                            }
-                            false
-                        }
-                        (Value::String(hex_str), ValueCondition::U64(num_condition)) => {
-                            if let Some(stripped) = hex_str.strip_prefix("0x") {
-                                if let Ok(num) = u64::from_str_radix(stripped, 16) {
-                                    return num_condition.evaluate(&num);
-                                }
-                            }
-                            false
-                        }
-                        _ => false,
+        let path = &self.path;
+        let condition = &self.condition;
+        if let Some(field_value) = resolve_path(path, value) {
+            match (field_value, condition) {
+                (Value::String(s), ValueCondition::String(string_condition)) => {
+                    string_condition.evaluate(&s.to_string())
+                }
+                (Value::Number(n), ValueCondition::U64(num_condition)) => {
+                    if let Some(num) = n.as_u64() {
+                        num_condition.evaluate(&num)
+                    } else {
+                        false
                     }
-                } else {
+                }
+                (Value::Number(n), ValueCondition::U128(num_condition)) => {
+                    if let Some(num) = n.as_u128() {
+                        num_condition.evaluate(&num)
+                    } else {
+                        false
+                    }
+                }
+                (Value::String(hex_str), ValueCondition::U256(num_condition)) => {
+                    if let Some(stripped) = hex_str.strip_prefix("0x") {
+                        if let Ok(num) = U256::from_str_radix(stripped, 16) {
+                            return num_condition.evaluate(&num);
+                        }
+                    }
                     false
                 }
+                (Value::String(hex_str), ValueCondition::U128(num_condition)) => {
+                    if let Some(stripped) = hex_str.strip_prefix("0x") {
+                        if let Ok(num) = u128::from_str_radix(stripped, 16) {
+                            return num_condition.evaluate(&num);
+                        }
+                    }
+                    false
+                }
+                (Value::String(hex_str), ValueCondition::U64(num_condition)) => {
+                    if let Some(stripped) = hex_str.strip_prefix("0x") {
+                        if let Ok(num) = u64::from_str_radix(stripped, 16) {
+                            return num_condition.evaluate(&num);
+                        }
+                    }
+                    false
+                }
+                _ => false,
             }
+        } else {
+            false
         }
     }
 }
@@ -203,18 +199,18 @@ mod tests {
         });
 
         // Test if transaction value is > 0.005 ETH (half of 0.01)
-        let condition = DynFieldCondition::SingleEntry {
+        let condition = DynFieldCondition {
             path: "transaction.value".to_string(),
-            value: ValueCondition::U256(NumericCondition::GreaterThan(
+            condition: ValueCondition::U256(NumericCondition::GreaterThan(
                 U256::from_str_radix("11C37937E08000", 16).unwrap(),
             )),
         };
         assert!(condition.evaluate(&tx));
 
         // Test if gas price is exactly 20 Gwei
-        let condition = DynFieldCondition::SingleEntry {
+        let condition = DynFieldCondition {
             path: "transaction.gasPrice".to_string(),
-            value: ValueCondition::U256(NumericCondition::EqualTo(
+            condition: ValueCondition::U256(NumericCondition::EqualTo(
                 U256::from_str_radix("4a817c800", 16).unwrap(),
             )),
         };
@@ -231,21 +227,21 @@ mod tests {
               }
         });
 
-        let condition = DynFieldCondition::SingleEntry {
+        let condition = DynFieldCondition {
             path: "header.blockNumber".to_string(),
-            value: ValueCondition::U64(NumericCondition::EqualTo(1_000_000)),
+            condition: ValueCondition::U64(NumericCondition::EqualTo(1_000_000)),
         };
         assert!(condition.evaluate(&tx));
 
-        let condition = DynFieldCondition::SingleEntry {
+        let condition = DynFieldCondition {
             path: "header.id".to_string(),
-            value: ValueCondition::U64(NumericCondition::EqualTo(1)),
+            condition: ValueCondition::U64(NumericCondition::EqualTo(1)),
         };
         assert!(condition.evaluate(&tx));
 
-        let condition = DynFieldCondition::SingleEntry {
+        let condition = DynFieldCondition {
             path: "header.number".to_string(),
-            value: ValueCondition::U64(NumericCondition::EqualTo(4660)),
+            condition: ValueCondition::U64(NumericCondition::EqualTo(4660)),
         };
         assert!(condition.evaluate(&tx));
     }

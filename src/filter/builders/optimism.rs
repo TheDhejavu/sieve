@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::filter::{
-    conditions::{DynFieldCondition, FilterCondition, FilterNode, LogicalOp, NodeBuilder},
+    conditions::{FilterCondition, FilterNode, LogicalOp, NodeBuilder},
     field::{DynField, DynValueFieldType, FieldWrapper},
 };
 
@@ -142,6 +142,19 @@ pub(crate) struct MainOptimismFilterBuilder<'a> {
 
 #[allow(dead_code)]
 impl MainOptimismFilterBuilder<'_> {
+    pub fn optimisim<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut OptimismFilterBuilder),
+    {
+        let mut builder = OptimismFilterBuilder {
+            filters: Vec::new(),
+        };
+        f(&mut builder);
+
+        self.filters.extend(builder.filters);
+        self
+    }
+
     pub fn build(&self) -> FilterNode {
         FilterNode {
             group: Some((LogicalOp::And, self.filters.clone())),

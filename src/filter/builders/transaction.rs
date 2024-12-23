@@ -1,6 +1,13 @@
+use std::str::FromStr;
+
+use alloy_primitives::Selector;
+
 // transaction builder
 use crate::filter::{
-    conditions::{FilterCondition, FilterNode, NodeBuilder, TransactionCondition},
+    conditions::{
+        ContractCondition, DynFieldCondition, FilterCondition, FilterNode, NodeBuilder,
+        TransactionCondition,
+    },
     field::{
         ArrayFieldType, ContractField, DynValueFieldType, FieldWrapper, StringFieldType, TxField,
         U128FieldType, U256FieldType, U64FieldType, U8FieldType,
@@ -134,33 +141,85 @@ impl TxBuilder {
         }
     }
 
-    pub fn contract(&mut self) -> ContractBuilder<Self> {
-        ContractBuilder::new(self)
+    pub fn call_data(&mut self, signature: &str) -> CallDataBuilder<Self> {
+        CallDataBuilder::new(self, signature.to_string())
     }
 }
 
 #[allow(dead_code)]
-pub struct ContractBuilder<'a, B> {
+pub struct CallDataBuilder<'a, B> {
     parent: &'a mut B,
+    signature: String,
+    parameter_current_index: Option<usize>,
 }
 
-impl NodeBuilder for ContractBuilder<'_, TxBuilder> {
-    type Condition = TransactionCondition;
+impl NodeBuilder for CallDataBuilder<'_, TxBuilder> {
+    type Condition = ContractCondition;
 
-    fn append_node(&mut self, condition: TransactionCondition) {
-        self.parent.append_node(condition)
+    fn append_node(&mut self, condition: ContractCondition) {
+        match condition {
+            ContractCondition::Parameter(param, parameter_condition) => {
+                if let Some(idx) = self.parameter_current_index {
+                    if let Some(node) = self.parent.nodes.get_mut(idx) {
+                        if let Some(FilterCondition::Transaction(
+                            TransactionCondition::CallData { parameters, .. },
+                        )) = node.condition.as_mut()
+                        {
+                            parameters.push(DynFieldCondition {
+                                path: param,
+                                condition: parameter_condition,
+                            });
+                        }
+                    }
+                } else {
+                    let method_selector = Selector::from_str(&self.signature).unwrap_or_default();
+                    self.parent.append_node(TransactionCondition::CallData {
+                        paths: vec![],
+                        parameters: vec![DynFieldCondition {
+                            path: param,
+                            condition: parameter_condition,
+                        }],
+                        method_selector,
+                    });
+                    self.parameter_current_index = Some(self.parent.nodes.len() - 1);
+                }
+            }
+            ContractCondition::Path(path, path_condition) => {
+                if let Some(idx) = self.parameter_current_index {
+                    if let Some(node) = self.parent.nodes.get_mut(idx) {
+                        if let Some(FilterCondition::Transaction(
+                            TransactionCondition::CallData { paths, .. },
+                        )) = node.condition.as_mut()
+                        {
+                            paths.push(DynFieldCondition {
+                                path,
+                                condition: path_condition,
+                            });
+                        }
+                    }
+                } else {
+                    let method_selector = Selector::from_str(&self.signature).unwrap_or_default();
+                    self.parent.append_node(TransactionCondition::CallData {
+                        paths: vec![],
+                        parameters: vec![DynFieldCondition {
+                            path,
+                            condition: path_condition,
+                        }],
+                        method_selector,
+                    });
+                    self.parameter_current_index = Some(self.parent.nodes.len() - 1);
+                }
+            }
+        };
     }
 }
 
-impl<'a> ContractBuilder<'a, TxBuilder> {
-    pub fn new(parent: &'a mut TxBuilder) -> Self {
-        Self { parent }
-    }
-
-    pub fn method(&mut self) -> FieldWrapper<'_, StringFieldType<ContractField>, Self> {
-        FieldWrapper {
-            field: StringFieldType(ContractField::Method),
-            parent: self,
+impl<'a> CallDataBuilder<'a, TxBuilder> {
+    pub fn new(parent: &'a mut TxBuilder, signature: String) -> Self {
+        Self {
+            parent,
+            signature,
+            parameter_current_index: None,
         }
     }
 
@@ -174,9 +233,9 @@ impl<'a> ContractBuilder<'a, TxBuilder> {
         }
     }
 
-    pub fn path(&mut self, path: &str) -> FieldWrapper<'_, StringFieldType<ContractField>, Self> {
+    pub fn path(&mut self, name: &str) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
         FieldWrapper {
-            field: StringFieldType(ContractField::Path(path.to_string())),
+            field: DynValueFieldType(ContractField::Path(name.to_string())),
             parent: self,
         }
     }
@@ -313,15 +372,6 @@ mod tests {
             },
         ];
 
-        assert_eq!(builder.nodes, expected_nodes);
-    }
-
-    #[test]
-    fn test_tx_contract_operations() {
-        let mut builder = TxBuilder::new();
-        let mut _transfer = builder.contract();
-
-        let expected_nodes = vec![];
         assert_eq!(builder.nodes, expected_nodes);
     }
 

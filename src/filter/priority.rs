@@ -60,7 +60,6 @@ impl_condition_priority!(
     ],
     complex: [
         Self::Value(_),
-        Self::Method(_),
         Self::CallData{..}
     ]
 );

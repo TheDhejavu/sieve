@@ -41,6 +41,9 @@ mod tests {
         );
 
         assert_eq!(resolve_path("logs", &data), Some(&json!(["log1", "log2"])));
-        assert_eq!(resolve_path("transactions.nothing_to_see_here", &data), None);
+        assert_eq!(
+            resolve_path("transactions.nothing_to_see_here", &data),
+            None
+        );
     }
 }

@@ -10,6 +10,7 @@ use crate::{
     utils::decoder::parse_event_signature,
 };
 use alloy_consensus::{BlockHeader, Transaction, Typed2718};
+use alloy_primitives::Selector;
 use alloy_rpc_types::{Header, Log, Transaction as RpcTransaction};
 use std::sync::Arc;
 
@@ -69,15 +70,15 @@ impl EvaluableData for RpcTransaction {
                 TransactionCondition::Hash(condition) => {
                     condition.evaluate(&self.inner.tx_hash().to_string())
                 }
-                TransactionCondition::Method(condition) => {
-                    if let Some(DecodedData::ContractCall(decoded)) =
-                        decoded_data.as_ref().map(|arc| arc.as_ref())
-                    {
-                        let method = decoded.get_method();
-                        return condition.evaluate(&method.to_string());
-                    }
-                    false
-                }
+                // TransactionCondition::Method(condition) => {
+                //     if let Some(DecodedData::ContractCall(decoded)) =
+                //         decoded_data.as_ref().map(|arc| arc.as_ref())
+                //     {
+                //         let method = decoded.get_method();
+                //         return condition.evaluate(&method.to_string());
+                //     }
+                //     false
+                // }
                 // TransactionCondition::Path(_path, _condition) => true,
                 // TransactionCondition::Parameter(param, condition) => {
                 //     if let Some(DecodedData::ContractCall(decoded)) =
@@ -125,7 +126,17 @@ impl EvaluableData for RpcTransaction {
 
     fn pre_evaluate(&self, condition: &FilterCondition) -> bool {
         match condition {
-            FilterCondition::Transaction(_) => true,
+            FilterCondition::Transaction(TransactionCondition::CallData {
+                method_selector,
+                ..
+            }) => {
+                let input = self.input();
+                if input.len() >= 4 {
+                    let actual_selector = Selector::from_slice(&input[0..4]);
+                    return &actual_selector == method_selector;
+                }
+                false
+            }
             _ => true,
         }
     }

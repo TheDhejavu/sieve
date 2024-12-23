@@ -1,7 +1,6 @@
 use alloy_dyn_abi::{DynSolEvent, DynSolType, DynSolValue};
 use alloy_primitives::{keccak256, LogData, B256};
 use std::collections::HashMap;
-
 #[derive(Debug, Clone)]
 pub(crate) struct DecodedLog {
     pub(crate) name: String,

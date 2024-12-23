@@ -1,4 +1,4 @@
-use alloy_primitives::U256;
+use alloy_primitives::{Selector, U256};
 use std::cmp::PartialOrd;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,12 +80,13 @@ pub enum FilterCondition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DynFieldCondition {
-    SingleEntry { path: String, value: ValueCondition },
+pub(crate) struct DynFieldCondition {
+    pub(crate) path: String,
+    pub(crate) condition: ValueCondition,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ValueCondition {
+pub(crate) enum ValueCondition {
     U64(NumericCondition<u64>),
     U128(NumericCondition<u128>),
     U256(NumericCondition<U256>),
@@ -94,7 +95,7 @@ pub enum ValueCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum TransactionCondition {
+pub(crate) enum TransactionCondition {
     Gas(NumericCondition<u64>),
     Nonce(NumericCondition<u64>),
     Type(NumericCondition<u8>),
@@ -111,13 +112,10 @@ pub enum TransactionCondition {
     BlockHash(StringCondition),
     AccessList(ArrayCondition<String>),
 
-    Method(StringCondition),
-
     CallData {
-        abi: String,
-        path: Vec<(String, ValueCondition)>,
-        method_selector: String,
-        parameters: Vec<(String, ValueCondition)>,
+        paths: Vec<DynFieldCondition>,
+        method_selector: Selector,
+        parameters: Vec<DynFieldCondition>,
     },
 
     DynField(DynFieldCondition),
@@ -125,7 +123,7 @@ pub enum TransactionCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum EventCondition {
+pub(crate) enum EventCondition {
     // String conditions
     Contract(StringCondition),
     BlockHash(StringCondition),
@@ -146,15 +144,17 @@ pub enum EventCondition {
 
     DynField(DynFieldCondition),
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum EventExCondition {
+pub(crate) enum ContractCondition {
     Parameter(String, ValueCondition),
+    Path(String, ValueCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum PoolCondition {
+pub(crate) enum PoolCondition {
     Hash(StringCondition),
     To(StringCondition),
     From(StringCondition),
@@ -166,7 +166,7 @@ pub enum PoolCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum BlockHeaderCondition {
+pub(crate) enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),

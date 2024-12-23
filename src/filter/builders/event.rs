@@ -1,5 +1,5 @@
 use crate::filter::{
-    conditions::{EventCondition, EventExCondition, FilterCondition, FilterNode, NodeBuilder},
+    conditions::{ContractCondition, EventCondition, FilterCondition, FilterNode, NodeBuilder},
     field::{
         ArrayFieldType, ContractField, DynValueFieldType, EventField, FieldWrapper,
         StringFieldType, U64FieldType,
@@ -97,11 +97,11 @@ pub struct SignatureEventBuilder<'a, B> {
 }
 
 impl NodeBuilder for SignatureEventBuilder<'_, EventBuilder> {
-    type Condition = EventExCondition;
+    type Condition = ContractCondition;
 
-    fn append_node(&mut self, condition: EventExCondition) {
+    fn append_node(&mut self, condition: ContractCondition) {
         match condition {
-            EventExCondition::Parameter(param, parameter_condition) => {
+            ContractCondition::Parameter(param, parameter_condition) => {
                 if let Some(idx) = self.parameter_current_index {
                     if let Some(node) = self.parent.nodes.get_mut(idx) {
                         if let Some(FilterCondition::Event(EventCondition::EventData {
@@ -120,6 +120,7 @@ impl NodeBuilder for SignatureEventBuilder<'_, EventBuilder> {
                     self.parameter_current_index = Some(self.parent.nodes.len() - 1);
                 }
             }
+            ContractCondition::Path(_, _) => (),
         };
     }
 }
