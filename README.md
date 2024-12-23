@@ -73,22 +73,32 @@ Supporting L2s through chain context and dynamic fields. Rather than hardcoding 
 **Basic filter**:
 
 ```rust
-let op_filter = FilterBuilder::new()
-    .optimism(|op| {
-        op.field("l1BlockNumber").gt(1000000000000000000u128);
+use sieve::FilterBuilder;
 
-        op.field("l1TxOrigin").starts_with("0x");
-        op.field("queueIndex").lt(100u64);
+fn main() {
+    // Create a filter for Optimism-related events
+    let op_filter = FilterBuilder::new()
+        .optimism(|op| {
+            // Filter for events where the `l1BlockNumber` is greater than 10^18
+            op.field("l1BlockNumber").gt(1000000000000000000u128);
 
-    })
-    .build();
+            // Filter for events where `l1TxOrigin` starts with "0x" 
+            op.field("l1TxOrigin").starts_with("0x");
 
-let base_filter = FilterBuilder::new()
-    .base(|base| {
-        base.field("l1BlockNumber").gt(1000000000000000000u128);
+            // Filter for events where `queueIndex` is less than 100
+            op.field("queueIndex").lt(100u64);
+        })
+        .build();
 
-    })
-    .build();
+    // Create a filter for Base-related events
+    let base_filter = FilterBuilder::new()
+        .base(|base| {
+            // Filter for events where the `l1BlockNumber` is greater than 10^18
+            base.field("l1BlockNumber").gt(1000000000000000000u128);
+        })
+        .build();
+}
+
 ```
 
 ### Proposed Usage (*stream*):
@@ -96,34 +106,38 @@ let base_filter = FilterBuilder::new()
 use sieve::{runtime::Runtime, config::Chain, FilterBuilder, NumericOps, StringOps};
 
 #[tokio::main]
-async fn main() {
+use sieve::{FilterBuilder, NumericOps, StringOps};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
         Chain::builder()
-            .rpc("https://mainnet.optimism.io")
-            .ws("wss://...")
-            .gossipsub("/ip4/0.0.0.0/tcp/9000")
-            .bootstrap_peers(vec![...])
-            .name(OPTIMISIM),
+            .rpc("https://mainnet.optimism.io")     // RPC endpoint for Optimism
+            .ws("wss://ws-mainnet.optimism.io")     // WebSocket endpoint for Optimism
+            .gossipsub("/ip4/0.0.0.0/tcp/9000")     // Gossipsub protocol configuration
+            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"]) // Bootstrap peer addresses
+            .name(OPTIMISM),                      // Chain name
         Chain::builder()
-            .rpc("https://base-mainnet...")
-            .name(BASE),
+            .rpc("https://mainnet.base.org")        // RPC endpoint for Base
+            .name(BASE),                          // Chain name
         Chain::builder()
-            .rpc("https://eth-mainnet...")
-            .name(ETHEREUM)
+            .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") // RPC endpoint for Ethereum
+            .name(ETHEREUM)                       // Chain name
     ];
 
     // 2. Create Runtime with configuration
     let runtime = Runtime::builder()
-        .chains(chains)
-        .worker_threads(4)
-        .build()?;
+        .chains(chains)                // Add chains to the runtime
+        .worker_threads(4)             // Number of worker threads
+        .build()?;                     // Build the runtime
 
     // 3. Create Filter
-    let value_filter = FilterBuilder::new()
+    let transfer_filter = FilterBuilder::new()
         .tx(|t| {
-            t.value().gt(1000);          // Value > 1000
-            t.gas_price().lt(50);        // Gas price < 50
+            t.value().gt(1000);        // Filter for transactions with value > 1000
+            t.gas_price().lt(50);      // Filter for transactions with gas price < 50
         })
         .build();
 
@@ -133,13 +147,16 @@ async fn main() {
         println!("Transfer: {:?}", event);
     }
 
-    // 5. Or Scheduled task
+    // 5. Schedule a task to process events after a delay
     let scheduled = runtime.submit_after(
-        transfer_filter,
+        transfer_filter,             
         |event| println!("Scheduled: {:?}", event),
-        Duration::from_secs(10)
+        Duration::from_secs(10)    
     );
+
+    Ok(())
 }
+
 ```
 
 ## Filter Engine
@@ -172,14 +189,15 @@ fn main() {
 use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
-    let mut stream = runtime.subsribe(eth_filter);
+    // Subscribe to events matching the Ethereum filter
+    let mut stream = runtime.subscribe(eth_filter);
 
+    // Process incoming events from the subscription
     while let Some(event) = stream.next().await {
-        match event {
-           println!("{:?} new event", event);
-        }
+        println!("{:?} new event", event);
     }
 }
+
 ```
 
 **Subscribe All:**
@@ -189,14 +207,15 @@ The `subscribe_all` context allows you to subscribe to independent filters
 use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
+    // Subscribe to all events that match the provided filters
     let mut stream = runtime.subscribe_all([eth_filter, op_filter]);
 
+    // Process incoming events from the stream
     while let Some(event) = stream.next().await {
-        match event {
-           println!("{:?} new event", event);
-        }
+        println!("{:?} new event", event);
     }
 }
+
 ```
 
 **Watch Within:**
@@ -206,23 +225,28 @@ The `watch_within` context allows for time-bounded cross-chain correlation
 use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
+    // Create an event stream monitored within a 30-minute time window
     let mut stream = runtime.watch_within(
-        Duration::from_secs(1800),  // 30 min window
-        eth_filter,
-        op_filter
+        Duration::from_secs(1800), // Define a 30-minute time window
+        eth_filter,                // Filter for Ethereum-related events
+        op_filter                  // Filter for operation-related events
     );
 
+    // Process incoming events from the stream
     while let Some(event) = stream.next().await {
         match event {
+            // Handle matched events within the time window
             Event::Match { event_1, event_2 } => {
                 println!("Matched events within time window");
             }
+            // Handle events that timed out without a match
             Event::Timeout(event) => {
                 println!("Event timed out");
             }
         }
     }
 }
+
 ```
 
 ## Status
