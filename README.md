@@ -24,17 +24,28 @@ We prioritize Ethereum data expressiveness by hardcoding commonly used fields, s
 
 ### Filter (*v1.0*)
 ```rust
-let value_filter = FilterBuilder::new()
-    .tx(|t| {
-        t.value().gt(U256::from(1000000));
-        t.gas_price().lt(50_000_000_000);
-        t.gas().between(21000, 100000);
-        t.nonce().eq(5);
-
-        t.access_list()
-            .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+// Simple OR filter for transaction monitoring
+let filter = FilterBuilder::new().transaction(|f| {
+    f.or(|tx| {
+        tx.value().gt(U256::from(1000));     // Value > 1000
+        tx.gas_price().lt(50000);            // OR Gas price < 50
+        tx.nonce().eq(5);                    // OR Nonce = 5
     });
-    .build();
+});
+
+// Pattern matching using AND/OR combinations
+let filter = FilterBuilder::new().transaction(|f| {
+    f.value().gt(U256::from(100));           // Base value requirement
+
+    f.all_of(|f| {
+        f.gas_price().between(50, 150);      // Gas price must be in range
+    });
+
+    f.or(|t| {
+        t.gas().gt(500000);                  // Either high gas
+        t.value().eq(U256::from(100));       // OR specific value
+    });
+});
 ```
 
 ### ingest / watcher (*v1.0*):
@@ -87,16 +98,14 @@ fn main() {
 
             // Filter for events where `queueIndex` is less than 100
             op.field("queueIndex").lt(100u64);
-        })
-        .build();
+        });
 
     // Create a filter for Base-related events
     let base_filter = FilterBuilder::new()
         .base(|base| {
             // Filter for events where the `l1BlockNumber` is greater than 10^18
             base.field("l1BlockNumber").gt(1000000000000000000u128);
-        })
-        .build();
+        });
 }
 
 ```
@@ -134,15 +143,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;                   
 
     // 3. Create Filter
-    let transfer_filter = FilterBuilder::new()
-        .tx(|t| {
-            t.value().gt(1000);        // Filter for transactions with value > 1000
-            t.gas_price().lt(50);      // Filter for transactions with gas price < 50
-        })
-        .build();
+   let pool_filter = FilterBuilder::new().pool(|f| {
+        f.any_of(|p| {
+            // High value pending transaction
+            p.value().gt(U256::from(1000000000000000000u64));
+            // Specific sender/receiver
+            p.from().starts_with("0xdead");
+            p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+        });
+    });
 
     // 4. Subscribe to stream
-    let mut stream = runtime.subscribe(transfer_filter.clone());
+    let mut stream = runtime.subscribe(pool_filter.clone());
     while let Some(event) = stream.next().await {
         println!("Transfer: {:?}", event);
     }
@@ -170,9 +182,11 @@ use sieve::{FilterBuilder, NumericOps, StringOps};
 fn main() {
     // Single chain (L1)
     let eth_filter = FilterBuilder::new()
-        .tx(|t| {
-            t.value().gt(1000);          // Value > 1000
-            t.gas_price().lt(50);        // Gas price < 50
+        .transaction(|f| {
+            f.or(|tx| {
+                tx.value().gt(U256::from(1000));
+                tx.gas_price().lt(50000);
+            });
         })
         .build();
 
