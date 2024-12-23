@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 /// ===== Logical Builder =====
 #[allow(dead_code)]
-pub(crate) struct LogicalFilterBuilder<'a, B: FilterBuilderOps> {
+pub struct LogicalFilterBuilder<'a, B: FilterBuilderOps> {
     pub(crate) nodes: &'a mut Vec<FilterNode>,
     pub(crate) _marker: PhantomData<B>,
 }
