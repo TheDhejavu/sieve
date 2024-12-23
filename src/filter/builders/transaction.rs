@@ -9,8 +9,8 @@ use crate::filter::{
         TransactionCondition,
     },
     field::{
-        ArrayFieldType, ContractField, DynValueFieldType, FieldWrapper, StringFieldType, TxField,
-        U128FieldType, U256FieldType, U64FieldType, U8FieldType,
+        ArrayFieldType, FieldWrapper, StringFieldType, TxField, U128FieldType, U256FieldType,
+        U64FieldType, U8FieldType,
     },
 };
 
@@ -223,22 +223,22 @@ impl<'a> CallDataBuilder<'a, TxBuilder> {
         }
     }
 
-    pub fn params(
-        &mut self,
-        name: &str,
-    ) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
-        FieldWrapper {
-            field: DynValueFieldType(ContractField::Parameter(name.to_string())),
-            parent: self,
-        }
-    }
+    // pub fn params(
+    //     &mut self,
+    //     name: &str,
+    // ) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
+    //     FieldWrapper {
+    //         field: DynValueFieldType(ContractField::Parameter(name.to_string())),
+    //         parent: self,
+    //     }
+    // }
 
-    pub fn path(&mut self, name: &str) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
-        FieldWrapper {
-            field: DynValueFieldType(ContractField::Path(name.to_string())),
-            parent: self,
-        }
-    }
+    // pub fn path(&mut self, name: &str) -> FieldWrapper<'_, DynValueFieldType<ContractField>, Self> {
+    //     FieldWrapper {
+    //         field: DynValueFieldType(ContractField::Path(name.to_string())),
+    //         parent: self,
+    //     }
+    // }
 }
 #[cfg(test)]
 mod tests {

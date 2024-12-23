@@ -27,6 +27,7 @@ pub struct ArrayFieldCondition<T, V>(pub T, pub ArrayCondition<V>);
 // === Transaction Fields ======
 // Contract-specific fields
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ContractField {
     Parameter(String), // Named parameter: "amountIn", "to", "amount" etc
     Path(String),      // For nested params like "path.tokenIn"

@@ -2,14 +2,17 @@
 //! against complex filter trees, so we parallelize evaluation using Rayon workers
 //! for better performance.
 //!
-use context::{EvaluableData, EvaluationContext};
+use context::EvaluationContext;
 use dashmap::DashMap;
+use evaluate::EvaluableData;
 use rayon::prelude::*;
 use state::State;
 
 use crate::filter::conditions::{FilterNode, LogicalOp};
 mod context;
+mod evaluate;
 mod state;
+
 pub(crate) use state::DecodedData;
 
 #[allow(dead_code)]

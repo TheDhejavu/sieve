@@ -28,11 +28,6 @@ fn main() {
             f.tx(|t| {
                 t.value().gt(U256::from(100)); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
-
-                let mut call_data = t.call_data("execute((address,uint256))");
-                call_data.params("amount").exact("1000");
-                call_data.params("from").starts_with("0xa1b2...");
-                call_data.path("order.data.tokenIn").gt(100);
             });
             f.event(|e| {
                 e.contract().exact("UniswapV2Factory"); // AND Contract = UniswapV2Factory
@@ -151,12 +146,12 @@ fn main() {
             });
 
             // Address and hash fields
-            f.tx(|t| {
-                t.from().starts_with("0xdead");
-                t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-                t.hash().contains("abc");
-                t.block_hash().starts_with("0x0");
-            });
+            // f.tx(|t| {
+            //     t.from().starts_with("0xdead");
+            //     t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+            //     t.hash().contains("abc");
+            //     t.block_hash().starts_with("0x0");
+            // });
         })
         .build();
 

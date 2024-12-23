@@ -4,7 +4,10 @@ use crate::filter::conditions::FilterNode;
 
 use super::{
     block_header::BlockHeaderBuilder,
-    ethereum::{EthereumFilterBuilder, MainFilterBuilder, PoolFilterBuilder},
+    ethereum::{
+        BlockHeaderFilterBuilder, EthereumFilterBuilder, EventFilterBuilder, PoolFilterBuilder,
+        TxFilterBuilder,
+    },
     event::EventBuilder,
     logical_builder::LogicalFilterBuilder,
     optimism::{MainOptimismFilterBuilder, OptimismFilterBuilder},
@@ -29,11 +32,11 @@ impl FilterBuilder {
     /// Adds transaction conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn tx<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn tx<F>(&mut self, f: F) -> TxFilterBuilder
     where
         F: FnOnce(&mut TxBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = TxFilterBuilder {
             filters: &mut self.filters,
         };
         filter.tx(f)
@@ -42,11 +45,11 @@ impl FilterBuilder {
     /// Adds event(logs) conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn event<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn event<F>(&mut self, f: F) -> EventFilterBuilder
     where
         F: FnOnce(&mut EventBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = EventFilterBuilder {
             filters: &mut self.filters,
         };
         filter.event(f)
@@ -68,11 +71,11 @@ impl FilterBuilder {
     /// Adds block header conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn block_header<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn block_header<F>(&mut self, f: F) -> BlockHeaderFilterBuilder
     where
         F: FnOnce(&mut BlockHeaderBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = BlockHeaderFilterBuilder {
             filters: &mut self.filters,
         };
         filter.block_header(f)

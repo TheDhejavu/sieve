@@ -29,11 +29,11 @@ impl EthereumFilterBuilder {
     /// Adds transaction conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn tx<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn tx<F>(&mut self, f: F) -> TxFilterBuilder
     where
         F: FnOnce(&mut TxBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = TxFilterBuilder {
             filters: &mut self.filters,
         };
         filter.tx(f)
@@ -42,11 +42,11 @@ impl EthereumFilterBuilder {
     /// Adds event(logs) conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn event<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn event<F>(&mut self, f: F) -> EventFilterBuilder
     where
         F: FnOnce(&mut EventBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = EventFilterBuilder {
             filters: &mut self.filters,
         };
         filter.event(f)
@@ -68,11 +68,11 @@ impl EthereumFilterBuilder {
     /// Adds block header conditions to the filter.
     ///
     /// Returns a [`MainFilterBuilder`] for further configuration.
-    pub fn block_header<F>(&mut self, f: F) -> MainFilterBuilder
+    pub fn block_header<F>(&mut self, f: F) -> BlockHeaderFilterBuilder
     where
         F: FnOnce(&mut BlockHeaderBuilder),
     {
-        let filter = MainFilterBuilder {
+        let filter = BlockHeaderFilterBuilder {
             filters: &mut self.filters,
         };
         filter.block_header(f)
@@ -168,14 +168,14 @@ impl EthereumFilterBuilder {
     }
 }
 
-// ===== Main Filter Builder =====
+// ===== Transaction Filter Builder =====
 #[allow(dead_code)]
-pub struct MainFilterBuilder<'a> {
+pub struct TxFilterBuilder<'a> {
     pub(crate) filters: &'a mut Vec<FilterNode>,
 }
 
 #[allow(dead_code)]
-impl MainFilterBuilder<'_> {
+impl TxFilterBuilder<'_> {
     pub fn tx<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut TxBuilder),
@@ -186,7 +186,23 @@ impl MainFilterBuilder<'_> {
         self.filters.extend(builder.nodes);
         self
     }
+    pub fn build(&self) -> FilterNode {
+        FilterNode {
+            group: Some((LogicalOp::And, self.filters.clone())),
+            condition: None,
+        }
+        .optimize()
+    }
+}
 
+// ===== Event Filter Builder =====
+#[allow(dead_code)]
+pub struct EventFilterBuilder<'a> {
+    pub(crate) filters: &'a mut Vec<FilterNode>,
+}
+
+#[allow(dead_code)]
+impl EventFilterBuilder<'_> {
     pub fn event<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut EventBuilder),
@@ -218,12 +234,41 @@ impl MainFilterBuilder<'_> {
     }
 }
 
+// ===== Event Filter Builder =====
+#[allow(dead_code)]
+pub struct BlockHeaderFilterBuilder<'a> {
+    pub(crate) filters: &'a mut Vec<FilterNode>,
+}
+
+#[allow(dead_code)]
+impl BlockHeaderFilterBuilder<'_> {
+    pub fn block_header<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let mut builder = BlockHeaderBuilder::new();
+        f(&mut builder);
+
+        self.filters.extend(builder.nodes);
+        self
+    }
+
+    pub fn build(&self) -> FilterNode {
+        FilterNode {
+            group: Some((LogicalOp::And, self.filters.clone())),
+            condition: None,
+        }
+        .optimize()
+    }
+}
+
 // ===== Pool Filter Builder =====
 #[allow(dead_code)]
 pub(crate) struct PoolFilterBuilder<'a> {
     pub(crate) filters: &'a mut Vec<FilterNode>,
 }
 
+#[allow(dead_code)]
 impl PoolFilterBuilder<'_> {
     pub fn pool<F>(self, f: F) -> Self
     where
@@ -233,5 +278,12 @@ impl PoolFilterBuilder<'_> {
         f(&mut builder);
         self.filters.extend(builder.nodes);
         self
+    }
+    pub fn build(&self) -> FilterNode {
+        FilterNode {
+            group: Some((LogicalOp::And, self.filters.clone())),
+            condition: None,
+        }
+        .optimize()
     }
 }

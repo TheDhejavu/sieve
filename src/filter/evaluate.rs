@@ -76,6 +76,7 @@ where
 }
 
 // Evaluation for decoded data gotten from [`alloy_dyn_abi::DynSolValue`]
+// useful for data that has their value represented already in dynamic solidity value
 impl Evaluable<DynSolValue> for ValueCondition {
     fn evaluate(&self, value: &DynSolValue) -> bool {
         match self {
@@ -129,6 +130,7 @@ impl Evaluable<DynSolValue> for ValueCondition {
 }
 
 // Evaluation for blockchain data gotten from [`serde_json::Value`]
+// this is needed for data that has there values represnted in json format
 impl Evaluable<Value> for DynFieldCondition {
     fn evaluate(&self, value: &Value) -> bool {
         let path = &self.path;
