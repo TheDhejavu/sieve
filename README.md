@@ -27,23 +27,32 @@ We prioritize Ethereum data expressiveness by hardcoding commonly used fields, s
 // Simple OR filter for transaction monitoring
 let filter = FilterBuilder::new().transaction(|f| {
     f.or(|tx| {
-        tx.value().gt(U256::from(1000));     // Value > 1000
-        tx.gas_price().lt(50000);            // OR Gas price < 50
-        tx.nonce().eq(5);                    // OR Nonce = 5
+        // Value > 1000
+        tx.value().gt(U256::from(1000));
+
+        // OR Gas price < 50
+        tx.gas_price().lt(50000); 
+        
+        // OR Nonce = 5          
+        tx.nonce().eq(5);                  
     });
 });
 
 // Pattern matching using AND/OR combinations
 let filter = FilterBuilder::new().transaction(|f| {
-    f.value().gt(U256::from(100));           // Base value requirement
+    // Base value requirement
+    f.value().gt(U256::from(100));           
 
     f.all_of(|f| {
-        f.gas_price().between(50, 150);      // Gas price must be in range
+        // Gas price must be in range
+        f.gas_price().between(50, 150);     
     });
 
     f.or(|t| {
-        t.gas().gt(500000);                  // Either high gas
-        t.value().eq(U256::from(100));       // OR specific value
+        // Either high gas
+        t.gas().gt(500000);     
+        // OR specific value            
+        t.value().eq(U256::from(100));       
     });
 });
 ```
