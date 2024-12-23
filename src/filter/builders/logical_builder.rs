@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 /// ===== Logical Builder =====
 #[allow(dead_code)]
 pub(crate) struct LogicalFilterBuilder<'a, B: FilterBuilderOps> {
-    pub(crate) filters: &'a mut Vec<FilterNode>,
+    pub(crate) nodes: &'a mut Vec<FilterNode>,
     pub(crate) _builder: PhantomData<B>,
 }
 
@@ -51,32 +51,22 @@ impl<B: FilterBuilderOps> LogicalFilterBuilder<'_, B> {
     {
         let mut builder = B::new();
         f(&mut builder);
-        let builder_filters = builder.take_filters();
+        let builder_nodes = builder.take_nodes();
 
         // Only create OR group if we have multiple filters
-        match builder_filters.len() {
+        match builder_nodes.len() {
             0 => self,
             1 => {
-                self.filters.extend(builder_filters);
+                self.nodes.extend(builder_nodes);
                 self
             }
             _ => {
                 let node = FilterNode {
-                    group: Some((op, builder_filters)),
+                    group: Some((op, builder_nodes)),
                     condition: None,
                 };
-                self.filters.push(node);
+                self.nodes.push(node);
                 self
-            }
-        }
-    }
-    pub fn build(&self) -> FilterNode {
-        if self.filters.len() == 1 {
-            self.filters[0].clone()
-        } else {
-            FilterNode {
-                group: Some((LogicalOp::And, self.filters.clone())),
-                condition: None,
             }
         }
     }

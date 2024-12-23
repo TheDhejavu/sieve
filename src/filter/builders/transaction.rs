@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{marker::PhantomData, str::FromStr};
 
 use alloy_primitives::Selector;
 
@@ -12,7 +12,10 @@ use crate::filter::{
         ArrayFieldType, FieldWrapper, StringFieldType, TxField, U128FieldType, U256FieldType,
         U64FieldType, U8FieldType,
     },
+    operations::LogicalOps,
 };
+
+use super::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder};
 
 // ===== Transaction Builder =====
 pub(crate) struct TxBuilder {
@@ -147,7 +150,7 @@ impl TxBuilder {
 }
 
 #[allow(dead_code)]
-pub struct CallDataBuilder<'a, B> {
+pub(crate) struct CallDataBuilder<'a, B> {
     parent: &'a mut B,
     signature: String,
     parameter_current_index: Option<usize>,
@@ -240,6 +243,108 @@ impl<'a> CallDataBuilder<'a, TxBuilder> {
     //     }
     // }
 }
+
+impl FilterBuilderOps for TxBuilder {
+    fn new() -> Self {
+        Self { nodes: Vec::new() }
+    }
+
+    fn take_nodes(&mut self) -> Vec<FilterNode> {
+        std::mem::take(&mut self.nodes)
+    }
+}
+
+impl LogicalOps<TxBuilder> for TxBuilder {
+    /// Combines conditions with AND logic, requiring all conditions to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.and(f)
+    }
+
+    /// Alias for `and`. Combines conditions requiring all to be true.
+    /// Provides a more readable alternative when combining multiple conditions
+    /// that must all be satisfied.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.and(f)
+    }
+
+    /// Applies a NOT operation to the given conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.not(f)
+    }
+
+    /// Alias for `not`.
+    /// Provides a more readable way to express "except when" conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.not(f)
+    }
+
+    /// Combines conditions with OR logic, requiring at least one condition to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.or(f)
+    }
+
+    /// Alias for `or`.
+    /// Provides a more readable alternative for specifying that any one
+    /// of multiple conditions should match.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<TxBuilder>
+    where
+        F: FnOnce(&mut TxBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, TxBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.or(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloy_primitives::U256;

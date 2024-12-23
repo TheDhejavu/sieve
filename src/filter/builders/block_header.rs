@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 // Block Header builder
 use crate::filter::{
     conditions::{BlockHeaderCondition, FilterCondition, FilterNode, NodeBuilder},
@@ -5,7 +7,10 @@ use crate::filter::{
         BlockField, DynField, DynValueFieldType, FieldWrapper, StringFieldType, U256FieldType,
         U64FieldType,
     },
+    LogicalOps,
 };
+
+use super::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder};
 
 // ===== BlockHeader Builder =====
 pub(crate) struct BlockHeaderBuilder {
@@ -117,6 +122,107 @@ impl BlockHeaderBuilder {
             field: DynValueFieldType(DynField(path.to_string())),
             parent: self,
         }
+    }
+}
+
+impl FilterBuilderOps for BlockHeaderBuilder {
+    fn new() -> Self {
+        Self { nodes: Vec::new() }
+    }
+
+    fn take_nodes(&mut self) -> Vec<FilterNode> {
+        std::mem::take(&mut self.nodes)
+    }
+}
+
+impl LogicalOps<BlockHeaderBuilder> for BlockHeaderBuilder {
+    /// Combines conditions with AND logic, requiring all conditions to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.and(f)
+    }
+
+    /// Alias for `and`. Combines conditions requiring all to be true.
+    /// Provides a more readable alternative when combining multiple conditions
+    /// that must all be satisfied.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.and(f)
+    }
+
+    /// Applies a NOT operation to the given conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.not(f)
+    }
+
+    /// Alias for `not`.
+    /// Provides a more readable way to express "except when" conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.not(f)
+    }
+
+    /// Combines conditions with OR logic, requiring at least one condition to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.or(f)
+    }
+
+    /// Alias for `or`.
+    /// Provides a more readable alternative for specifying that any one
+    /// of multiple conditions should match.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<BlockHeaderBuilder>
+    where
+        F: FnOnce(&mut BlockHeaderBuilder),
+    {
+        let filter: LogicalFilterBuilder<'_, BlockHeaderBuilder> = LogicalFilterBuilder {
+            nodes: &mut self.nodes,
+            _builder: PhantomData,
+        };
+        filter.or(f)
     }
 }
 #[cfg(test)]

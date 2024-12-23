@@ -1,4 +1,7 @@
-use super::conditions::NumericType;
+use super::{
+    builders::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder},
+    conditions::NumericType,
+};
 /// Operations available for numeric fields that allow comparison and range checks.
 ///
 #[allow(dead_code)]
@@ -62,4 +65,54 @@ pub trait ArrayOps<T> {
 
     /// Creates a condition that checks if array is not in the values.
     fn not_in(self, values: Vec<T>);
+}
+
+#[allow(dead_code)]
+pub trait LogicalOps<B: FilterBuilderOps> {
+    /// Combines conditions with AND logic, requiring all conditions to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
+
+    /// Alias for `and`. Combines conditions requiring all to be true.
+    /// Provides a more readable alternative when combining multiple conditions
+    /// that must all be satisfied.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
+
+    /// Applies a NOT operation to the given conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
+
+    /// Alias for `not`.
+    /// Provides a more readable way to express "except when" conditions.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
+
+    /// Combines conditions with OR logic, requiring at least one condition to be true.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
+
+    /// Alias for `or`.
+    /// Provides a more readable alternative for specifying that any one
+    /// of multiple conditions should match.
+    ///
+    /// Returns a [`LogicalFilterBuilder`] for further configuration.
+    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<B>
+    where
+        F: FnOnce(&mut B);
 }

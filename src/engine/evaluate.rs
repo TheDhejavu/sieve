@@ -11,13 +11,14 @@ use std::sync::Arc;
 pub(crate) trait EvaluableData {
     // Check if we should proceed with full evaluation
     fn pre_evaluate(&self, _condition: &FilterCondition) -> bool {
-        // Default implementation always returns true
-        // Individual implementations will override this
         true
     }
+
     fn cache_key(&self) -> CacheKey;
+
     fn evaluate(&self, condition: &FilterCondition, decoded_data: Option<Arc<DecodedData>>)
         -> bool;
+
     fn decode_data(&self, condition: &FilterCondition) -> Option<Arc<DecodedData>>;
 }
 

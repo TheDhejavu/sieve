@@ -6,4 +6,4 @@ mod operations;
 mod priority;
 
 pub use builders::builder::FilterBuilder;
-pub use operations::{ArrayOps, NumericOps, StringOps};
+pub use operations::{ArrayOps, LogicalOps, NumericOps, StringOps};
