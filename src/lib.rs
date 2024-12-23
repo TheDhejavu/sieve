@@ -1,7 +1,11 @@
+/// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
+use alloy_primitives::U256;
 use filter::{ArrayOps, FilterBuilder, NumericOps, StringOps};
 
-// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
+mod config;
+mod engine;
 mod filter;
+mod utils;
 
 #[allow(dead_code)]
 fn main() {
@@ -10,8 +14,8 @@ fn main() {
     //===============================================================================================
     let _simple_or_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.tx(|t| t.value().gt(1000)); // Value > 1000
-            f.tx(|t| t.gas_price().lt(50)); // OR Gas price < 50
+            f.tx(|t| t.value().gt(U256::from(1000))); // Value > 1000
+            f.tx(|t| t.gas_price().lt(50000)); // OR Gas price < 50
             f.tx(|t| t.nonce().eq(5)); // OR Nonce = 5
         })
         .build();
@@ -22,12 +26,16 @@ fn main() {
     let _combined_filter = FilterBuilder::new()
         .and(|f| {
             f.tx(|t| {
-                t.value().gt(100); // Value > 100
+                t.value().gt(U256::from(100)); // Value > 100
                 t.gas_price().lt(200); // AND Gas price < 200
-                t.transfer().amount().lt(100)
+
+                let mut call_data = t.call_data("execute((address,uint256))");
+                call_data.params("amount").exact("1000");
+                call_data.params("from").starts_with("0xa1b2...");
+                call_data.path("order.data.tokenIn").gt(100);
             });
             f.event(|e| {
-                e.contract().eq("UniswapV2Factory"); // AND Contract = UniswapV2Factory
+                e.contract().exact("UniswapV2Factory"); // AND Contract = UniswapV2Factory
             });
         })
         .build();
@@ -38,16 +46,16 @@ fn main() {
     let _defi_filter = FilterBuilder::new()
         .any_of(|f| {
             f.all_of(|f| {
-                f.event(|e| e.contract().eq("UniswapV2Factory"));
+                f.event(|e| e.contract().exact("UniswapV2Factory"));
                 f.tx(|t| {
-                    t.value().gt(1000);
+                    t.value().gt(U256::from(100));
                     t.gas_price().lt(150);
                 });
             });
 
             f.all_of(|f| {
-                f.event(|e| e.contract().eq("TetherToken"));
-                f.tx(|t| t.value().gt(5000));
+                f.event(|e| e.contract().exact("TetherToken"));
+                f.tx(|t| t.value().gt(U256::from(100)));
             });
         })
         .build();
@@ -57,16 +65,19 @@ fn main() {
     //===============================================================================================
     let _pattern_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.tx(|t| t.value().gt(10000));
+            f.tx(|t| t.value().gt(U256::from(100)));
 
             f.and(|f| {
                 f.tx(|t| t.gas_price().between(50, 150));
-                f.event(|e| e.contract().starts_with("0xDex"));
+                f.event(|e| {
+                    e.contract().starts_with("0xDex");
+                    e.topics().contains("Transfer".to_string());
+                });
             });
 
             f.tx(|t| {
                 t.gas().gt(500000);
-                t.value().eq(0);
+                t.value().eq(U256::from(100));
             });
         })
         .build();
@@ -78,29 +89,34 @@ fn main() {
         .any_of(|f| {
             // Monitor multiple tokens & DEX
             f.any_of(|f| {
-                f.event(|e| e.contract().eq("TetherToken"));
-                f.event(|e| e.contract().eq("UniswapV2Factory"));
-                f.event(|e| e.contract().eq("FiatTokenProxy"));
+                f.event(|e| e.contract().exact("TetherToken"));
+                f.event(|e| e.contract().exact("UniswapV2Factory"));
+                f.event(|e| e.contract().exact("FiatTokenProxy"));
             });
 
             // Monitor lending protocols
             f.any_of(|f| {
-                f.event(|e| e.contract().eq("Comp"));
-                f.event(|e| e.contract().eq("InitializableAdminUpgradeabilityProxy"));
+                f.event(|e| e.contract().exact("Comp"));
+                f.event(|e| e.contract().exact("InitializableAdminUpgradeabilityProxy"));
                 f.event(|e| {
                     e.contract()
-                        .eq("0xdAC17F958D2ee523a2206206994597C13D831ec7");
+                        .exact("0xdAC17F958D2ee523a2206206994597C13D831ec7");
                     e.topics().contains(
                         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
                             .to_string(),
                     );
-                    e.topics().not_empty();
+
+                    let mut sig = e.signature(
+                        "Transfer(address indexed from,address indexed to,uint256 value)",
+                    );
+                    sig.params("value1").gt(100_u128);
+                    sig.params("value2").gt(200_u128);
                 });
             });
         })
         .and(|f| {
             // But only high-value transactions
-            f.tx(|t| t.value().gt(50000));
+            f.tx(|t| t.value().gt(U256::from(1000000)));
         })
         .build();
 
@@ -111,7 +127,7 @@ fn main() {
         .any_of(|f| {
             // Basic transaction numeric fields
             f.tx(|t| {
-                t.value().gt(1000000);
+                t.value().gt(U256::from(1000000));
                 t.gas_price().lt(50_000_000_000);
                 t.gas().between(21000, 100000);
                 t.nonce().eq(5);
@@ -137,20 +153,9 @@ fn main() {
             // Address and hash fields
             f.tx(|t| {
                 t.from().starts_with("0xdead");
-                t.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 t.hash().contains("abc");
                 t.block_hash().starts_with("0x0");
-            });
-
-            // Transfer-specific fields
-            f.tx(|t| {
-                t.transfer().method().eq("transfer");
-                t.transfer().amount().gt(1000);
-                t.transfer().to().contains("dead");
-                t.transfer().from().starts_with("0x");
-                t.transfer()
-                    .spender()
-                    .eq("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D");
             });
         })
         .build();
@@ -162,37 +167,28 @@ fn main() {
         .any_of(|f| {
             f.pool(|p| {
                 // High value pending transaction
-                p.value().gt(1000000000000000000u64);
-
-                // Multiple replacements
-                p.replacement_count().gt(2);
-
-                // Gas price conditions
-                p.max_fee_per_gas().lt(50000000000u64);
-
+                p.value().gt(U256::from(1000000000000000000u64));
                 // Specific sender/receiver
                 p.from().starts_with("0xdead");
-                p.to().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-
-                // Network propagation
-                p.propagation_time().lt(1000);
+                p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
             });
         })
         .unless(|f| {
-            f.block(|b| {
+            f.block_header(|b| {
                 b.gas_used().lt(1000);
+                b.field("l1BlockNumber").gt(100_u128);
             });
         })
         .build();
 
     //===============================================================================================
-    //                            6. BLOCK FILTER
+    //                            6. BLOCK HEADER FILTER
     //===============================================================================================
     let _block_filter = FilterBuilder::new()
         .any_of(|f| {
-            f.block(|b| {
+            f.block_header(|b| {
                 b.gas_limit().gt(100);
-                b.hash().eq("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+                b.hash().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
                 b.state_root()
                     .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
 
@@ -200,6 +196,32 @@ fn main() {
                 b.base_fee().gt(100);
 
                 b.gas_used().lt(1000);
+            });
+        })
+        .build();
+
+    //===============================================================================================
+    //                            7. L2 FILTER
+    //===============================================================================================
+    let _filter = FilterBuilder::new()
+        .optimism(|op| {
+            op.field("l1BlockNumber").gt(1000000000000000000u128);
+
+            op.field("l1TxOrigin").starts_with("0x");
+            op.field("queueIndex").lt(100u64);
+
+            // L2 block fields
+            op.field("sequenceNumber").gt(500u64);
+            op.field("prevTotalElements").between(1000u64, 2000u64);
+
+            op.any_of(|f| {
+                f.field("l1BlockNumber").gt(1000000000000000000u128);
+                f.field("l1TxOrigin").starts_with("0x");
+            });
+
+            op.all_of(|f| {
+                f.field("sequenceNumber").gt(500u64);
+                f.field("batch.index").gt(100u128);
             });
         })
         .build();

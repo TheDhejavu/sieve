@@ -1,26 +1,55 @@
-#[derive(Debug, Clone)]
+use alloy_primitives::{Selector, U256};
+use std::cmp::PartialOrd;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum LogicalOp {
     And,
     Or,
     Not,
-    NoneOf,
     Xor,
 }
 
+#[allow(dead_code)]
+pub trait NumericType: Clone + PartialEq + PartialOrd {
+    fn from_string(value: String) -> Self;
+}
+
+impl NumericType for u64 {
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap_or_default()
+    }
+}
+
+impl NumericType for u8 {
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap_or_default()
+    }
+}
+
+impl NumericType for u128 {
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap_or_default()
+    }
+}
+
+impl NumericType for U256 {
+    fn from_string(value: String) -> Self {
+        value.parse().unwrap_or_default()
+    }
+}
+
+// Generic numeric condition that works with any numeric type
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NumericCondition {
-    GreaterThan(u64),
-    GreaterThanOrEqualTo(u64),
-
-    LessThan(u64),
-    LessThanOrEqualTo(u64),
-
-    EqualTo(u64),
-    NotEqualTo(u64),
-
-    Between(u64, u64),
-    Outside(u64, u64),
+pub enum NumericCondition<T: NumericType> {
+    GreaterThan(T),
+    GreaterThanOrEqualTo(T),
+    LessThan(T),
+    LessThanOrEqualTo(T),
+    EqualTo(T),
+    NotEqualTo(T),
+    Between(T, T),
+    Outside(T, T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,113 +75,117 @@ pub enum FilterCondition {
     Transaction(TransactionCondition),
     Event(EventCondition),
     Pool(PoolCondition),
-    Block(BlockCondition),
+    BlockHeader(BlockHeaderCondition),
+    DynField(DynFieldCondition),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DynFieldCondition {
+    pub(crate) path: String,
+    pub(crate) condition: ValueCondition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ValueCondition {
+    U64(NumericCondition<u64>),
+    U128(NumericCondition<u128>),
+    U256(NumericCondition<U256>),
+    String(StringCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum TransactionCondition {
-    // Amount fields - Numeric
-    Value(NumericCondition),
-    Gas(NumericCondition),
-    GasPrice(NumericCondition),
-    MaxFeePerGas(NumericCondition),
-    MaxPriorityFee(NumericCondition),
-
-    // Counter fields - Numeric
-    Nonce(NumericCondition),
-    Type(NumericCondition),
-    ChainId(NumericCondition),
-    BlockNumber(NumericCondition),
-    TransactionIndex(NumericCondition),
-
-    // Address fields - String
+pub(crate) enum TransactionCondition {
+    Gas(NumericCondition<u64>),
+    Nonce(NumericCondition<u64>),
+    Type(NumericCondition<u8>),
+    ChainId(NumericCondition<u64>),
+    BlockNumber(NumericCondition<u64>),
+    TransactionIndex(NumericCondition<u64>),
+    Value(NumericCondition<U256>),
+    GasPrice(NumericCondition<u128>),
+    MaxFeePerGas(NumericCondition<u128>),
+    MaxPriorityFee(NumericCondition<u128>),
     From(StringCondition),
     To(StringCondition),
-
-    // Hash fields - String
     Hash(StringCondition),
     BlockHash(StringCondition),
-
-    // Access list - Array
     AccessList(ArrayCondition<String>),
 
-    // Transfer conditions - Decoded Input
-    TransferMethod(StringCondition),
-    TransferTo(StringCondition),
-    TransferFrom(StringCondition),
-    TransferAmount(NumericCondition),
-    TransferSpender(StringCondition),
+    CallData {
+        paths: Vec<DynFieldCondition>,
+        method_selector: Selector,
+        parameters: Vec<DynFieldCondition>,
+    },
+
+    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum EventCondition {
+pub(crate) enum EventCondition {
     // String conditions
     Contract(StringCondition),
     BlockHash(StringCondition),
     TxHash(StringCondition),
 
     // Numeric conditions
-    LogIndex(NumericCondition),
-    BlockNumber(NumericCondition),
-    TxIndex(NumericCondition),
+    LogIndex(NumericCondition<u64>),
+    BlockNumber(NumericCondition<u64>),
+    TxIndex(NumericCondition<u64>),
+
+    EventData {
+        signature: String,
+        parameters: Vec<(String, ValueCondition)>,
+    },
 
     // Array condition
     Topics(ArrayCondition<String>),
+
+    DynField(DynFieldCondition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum PoolCondition {
-    // Transaction identification - String
+pub(crate) enum ContractCondition {
+    Parameter(String, ValueCondition),
+    Path(String, ValueCondition),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(crate) enum PoolCondition {
     Hash(StringCondition),
-    From(StringCondition),
     To(StringCondition),
-    ReplacedBy(StringCondition),
-
-    // Gas & Value - Numeric
-    Value(NumericCondition),
-    GasPrice(NumericCondition),
-    MaxFeePerGas(NumericCondition),
-    MaxPriorityFee(NumericCondition),
-    Gas(NumericCondition),
-
-    // Counter fields - Numeric
-    Nonce(NumericCondition),
-    ReplacementCount(NumericCondition),
-    PropagationTime(NumericCondition),
-
-    // Temporal fields - Numeric (timestamps)
-    FirstSeen(NumericCondition),
-    LastSeen(NumericCondition),
+    From(StringCondition),
+    Value(NumericCondition<U256>),
+    Nonce(NumericCondition<u64>),
+    GasPrice(NumericCondition<u128>),
+    GasLimit(NumericCondition<u64>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum BlockCondition {
-    // Core block info - Numeric
-    Number(NumericCondition),
-    Timestamp(NumericCondition),
+pub(crate) enum BlockHeaderCondition {
+    BaseFee(NumericCondition<u64>),
+    Number(NumericCondition<u64>),
+    Timestamp(NumericCondition<u64>),
+    Size(NumericCondition<U256>),
+    GasUsed(NumericCondition<u64>),
+    GasLimit(NumericCondition<u64>),
 
-    // Block metadata - Numeric
-    Size(NumericCondition),
-    GasUsed(NumericCondition),
-    GasLimit(NumericCondition),
-    BaseFee(NumericCondition),
-    TransactionCount(NumericCondition),
-
-    // Hash fields - String
     Hash(StringCondition),
     ParentHash(StringCondition),
-
-    // Mining info - String
-    Miner(StringCondition),
-
-    // Root hashes - String
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),
     TransactionsRoot(StringCondition),
+
+    DynField(DynFieldCondition),
+}
+
+pub(crate) trait NodeBuilder {
+    type Condition;
+    fn append_node(&mut self, condition: Self::Condition);
 }
 
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
@@ -166,15 +199,19 @@ pub enum BlockCondition {
 //       [AND]             [AND]
 //      /     \           /     \
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(dead_code)]
-pub struct FilterNode {
-    pub group: Option<(LogicalOp, Vec<FilterNode>)>,
-    pub condition: Option<FilterCondition>,
+pub(crate) struct FilterNode {
+    pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
+    pub(crate) condition: Option<FilterCondition>,
 }
 
-pub trait ConditionBuilder {
-    type Condition;
-
-    fn push_condition(&mut self, condition: Self::Condition);
+impl FilterNode {
+    pub(crate) fn optimize(self) -> FilterNode {
+        // TODO:
+        // 1. Re-order conditions based on priority (basic to complex)
+        // 2. Re-order Logical operations to enable short-circuit
+        // 3. Flatten nested logical operations if possible to reduce unnecessary recursive calls during evaluation.
+        self
+    }
 }

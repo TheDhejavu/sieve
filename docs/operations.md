@@ -8,7 +8,6 @@ Logical operations in sieve is about combining different conditions to filter st
 - `NOT` - Negate the condition
 - `ANY_OF` - Like OR but for grouped conditions
 - `ALL_OF` - Like AND but for grouped conditions
-- `NONE_OF` - No conditions should be true
 - `XOR` - Exactly one condition must be true
 - `UNLESS` - Alias for NOT
 
