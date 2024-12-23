@@ -36,6 +36,7 @@ impl NodeBuilder for OptimismFilterBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl OptimismFilterBuilder {
     /// Combines conditions with AND logic, requiring all conditions to be true.
     ///

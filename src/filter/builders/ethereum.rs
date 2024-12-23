@@ -24,6 +24,7 @@ impl FilterBuilderOps for EthereumFilterBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl EthereumFilterBuilder {
     /// Adds transaction conditions to the filter.
     ///

@@ -28,7 +28,6 @@ pub struct ArrayFieldCondition<T, V>(pub T, pub ArrayCondition<V>);
 // Contract-specific fields
 #[derive(Debug, Clone)]
 pub enum ContractField {
-    Method,            // Function name/selector
     Parameter(String), // Named parameter: "amountIn", "to", "amount" etc
     Path(String),      // For nested params like "path.tokenIn"
 }
@@ -197,7 +196,6 @@ impl From<U128FieldCondition<ContractField>> for ContractCondition {
             ContractField::Path(path) => {
                 ContractCondition::Path(path.to_string(), ValueCondition::U128(value))
             }
-            _ => panic!("Field does not support U128 numeric conditions"),
         }
     }
 }
@@ -212,7 +210,6 @@ impl From<U256FieldCondition<ContractField>> for ContractCondition {
             ContractField::Path(path) => {
                 ContractCondition::Path(path.to_string(), ValueCondition::U256(value))
             }
-            _ => panic!("Field does not support U256 numeric conditions"),
         }
     }
 }
@@ -227,7 +224,6 @@ impl From<StringFieldCondition<ContractField>> for ContractCondition {
             ContractField::Path(path) => {
                 ContractCondition::Path(path.to_string(), ValueCondition::String(value))
             }
-            _ => panic!("Field does not support string conditions"),
         }
     }
 }

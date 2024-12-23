@@ -35,7 +35,7 @@ impl EvaluableData for RpcTransaction {
     fn evaluate(
         &self,
         filter_condition: &FilterCondition,
-        decoded_data: Option<Arc<DecodedData>>,
+        _decoded_data: Option<Arc<DecodedData>>,
     ) -> bool {
         match filter_condition {
             FilterCondition::Transaction(condition) => match condition {

@@ -133,7 +133,6 @@ mod tests {
     const SIZE: u64 = 1000;
     const GAS_USED: u64 = 2000;
     const GAS_LIMIT: u64 = 2000;
-    const TRANSACTION_COUNT: u64 = 10;
     const TIMESTAMP: u64 = 5000;
 
     const HASH: &str = "0x123";

@@ -13,25 +13,17 @@ pub(crate) enum CacheKey {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub(crate) enum DecodedData {
     ContractCall(DecodedContractCall),
     Event(DecodedLog),
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub(crate) struct DecodedContractCall {
     pub(crate) method: String,
     pub(crate) parameters: HashMap<String, Value>,
-}
-
-impl DecodedContractCall {
-    pub(crate) fn get_parameter(&self, name: &str) -> Option<&Value> {
-        self.parameters.get(name)
-    }
-
-    pub(crate) fn get_method(&self) -> &str {
-        &self.method
-    }
 }
 
 #[allow(dead_code)]

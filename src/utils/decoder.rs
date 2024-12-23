@@ -1,13 +1,16 @@
 use alloy_dyn_abi::{DynSolEvent, DynSolType, DynSolValue};
 use alloy_primitives::{keccak256, LogData, B256};
 use std::collections::HashMap;
+
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct DecodedLog {
     pub(crate) name: String,
     pub(crate) params: HashMap<String, DecodedParam>,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct DecodedParam {
     pub value: DynSolValue,
     pub indexed: bool,
@@ -109,10 +112,6 @@ impl DecodedLog {
             return Some(&param.value);
         }
         None
-    }
-
-    pub(crate) fn get_name(&self) -> &str {
-        &self.name
     }
 }
 
