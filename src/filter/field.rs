@@ -1,8 +1,8 @@
 use super::{
     conditions::{
-        ArrayCondition, BlockHeaderCondition, ContractCondition,
-        DynFieldCondition, EventCondition, FilterCondition, NodeBuilder, NumericCondition,
-        PoolCondition, StringCondition, TransactionCondition, ValueCondition,
+        ArrayCondition, BlockHeaderCondition, ContractCondition, DynFieldCondition, EventCondition,
+        FilterCondition, NodeBuilder, NumericCondition, PoolCondition, StringCondition,
+        TransactionCondition, ValueCondition,
     },
     operations::{ArrayOps, NumericOps, StringOps},
 };
