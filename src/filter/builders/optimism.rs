@@ -6,7 +6,7 @@ use crate::filter::{
     LogicalOps,
 };
 
-use super::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder};
+use super::{builder_ops::FilterBuilderOps, logic_builder::LogicalFilterBuilder};
 
 // ===== OPTIMISIM FILTER BUILDER ============
 pub(crate) struct OptimismFilterBuilder {
@@ -55,7 +55,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.and(f)
     }
@@ -71,7 +71,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.and(f)
     }
@@ -85,7 +85,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.not(f)
     }
@@ -100,7 +100,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.not(f)
     }
@@ -114,7 +114,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.or(f)
     }
@@ -130,7 +130,7 @@ impl LogicalOps<OptimismFilterBuilder> for OptimismFilterBuilder {
     {
         let filter: LogicalFilterBuilder<'_, OptimismFilterBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.or(f)
     }

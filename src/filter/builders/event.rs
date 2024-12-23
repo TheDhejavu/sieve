@@ -9,7 +9,7 @@ use crate::filter::{
     LogicalOps,
 };
 
-use super::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder};
+use super::{builder_ops::FilterBuilderOps, logic_builder::LogicalFilterBuilder};
 
 // ===== Event Builder ========
 pub(crate) struct EventBuilder {
@@ -114,7 +114,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.and(f)
     }
@@ -130,7 +130,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.and(f)
     }
@@ -144,7 +144,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.not(f)
     }
@@ -159,7 +159,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.not(f)
     }
@@ -173,7 +173,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.or(f)
     }
@@ -189,7 +189,7 @@ impl LogicalOps<EventBuilder> for EventBuilder {
     {
         let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
             nodes: &mut self.nodes,
-            _builder: PhantomData,
+            _marker: PhantomData,
         };
         filter.or(f)
     }

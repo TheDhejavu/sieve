@@ -1,5 +1,5 @@
 use super::{
-    builders::{builder_ops::FilterBuilderOps, logical_builder::LogicalFilterBuilder},
+    builders::{builder_ops::FilterBuilderOps, logic_builder::LogicalFilterBuilder},
     conditions::NumericType,
 };
 /// Operations available for numeric fields that allow comparison and range checks.

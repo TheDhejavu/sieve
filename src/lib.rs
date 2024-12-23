@@ -7,6 +7,11 @@ mod engine;
 mod filter;
 mod utils;
 
+// Prelude module for convenient imports
+pub mod prelude {
+    pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
+}
+
 #[allow(dead_code)]
 fn main() {
     //===============================================================================================
