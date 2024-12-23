@@ -114,24 +114,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
         Chain::builder()
-            .rpc("https://mainnet.optimism.io")     // RPC endpoint for Optimism
-            .ws("wss://ws-mainnet.optimism.io")     // WebSocket endpoint for Optimism
-            .gossipsub("/ip4/0.0.0.0/tcp/9000")     // Gossipsub protocol configuration
-            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"]) // Bootstrap peer addresses
-            .name(OPTIMISM),                      // Chain name
+            .rpc("https://mainnet.optimism.io")    
+            .ws("wss://ws-mainnet.optimism.io")     
+            .gossipsub("/ip4/0.0.0.0/tcp/9000")    
+            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
+            .name(OPTIMISM),                      /
         Chain::builder()
-            .rpc("https://mainnet.base.org")        // RPC endpoint for Base
-            .name(BASE),                          // Chain name
+            .rpc("https://mainnet.base.org")        
+            .name(BASE),                          
         Chain::builder()
-            .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") // RPC endpoint for Ethereum
-            .name(ETHEREUM)                       // Chain name
+            .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") 
+            .name(ETHEREUM)                       
     ];
 
     // 2. Create Runtime with configuration
     let runtime = Runtime::builder()
-        .chains(chains)                // Add chains to the runtime
-        .worker_threads(4)             // Number of worker threads
-        .build()?;                     // Build the runtime
+        .chains(chains)               
+        .worker_threads(4)           
+        .build()?;                   
 
     // 3. Create Filter
     let transfer_filter = FilterBuilder::new()
