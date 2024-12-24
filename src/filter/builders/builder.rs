@@ -131,22 +131,26 @@ mod tests {
             tx.value().gt(U256::from(BASE_VALUE));
         });
 
-        let (op, nodes) = node.children.expect("Expected group in node");
-        assert_eq!(op, LogicalOp::And);
-        assert_eq!(nodes.len(), 2);
+        match node.children {
+            Some((op, nodes)) => {
+                assert_eq!(op, LogicalOp::And);
+                assert_eq!(nodes.len(), 2);
 
-        match &nodes[0].value {
-            Some(FilterCondition::Transaction(TransactionCondition::From(cond))) => {
-                assert_eq!(*cond, StringCondition::EqualTo(ADDRESS.to_string()));
-            }
-            other => assert!(false, "Expected Transaction From condition, got {:?}", other),
-        }
+                match &nodes[0].value {
+                    Some(FilterCondition::Transaction(TransactionCondition::From(cond))) => {
+                        assert_eq!(*cond, StringCondition::EqualTo(ADDRESS.to_string()));
+                    }
+                    _ => panic!("Expected Transaction From condition"),
+                }
 
-        match &nodes[1].value {
-            Some(FilterCondition::Transaction(TransactionCondition::Value(cond))) => {
-                assert_eq!(*cond, NumericCondition::GreaterThan(U256::from(BASE_VALUE)));
+                match &nodes[1].value {
+                    Some(FilterCondition::Transaction(TransactionCondition::Value(cond))) => {
+                        assert_eq!(*cond, NumericCondition::GreaterThan(U256::from(BASE_VALUE)));
+                    }
+                    _ => panic!("Expected Transaction Value condition"),
+                }
             }
-            other => assert!(false, "Expected Transaction Value condition, got {:?}", other),
+            None => panic!("Expected group in node"),
         }
     }
 
