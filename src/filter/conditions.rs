@@ -228,7 +228,7 @@ impl FilterNode {
                 1 => filtered_nodes
                     .into_iter()
                     .next()
-                    .unwrap_or_else(|| FilterNode {
+                    .unwrap_or(FilterNode {
                         children: None,
                         value: None,
                     }),
