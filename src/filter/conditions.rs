@@ -225,13 +225,10 @@ impl FilterNode {
                     children: None,
                     value: None,
                 },
-                1 => filtered_nodes
-                    .into_iter()
-                    .next()
-                    .unwrap_or(FilterNode {
-                        children: None,
-                        value: None,
-                    }),
+                1 => filtered_nodes.into_iter().next().unwrap_or(FilterNode {
+                    children: None,
+                    value: None,
+                }),
                 _ => FilterNode {
                     children: Some((op, filtered_nodes)),
                     value: None,
