@@ -161,8 +161,6 @@ mod tests {
     #[test]
     fn test_numeric_field_operations() {
         let mut builder = BlockHeaderBuilder::new();
-
-        // Test various numeric operations
         builder.number().eq(NUMBER);
         builder.size().gt(U256::from(SIZE));
         builder.gas_used().gte(GAS_USED);
@@ -215,8 +213,6 @@ mod tests {
     #[test]
     fn test_string_field_operations() {
         let mut builder = BlockHeaderBuilder::new();
-
-        // Test all string operations
         builder.hash().exact(HASH);
         builder.parent_hash().starts_with(PREFIX);
         builder.state_root().ends_with(SUFFIX);
