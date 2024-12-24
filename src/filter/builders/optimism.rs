@@ -25,8 +25,8 @@ impl NodeBuilder for OptimismFilterBuilder {
 
     fn append_node(&mut self, condition: FilterCondition) {
         let node = FilterNode {
-            group: None,
-            condition: Some(condition),
+            children: None,
+            value: Some(condition),
         };
         self.nodes.push(node);
     }

@@ -202,8 +202,8 @@ pub(crate) trait NodeBuilder {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct FilterNode {
-    pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
-    pub(crate) condition: Option<FilterCondition>,
+    pub(crate) children: Option<(LogicalOp, Vec<FilterNode>)>,
+    pub(crate) value: Option<FilterCondition>,
 }
 
 impl FilterNode {
@@ -212,6 +212,128 @@ impl FilterNode {
         // 1. Re-order conditions based on priority (basic to complex)
         // 2. Re-order Logical operations to enable short-circuit
         // 3. Flatten nested logical operations if possible to reduce unnecessary recursive calls during evaluation.
-        self
+
+        if let Some((op, nodes)) = self.children {
+            let filtered_nodes: Vec<_> = nodes
+                .into_iter()
+                .map(|node| node.optimize()) // Optimize owned node
+                .filter(|node| node.value.is_some() || node.children.is_some())
+                .collect();
+
+            match filtered_nodes.len() {
+                0 => FilterNode {
+                    children: None,
+                    value: None,
+                },
+                1 => filtered_nodes
+                    .into_iter()
+                    .next()
+                    .unwrap_or_else(|| FilterNode {
+                        children: None,
+                        value: None,
+                    }),
+                _ => FilterNode {
+                    children: Some((op, filtered_nodes)),
+                    value: None,
+                },
+            }
+        } else {
+            self
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::filter::conditions::{StringCondition, TransactionCondition};
+
+    #[test]
+    fn test_optimize_single_condition() {
+        let condition = FilterCondition::Transaction(TransactionCondition::From(
+            StringCondition::EqualTo("0x123".to_string()),
+        ));
+        let node = FilterNode {
+            children: None,
+            value: Some(condition.clone()),
+        };
+        let optimized = node.optimize();
+        assert_eq!(optimized.value, Some(condition));
+    }
+
+    #[test]
+    fn test_optimize_single_node_children() {
+        // children with single node should be flattened
+        let condition = FilterCondition::Transaction(TransactionCondition::From(
+            StringCondition::EqualTo("0x123".to_string()),
+        ));
+        let inner_node = FilterNode {
+            children: None,
+            value: Some(condition.clone()),
+        };
+        let node = FilterNode {
+            children: Some((LogicalOp::And, vec![inner_node])),
+            value: None,
+        };
+
+        let optimized = node.optimize();
+        assert_eq!(optimized.value, Some(condition));
+        assert!(optimized.children.is_none());
+    }
+
+    #[test]
+    fn test_optimize_multi_node_children() {
+        // children with multiple nodes should stay as children
+        let condition1 = FilterCondition::Transaction(TransactionCondition::From(
+            StringCondition::EqualTo("0x123".to_string()),
+        ));
+        let condition2 = FilterCondition::Transaction(TransactionCondition::To(
+            StringCondition::EqualTo("0x456".to_string()),
+        ));
+
+        let node = FilterNode {
+            children: Some((
+                LogicalOp::And,
+                vec![
+                    FilterNode {
+                        children: None,
+                        value: Some(condition1),
+                    },
+                    FilterNode {
+                        children: None,
+                        value: Some(condition2),
+                    },
+                ],
+            )),
+            value: None,
+        };
+
+        let optimized = node.optimize();
+        assert!(optimized.children.is_some());
+        assert!(optimized.value.is_none());
+    }
+
+    #[test]
+    fn test_optimize_empty_children() {
+        // children with only empty nodes should become empty
+        let node = FilterNode {
+            children: Some((
+                LogicalOp::And,
+                vec![
+                    FilterNode {
+                        children: None,
+                        value: None,
+                    },
+                    FilterNode {
+                        children: None,
+                        value: None,
+                    },
+                ],
+            )),
+            value: None,
+        };
+
+        let optimized = node.optimize();
+        assert!(optimized.children.is_none() && optimized.value.is_none());
     }
 }

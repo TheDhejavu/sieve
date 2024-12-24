@@ -34,8 +34,8 @@ impl<B: FilterBuilderOps> LogicalFilterBuilder<'_, B> {
             }
             _ => {
                 let node = FilterNode {
-                    group: Some((op, builder_nodes)),
-                    condition: None,
+                    children: Some((op, builder_nodes)),
+                    value: None,
                 };
                 self.nodes.push(node);
                 self

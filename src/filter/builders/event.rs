@@ -18,8 +18,8 @@ impl NodeBuilder for EventBuilder {
 
     fn append_node(&mut self, condition: EventCondition) {
         self.nodes.push(FilterNode {
-            group: None,
-            condition: Some(FilterCondition::Event(condition)),
+            children: None,
+            value: Some(FilterCondition::Event(condition)),
         })
     }
 }
@@ -125,7 +125,7 @@ impl NodeBuilder for SignatureEventBuilder<'_, EventBuilder> {
                         if let Some(FilterCondition::Event(EventCondition::EventData {
                             parameters,
                             ..
-                        })) = node.condition.as_mut()
+                        })) = node.value.as_mut()
                         {
                             parameters.push((param, parameter_condition));
                         }
@@ -202,38 +202,38 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::EqualTo(VALUES[0]),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::GreaterThan(VALUES[1]),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::GreaterThanOrEqualTo(VALUES[2]),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::LessThan(VALUES[3]),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::LessThanOrEqualTo(VALUES[4]),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::BlockNumber(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::BlockNumber(
                     NumericCondition::Between(VALUES[5], VALUES[5] + BASE_VALUE),
                 ))),
             },
@@ -254,26 +254,26 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Contract(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Contract(
                     StringCondition::EqualTo(ADDRESS.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Contract(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Contract(
                     StringCondition::Contains(CONTENT.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Contract(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Contract(
                     StringCondition::StartsWith(PREFIX.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Contract(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Contract(
                     StringCondition::EndsWith(SUFFIX.to_string()),
                 ))),
             },
@@ -292,14 +292,14 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Topics(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Topics(
                     ArrayCondition::Contains(TOPIC.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Event(EventCondition::Topics(
+                children: None,
+                value: Some(FilterCondition::Event(EventCondition::Topics(
                     ArrayCondition::NotEmpty,
                 ))),
             },

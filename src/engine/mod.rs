@@ -34,9 +34,9 @@ impl FilterEngine {
     where
         D: EvaluableData + Send + Sync,
     {
-        match &filter.condition {
+        match &filter.value {
             Some(condition) => ctx.evaluate(condition),
-            None => filter.group.as_ref().map_or(false, |(op, nodes)| {
+            None => filter.children.as_ref().map_or(false, |(op, nodes)| {
                 let parallel_iter = nodes.par_iter();
 
                 match op {
@@ -106,16 +106,16 @@ mod tests {
         // Complex matching condition:
         // (to == uniswap_router AND type == 2) OR (nonce > 300 AND maxPriorityFeePerGas > 1 gwei)
         let filter = FilterNode {
-            group: Some((
+            children: Some((
                 LogicalOp::Or,
                 vec![
                     FilterNode {
-                        group: Some((
+                        children: Some((
                             LogicalOp::And,
                             vec![
                                 FilterNode {
-                                    group: None,
-                                    condition: Some(FilterCondition::Transaction(
+                                    children: None,
+                                    value: Some(FilterCondition::Transaction(
                                         TransactionCondition::To(StringCondition::EqualTo(
                                             "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
                                                 .to_string(),
@@ -123,30 +123,30 @@ mod tests {
                                     )),
                                 },
                                 FilterNode {
-                                    group: None,
-                                    condition: Some(FilterCondition::Transaction(
+                                    children: None,
+                                    value: Some(FilterCondition::Transaction(
                                         TransactionCondition::Type(NumericCondition::EqualTo(2u8)),
                                     )),
                                 },
                             ],
                         )),
-                        condition: None,
+                        value: None,
                     },
                     FilterNode {
-                        group: Some((
+                        children: Some((
                             LogicalOp::And,
                             vec![
                                 FilterNode {
-                                    group: None,
-                                    condition: Some(FilterCondition::Transaction(
+                                    children: None,
+                                    value: Some(FilterCondition::Transaction(
                                         TransactionCondition::Nonce(NumericCondition::GreaterThan(
                                             300u64,
                                         )),
                                     )),
                                 },
                                 FilterNode {
-                                    group: None,
-                                    condition: Some(FilterCondition::Transaction(
+                                    children: None,
+                                    value: Some(FilterCondition::Transaction(
                                         TransactionCondition::MaxPriorityFee(
                                             NumericCondition::GreaterThan(1_000_000_000u128),
                                         ),
@@ -154,11 +154,11 @@ mod tests {
                                 },
                             ],
                         )),
-                        condition: None,
+                        value: None,
                     },
                 ],
             )),
-            condition: None,
+            value: None,
         };
 
         let result = engine.evaluate_with_context(&filter, tx);
@@ -173,32 +173,32 @@ mod tests {
         // Create a filter that won't match the transaction:
         // (to == different_router) AND (value > 0) AND (type == 2)
         let filter = FilterNode {
-            group: Some((
+            children: Some((
                 LogicalOp::And,
                 vec![
                     FilterNode {
-                        group: None,
-                        condition: Some(FilterCondition::Transaction(TransactionCondition::To(
+                        children: None,
+                        value: Some(FilterCondition::Transaction(TransactionCondition::To(
                             StringCondition::EqualTo(
                                 "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
                             ),
                         ))),
                     },
                     FilterNode {
-                        group: None,
-                        condition: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                        children: None,
+                        value: Some(FilterCondition::Transaction(TransactionCondition::Value(
                             NumericCondition::GreaterThan(U256::ZERO),
                         ))),
                     },
                     FilterNode {
-                        group: None,
-                        condition: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                        children: None,
+                        value: Some(FilterCondition::Transaction(TransactionCondition::Type(
                             NumericCondition::EqualTo(2u8),
                         ))),
                     },
                 ],
             )),
-            condition: None,
+            value: None,
         };
 
         let result = engine.evaluate_with_context(&filter, tx);

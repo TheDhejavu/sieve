@@ -26,8 +26,8 @@ impl NodeBuilder for TxBuilder {
 
     fn append_node(&mut self, condition: TransactionCondition) {
         self.nodes.push(FilterNode {
-            group: None,
-            condition: Some(FilterCondition::Transaction(condition)),
+            children: None,
+            value: Some(FilterCondition::Transaction(condition)),
         })
     }
 }
@@ -171,7 +171,7 @@ impl NodeBuilder for CallDataBuilder<'_, TxBuilder> {
                     if let Some(node) = self.parent.nodes.get_mut(idx) {
                         if let Some(FilterCondition::Transaction(
                             TransactionCondition::CallData { parameters, .. },
-                        )) = node.condition.as_mut()
+                        )) = node.value.as_mut()
                         {
                             parameters.push(DynFieldCondition {
                                 path: param,
@@ -197,7 +197,7 @@ impl NodeBuilder for CallDataBuilder<'_, TxBuilder> {
                     if let Some(node) = self.parent.nodes.get_mut(idx) {
                         if let Some(FilterCondition::Transaction(
                             TransactionCondition::CallData { paths, .. },
-                        )) = node.condition.as_mut()
+                        )) = node.value.as_mut()
                         {
                             paths.push(DynFieldCondition {
                                 path,
@@ -288,38 +288,38 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
                     NumericCondition::EqualTo(U256::from(100)),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::GasPrice(NumericCondition::GreaterThan(100)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::Gas(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::Gas(
                     NumericCondition::LessThan(100),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::Nonce(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::Nonce(
                     NumericCondition::Between(100, 200),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::MaxFeePerGas(NumericCondition::LessThanOrEqualTo(100)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::MaxPriorityFee(NumericCondition::GreaterThanOrEqualTo(
                         100,
                     )),
@@ -341,26 +341,26 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::From(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::From(
                     StringCondition::EqualTo(ADDRESS.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::To(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::To(
                     StringCondition::StartsWith(PREFIX.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::BlockHash(StringCondition::Contains(CONTENT.to_string())),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::Hash(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::Hash(
                     StringCondition::EndsWith(CONTENT.to_string()),
                 ))),
             },
@@ -378,14 +378,14 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::AccessList(ArrayCondition::Empty),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::AccessList(ArrayCondition::NotEmpty),
                 )),
             },
@@ -405,26 +405,26 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::ChainId(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::ChainId(
                     NumericCondition::EqualTo(100),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::BlockNumber(NumericCondition::GreaterThan(100)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(
+                children: None,
+                value: Some(FilterCondition::Transaction(
                     TransactionCondition::TransactionIndex(NumericCondition::LessThan(100)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                children: None,
+                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
                     NumericCondition::EqualTo(1),
                 ))),
             },

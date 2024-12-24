@@ -86,8 +86,8 @@ impl NodeBuilder for PoolBuilder {
     fn append_node(&mut self, condition: PoolCondition) {
         // root node is a condition without a
         self.nodes.push(FilterNode {
-            group: None,
-            condition: Some(FilterCondition::Pool(condition)),
+            children: None,
+            value: Some(FilterCondition::Pool(condition)),
         })
     }
 }
@@ -128,20 +128,20 @@ mod tests {
 
         let expected_conditions = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::Nonce(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::Nonce(
                     NumericCondition::EqualTo(NONCE),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::Value(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::Value(
                     NumericCondition::GreaterThan(U256::from(100)),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::GasPrice(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::GasPrice(
                     NumericCondition::GreaterThanOrEqualTo(100),
                 ))),
             },
@@ -161,20 +161,20 @@ mod tests {
 
         let expected_conditions = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::From(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::From(
                     StringCondition::EqualTo(ADDRESS.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::To(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::To(
                     StringCondition::Contains(HASH.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::Hash(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::Hash(
                     StringCondition::StartsWith(PREFIX.to_string()),
                 ))),
             },
@@ -194,26 +194,26 @@ mod tests {
 
         let expected_conditions = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::Nonce(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::Nonce(
                     NumericCondition::EqualTo(NONCE),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::From(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::From(
                     StringCondition::Contains(ADDRESS.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::GasPrice(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::GasPrice(
                     NumericCondition::GreaterThan(100),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::Pool(PoolCondition::Hash(
+                children: None,
+                value: Some(FilterCondition::Pool(PoolCondition::Hash(
                     StringCondition::StartsWith(PREFIX.to_string()),
                 ))),
             },

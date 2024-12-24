@@ -19,8 +19,8 @@ impl NodeBuilder for BlockHeaderBuilder {
 
     fn append_node(&mut self, condition: BlockHeaderCondition) {
         self.nodes.push(FilterNode {
-            group: None,
-            condition: Some(FilterCondition::BlockHeader(condition)),
+            children: None,
+            value: Some(FilterCondition::BlockHeader(condition)),
         })
     }
 }
@@ -172,38 +172,38 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Number(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Number(
                     NumericCondition::EqualTo(NUMBER),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Size(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Size(
                     NumericCondition::GreaterThan(U256::from(SIZE)),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::GasUsed(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::GasUsed(
                     NumericCondition::GreaterThanOrEqualTo(GAS_USED),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::GasLimit(NumericCondition::LessThan(GAS_LIMIT)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::Timestamp(NumericCondition::LessThanOrEqualTo(TIMESTAMP)),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::BaseFee(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::BaseFee(
                     NumericCondition::EqualTo(100),
                 ))),
             },
@@ -225,34 +225,34 @@ mod tests {
 
         let expected_nodes = vec![
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Hash(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Hash(
                     StringCondition::EqualTo(HASH.to_string()),
                 ))),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::ParentHash(StringCondition::StartsWith(
                         PREFIX.to_string(),
                     )),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::StateRoot(StringCondition::EndsWith(SUFFIX.to_string())),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::ReceiptsRoot(StringCondition::EqualTo(HASH.to_string())),
                 )),
             },
             FilterNode {
-                group: None,
-                condition: Some(FilterCondition::BlockHeader(
+                children: None,
+                value: Some(FilterCondition::BlockHeader(
                     BlockHeaderCondition::TransactionsRoot(StringCondition::StartsWith(
                         PREFIX.to_string(),
                     )),
