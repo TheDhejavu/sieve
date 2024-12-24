@@ -20,7 +20,7 @@ fn generate_random_address() -> String {
 fn generate_best_case_filter() -> FilterNode {
     FilterBuilder::new().transaction(|tx| {
         tx.value().gt(U256::from(u64::MAX));
-        tx.to().exact("0xdead000000000000000000000000000000000000"); 
+        tx.to().exact("0xdead000000000000000000000000000000000000");
         tx.nonce().eq(u64::MAX);
     })
 }
@@ -129,8 +129,7 @@ fn bench_filter_evaluation(c: &mut Criterion) {
         let worst_case_filters: Vec<_> = (0..*num_of_filters)
             .map(|_| generate_worst_case_filter())
             .collect();
-        
-        
+
         let engine = FilterEngine::new();
 
         // Benchmark best case
