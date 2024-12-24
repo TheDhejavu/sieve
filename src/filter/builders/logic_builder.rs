@@ -1,8 +1,14 @@
-use super::builder_ops::FilterBuilderOps;
-use crate::filter::conditions::{FilterNode, LogicalOp};
+use super::{
+    block_header::BlockHeaderBuilder, builder_ops::FilterBuilderOps, event::EventBuilder,
+    optimism::OptimismFilterBuilder, pool::PoolBuilder, transaction::TxBuilder,
+};
+use crate::filter::{
+    conditions::{FilterNode, LogicalOp},
+    LogicalOps,
+};
 use std::marker::PhantomData;
 
-/// ===== Logical Builder =====
+/// ===== LOGICAL OPERATION BUILDER =====
 #[allow(dead_code)]
 pub struct LogicalFilterBuilder<'a, B: FilterBuilderOps> {
     pub(crate) nodes: &'a mut Vec<FilterNode>,
@@ -11,40 +17,6 @@ pub struct LogicalFilterBuilder<'a, B: FilterBuilderOps> {
 
 #[allow(dead_code)]
 impl<B: FilterBuilderOps> LogicalFilterBuilder<'_, B> {
-    pub fn and<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut B),
-    {
-        self.build_logical_operation(LogicalOp::And, f)
-    }
-
-    pub fn not<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut B),
-    {
-        self.build_logical_operation(LogicalOp::Not, f)
-    }
-    pub fn unless<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut B),
-    {
-        self.build_logical_operation(LogicalOp::Not, f)
-    }
-
-    pub fn xor<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut B),
-    {
-        self.build_logical_operation(LogicalOp::Xor, f)
-    }
-
-    pub fn or<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut B),
-    {
-        self.build_logical_operation(LogicalOp::Or, f)
-    }
-
     fn build_logical_operation<F>(self, op: LogicalOp, f: F) -> Self
     where
         F: FnOnce(&mut B),
@@ -69,5 +41,106 @@ impl<B: FilterBuilderOps> LogicalFilterBuilder<'_, B> {
                 self
             }
         }
+    }
+}
+
+impl<T> LogicalOps<T> for T
+where
+    T: AsMut<Vec<FilterNode>> + FilterBuilderOps,
+{
+    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::And, f)
+    }
+
+    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::And, f)
+    }
+
+    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::Not, f)
+    }
+
+    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::Not, f)
+    }
+
+    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::Or, f)
+    }
+
+    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<T>
+    where
+        F: FnOnce(&mut T),
+    {
+        LogicalFilterBuilder {
+            nodes: self.as_mut(),
+            _marker: PhantomData,
+        }
+        .build_logical_operation(LogicalOp::Or, f)
+    }
+}
+
+impl AsMut<Vec<FilterNode>> for TxBuilder {
+    fn as_mut(&mut self) -> &mut Vec<FilterNode> {
+        &mut self.nodes
+    }
+}
+
+impl AsMut<Vec<FilterNode>> for BlockHeaderBuilder {
+    fn as_mut(&mut self) -> &mut Vec<FilterNode> {
+        &mut self.nodes
+    }
+}
+
+impl AsMut<Vec<FilterNode>> for EventBuilder {
+    fn as_mut(&mut self) -> &mut Vec<FilterNode> {
+        &mut self.nodes
+    }
+}
+
+impl AsMut<Vec<FilterNode>> for PoolBuilder {
+    fn as_mut(&mut self) -> &mut Vec<FilterNode> {
+        &mut self.nodes
+    }
+}
+
+impl AsMut<Vec<FilterNode>> for OptimismFilterBuilder {
+    fn as_mut(&mut self) -> &mut Vec<FilterNode> {
+        &mut self.nodes
     }
 }

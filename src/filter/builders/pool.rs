@@ -1,16 +1,13 @@
-use std::marker::PhantomData;
-
 // Pool builder
 use crate::filter::{
     conditions::{FilterCondition, FilterNode, NodeBuilder, PoolCondition},
     field::{FieldWrapper, PoolField, StringFieldType, U128FieldType, U256FieldType, U64FieldType},
-    LogicalOps,
 };
 
-use super::{builder_ops::FilterBuilderOps, logic_builder::LogicalFilterBuilder};
+use super::builder_ops::FilterBuilderOps;
 
 // ===== Pool Builder =====
-pub(crate) struct PoolBuilder {
+pub struct PoolBuilder {
     pub(crate) nodes: Vec<FilterNode>,
 }
 
@@ -96,97 +93,6 @@ impl FilterBuilderOps for PoolBuilder {
 
     fn take_nodes(&mut self) -> Vec<FilterNode> {
         std::mem::take(&mut self.nodes)
-    }
-}
-
-impl LogicalOps<PoolBuilder> for PoolBuilder {
-    /// Combines conditions with AND logic, requiring all conditions to be true.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.and(f)
-    }
-
-    /// Alias for `and`. Combines conditions requiring all to be true.
-    /// Provides a more readable alternative when combining multiple conditions
-    /// that must all be satisfied.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.and(f)
-    }
-
-    /// Applies a NOT operation to the given conditions.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.not(f)
-    }
-
-    /// Alias for `not`.
-    /// Provides a more readable way to express "except when" conditions.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.not(f)
-    }
-
-    /// Combines conditions with OR logic, requiring at least one condition to be true.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.or(f)
-    }
-
-    /// Alias for `or`.
-    /// Provides a more readable alternative for specifying that any one
-    /// of multiple conditions should match.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<PoolBuilder>
-    where
-        F: FnOnce(&mut PoolBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, PoolBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.or(f)
     }
 }
 

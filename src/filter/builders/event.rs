@@ -1,18 +1,15 @@
-use std::marker::PhantomData;
-
 use crate::filter::{
     conditions::{ContractCondition, EventCondition, FilterCondition, FilterNode, NodeBuilder},
     field::{
         ArrayFieldType, ContractField, DynValueFieldType, EventField, FieldWrapper,
         StringFieldType, U64FieldType,
     },
-    LogicalOps,
 };
 
-use super::{builder_ops::FilterBuilderOps, logic_builder::LogicalFilterBuilder};
+use super::builder_ops::FilterBuilderOps;
 
 // ===== Event Builder ========
-pub(crate) struct EventBuilder {
+pub struct EventBuilder {
     pub(crate) nodes: Vec<FilterNode>,
 }
 
@@ -104,96 +101,6 @@ impl FilterBuilderOps for EventBuilder {
     }
 }
 
-impl LogicalOps<EventBuilder> for EventBuilder {
-    /// Combines conditions with AND logic, requiring all conditions to be true.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn and<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.and(f)
-    }
-
-    /// Alias for `and`. Combines conditions requiring all to be true.
-    /// Provides a more readable alternative when combining multiple conditions
-    /// that must all be satisfied.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn all_of<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.and(f)
-    }
-
-    /// Applies a NOT operation to the given conditions.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn not<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.not(f)
-    }
-
-    /// Alias for `not`.
-    /// Provides a more readable way to express "except when" conditions.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn unless<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.not(f)
-    }
-
-    /// Combines conditions with OR logic, requiring at least one condition to be true.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn or<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.or(f)
-    }
-
-    /// Alias for `or`.
-    /// Provides a more readable alternative for specifying that any one
-    /// of multiple conditions should match.
-    ///
-    /// Returns a [`LogicalFilterBuilder`] for further configuration.
-    fn any_of<F>(&mut self, f: F) -> LogicalFilterBuilder<EventBuilder>
-    where
-        F: FnOnce(&mut EventBuilder),
-    {
-        let filter: LogicalFilterBuilder<'_, EventBuilder> = LogicalFilterBuilder {
-            nodes: &mut self.nodes,
-            _marker: PhantomData,
-        };
-        filter.or(f)
-    }
-}
 #[allow(dead_code)]
 pub struct SignatureEventBuilder<'a, B> {
     parent: &'a mut B,

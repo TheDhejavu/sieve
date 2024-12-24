@@ -201,7 +201,7 @@ pub(crate) trait NodeBuilder {
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(crate) struct FilterNode {
+pub struct FilterNode {
     pub(crate) group: Option<(LogicalOp, Vec<FilterNode>)>,
     pub(crate) condition: Option<FilterCondition>,
 }

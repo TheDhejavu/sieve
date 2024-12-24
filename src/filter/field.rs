@@ -100,7 +100,7 @@ pub enum PoolField {
     Timestamp, // When tx added to pool
 }
 
-pub(crate) struct FieldWrapper<'a, T, P> {
+pub struct FieldWrapper<'a, T, P> {
     pub(crate) field: T,
     pub(crate) parent: &'a mut P,
 }
