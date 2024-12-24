@@ -1,8 +1,5 @@
 use std::str::FromStr;
 
-use alloy_primitives::Selector;
-
-// transaction builder
 use crate::filter::{
     conditions::{
         ContractCondition, DynFieldCondition, FilterCondition, FilterNode, NodeBuilder,
@@ -13,6 +10,7 @@ use crate::filter::{
         U64FieldType, U8FieldType,
     },
 };
+use alloy_primitives::Selector;
 
 use super::builder_ops::FilterBuilderOps;
 

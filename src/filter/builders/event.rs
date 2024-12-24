@@ -246,7 +246,6 @@ mod tests {
     fn test_event_string_field_operations() {
         let mut builder = EventBuilder::new();
 
-        // Test all string operations for contract address
         builder.contract().exact(ADDRESS);
         builder.contract().contains(CONTENT);
         builder.contract().starts_with(PREFIX);
@@ -285,8 +284,6 @@ mod tests {
     #[test]
     fn test_event_array_field_operations() {
         let mut builder = EventBuilder::new();
-
-        // Test array operations for topics
         builder.topics().contains(TOPIC.to_string());
         builder.topics().not_empty();
 

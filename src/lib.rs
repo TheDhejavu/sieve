@@ -11,10 +11,7 @@ mod utils;
 // Prelude module for convenient imports
 pub mod prelude {
     pub use crate::engine::FilterEngine;
-    pub use crate::filter::conditions::{
-        FilterCondition, FilterNode, LogicalOp, NumericCondition, StringCondition,
-        TransactionCondition,
-    };
+    pub use crate::filter::conditions::FilterNode;
     pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 }
 

@@ -1,10 +1,9 @@
-use std::str::FromStr;
-
 use alloy_consensus::{Signed, TxEip7702, TxEnvelope};
 use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSignature, B256};
 use alloy_rpc_types::{AccessList, Transaction};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand::{thread_rng, Rng};
+use std::str::FromStr;
 
 use sieve::prelude::*;
 
@@ -18,152 +17,58 @@ fn generate_random_address() -> String {
     address
 }
 
-fn generate_random_filter() -> FilterNode {
-    let mut rng = thread_rng();
-    let ops = [
-        LogicalOp::And,
-        LogicalOp::Or,
-        LogicalOp::Not,
-        LogicalOp::Xor,
-    ];
-    let op = ops[rng.gen_range(0..ops.len())].clone();
-
-    // Generate between 2-4 conditions for each filter
-    let num_conditions = rng.gen_range(2..=4);
-    let conditions = (0..num_conditions)
-        .map(|_| {
-            let condition_type = rng.gen_range(0..4);
-            match condition_type {
-                0 => FilterNode {
-                    children: Some((
-                        LogicalOp::Or,
-                        vec![
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
-                                    StringCondition::EqualTo(
-                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
-                                    ),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
-                                    NumericCondition::GreaterThan(U256::ZERO),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
-                                    NumericCondition::EqualTo(2u8),
-                                ))),
-                            },
-                        ],
-                    )),
-                    value: Some(FilterCondition::Transaction(TransactionCondition::To(
-                        StringCondition::EqualTo(generate_random_address()),
-                    ))),
-                },
-                1 => FilterNode {
-                    children: Some((
-                        LogicalOp::Or,
-                        vec![
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
-                                    StringCondition::EqualTo(
-                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
-                                    ),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
-                                    NumericCondition::GreaterThan(U256::ZERO),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
-                                    NumericCondition::EqualTo(2u8),
-                                ))),
-                            },
-                        ],
-                    )),
-                    value: Some(FilterCondition::Transaction(TransactionCondition::Value(
-                        NumericCondition::GreaterThan(U256::from(rng.gen_range(0..1000000))),
-                    ))),
-                },
-                2 => FilterNode {
-                    children: Some((
-                        LogicalOp::Or,
-                        vec![
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
-                                    StringCondition::EqualTo(
-                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
-                                    ),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
-                                    NumericCondition::GreaterThan(U256::ZERO),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
-                                    NumericCondition::EqualTo(2u8),
-                                ))),
-                            },
-                        ],
-                    )),
-                    value: Some(FilterCondition::Transaction(TransactionCondition::Type(
-                        NumericCondition::EqualTo(rng.gen_range(0..3)),
-                    ))),
-                },
-                _ => FilterNode {
-                    children: Some((
-                        LogicalOp::Or,
-                        vec![
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
-                                    StringCondition::EqualTo(
-                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
-                                    ),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
-                                    NumericCondition::GreaterThan(U256::ZERO),
-                                ))),
-                            },
-                            FilterNode {
-                                children: None,
-                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
-                                    NumericCondition::EqualTo(2u8),
-                                ))),
-                            },
-                        ],
-                    )),
-                    value: Some(FilterCondition::Transaction(TransactionCondition::Nonce(
-                        NumericCondition::GreaterThan(rng.gen_range(0..1000)),
-                    ))),
-                },
-            }
-        })
-        .collect::<Vec<_>>();
-
-    FilterNode {
-        children: Some((op, conditions)),
-        value: None,
-    }
+fn generate_best_case_filter() -> FilterNode {
+    FilterBuilder::new().transaction(|tx| {
+        tx.value().gt(U256::from(u64::MAX));
+        tx.to().exact("0xdead000000000000000000000000000000000000"); 
+        tx.nonce().eq(u64::MAX);
+    })
 }
 
+fn generate_worst_case_filter() -> FilterNode {
+    let mut rng = thread_rng();
+    // Constructs complex filter definitions for worst-case performance testing.
+    // While more complex than typical real-world usage, we use `any_of`/`or`
+    // operations to ensure full evaluation in worst-case scenarios. This is because
+    // `or` must check all conditions if no true condition is found, preventing
+    // short-circuit optimization, unlike `all_of` which can return early on first false.
+    FilterBuilder::new().transaction(|f| {
+        f.any_of(|tx| {
+            tx.any_of(|t| {
+                t.value()
+                    .gt(U256::from(rng.gen_range(0..1_000_000_000_000_000_000u64)));
+                t.to().exact(generate_random_address().as_str());
+                t.from().starts_with("0xdead");
+            });
+
+            tx.any_of(|t| {
+                t.tx_type().eq(2u8);
+                t.max_fee_per_gas().lt(100_000_000_000u128);
+                t.max_priority_fee()
+                    .between(1_000_000_000u128, 10_000_000_000u128);
+            });
+
+            tx.any_of(|t| {
+                t.nonce().lt(rng.gen_range(0..1000));
+            });
+
+            tx.any_of(|t| {
+                t.any_of(|inner| {
+                    inner.gas_price().gt(50_000_000_000u128);
+                    inner.gas().between(21000, 500000);
+                });
+
+                t.any_of(|inner| {
+                    inner.block_number().gt(1000000);
+                    inner.chain_id().eq(1);
+                    inner.hash().contains("dead");
+                });
+
+                t.access_list().contains(generate_random_address());
+            });
+        });
+    })
+}
 pub fn generate_random_transaction() -> alloy_rpc_types::Transaction<TxEnvelope> {
     let chain_id = 1;
     let gas_limit: u64 = 10;
@@ -216,15 +121,37 @@ fn bench_filter_evaluation(c: &mut Criterion) {
     let transactions: Vec<_> = (0..300).map(|_| generate_random_transaction()).collect();
 
     // Test with different numbers of filters
-    for num_of_filters in [10, 100, 500,1000].iter() {
-        let filters: Vec<_> = (0..*num_of_filters)
-            .map(|_| generate_random_filter())
+    for num_of_filters in [10, 50, 100, 200].iter() {
+        let best_case_filters: Vec<_> = (0..*num_of_filters)
+            .map(|_| generate_best_case_filter())
             .collect();
 
+        let worst_case_filters: Vec<_> = (0..*num_of_filters)
+            .map(|_| generate_worst_case_filter())
+            .collect();
+        
+        
         let engine = FilterEngine::new();
+
+        // Benchmark best case
         group.bench_with_input(
-            BenchmarkId::new("num_of_filters", num_of_filters),
-            &(filters, transactions.clone()),
+            BenchmarkId::new("best_case", num_of_filters),
+            &(worst_case_filters, transactions.clone()),
+            |b, (filters, txs)| {
+                b.iter(|| {
+                    for tx in txs {
+                        for filter in filters {
+                            criterion::black_box(engine.evaluate_with_context(filter, tx.clone()));
+                        }
+                    }
+                });
+            },
+        );
+
+        // Benchmark worst case
+        group.bench_with_input(
+            BenchmarkId::new("worst_case", num_of_filters),
+            &(best_case_filters, transactions.clone()),
             |b, (filters, txs)| {
                 b.iter(|| {
                     for tx in txs {
@@ -236,7 +163,6 @@ fn bench_filter_evaluation(c: &mut Criterion) {
             },
         );
     }
-
     group.finish();
 }
 

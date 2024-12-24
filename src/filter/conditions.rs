@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_optimize_single_node_children() {
-        // children with single node should be flattened
+        // ensure that children with single node should be flattened
         let condition = FilterCondition::Transaction(TransactionCondition::From(
             StringCondition::EqualTo("0x123".to_string()),
         ));

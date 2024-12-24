@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub(crate) struct DecodedLog {
+pub struct DecodedLog {
     pub(crate) name: String,
     pub(crate) params: HashMap<String, DecodedParam>,
 }
