@@ -21,6 +21,12 @@ pub struct FilterEngine {
 }
 
 #[allow(dead_code)]
+impl Default for FilterEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FilterEngine {
     pub fn new() -> Self {
         Self {

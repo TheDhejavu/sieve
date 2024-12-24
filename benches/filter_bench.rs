@@ -35,25 +35,121 @@ fn generate_random_filter() -> FilterNode {
             let condition_type = rng.gen_range(0..4);
             match condition_type {
                 0 => FilterNode {
-                    children: None,
+                    children: Some((
+                        LogicalOp::Or,
+                        vec![
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
+                                    StringCondition::EqualTo(
+                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
+                                    ),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                                    NumericCondition::GreaterThan(U256::ZERO),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                                    NumericCondition::EqualTo(2u8),
+                                ))),
+                            },
+                        ],
+                    )),
                     value: Some(FilterCondition::Transaction(TransactionCondition::To(
                         StringCondition::EqualTo(generate_random_address()),
                     ))),
                 },
                 1 => FilterNode {
-                    children: None,
+                    children: Some((
+                        LogicalOp::Or,
+                        vec![
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
+                                    StringCondition::EqualTo(
+                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
+                                    ),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                                    NumericCondition::GreaterThan(U256::ZERO),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                                    NumericCondition::EqualTo(2u8),
+                                ))),
+                            },
+                        ],
+                    )),
                     value: Some(FilterCondition::Transaction(TransactionCondition::Value(
                         NumericCondition::GreaterThan(U256::from(rng.gen_range(0..1000000))),
                     ))),
                 },
                 2 => FilterNode {
-                    children: None,
+                    children: Some((
+                        LogicalOp::Or,
+                        vec![
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
+                                    StringCondition::EqualTo(
+                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
+                                    ),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                                    NumericCondition::GreaterThan(U256::ZERO),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                                    NumericCondition::EqualTo(2u8),
+                                ))),
+                            },
+                        ],
+                    )),
                     value: Some(FilterCondition::Transaction(TransactionCondition::Type(
                         NumericCondition::EqualTo(rng.gen_range(0..3)),
                     ))),
                 },
                 _ => FilterNode {
-                    children: None,
+                    children: Some((
+                        LogicalOp::Or,
+                        vec![
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::To(
+                                    StringCondition::EqualTo(
+                                        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45".to_string(),
+                                    ),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Value(
+                                    NumericCondition::GreaterThan(U256::ZERO),
+                                ))),
+                            },
+                            FilterNode {
+                                children: None,
+                                value: Some(FilterCondition::Transaction(TransactionCondition::Type(
+                                    NumericCondition::EqualTo(2u8),
+                                ))),
+                            },
+                        ],
+                    )),
                     value: Some(FilterCondition::Transaction(TransactionCondition::Nonce(
                         NumericCondition::GreaterThan(rng.gen_range(0..1000)),
                     ))),
@@ -120,16 +216,16 @@ fn bench_filter_evaluation(c: &mut Criterion) {
     let transactions: Vec<_> = (0..300).map(|_| generate_random_transaction()).collect();
 
     // Test with different numbers of filters
-    for num_of_filters in [10, 100, 500, 1000].iter() {
+    for num_of_filters in [10, 100, 500,1000].iter() {
         let filters: Vec<_> = (0..*num_of_filters)
             .map(|_| generate_random_filter())
             .collect();
 
+        let engine = FilterEngine::new();
         group.bench_with_input(
             BenchmarkId::new("num_of_filters", num_of_filters),
             &(filters, transactions.clone()),
             |b, (filters, txs)| {
-                let engine = FilterEngine::new();
                 b.iter(|| {
                     for tx in txs {
                         for filter in filters {
