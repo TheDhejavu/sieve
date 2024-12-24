@@ -25,6 +25,12 @@ impl NodeBuilder for EventBuilder {
 }
 
 #[allow(dead_code)]
+impl Default for EventBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventBuilder {
     pub fn new() -> Self {
         Self { nodes: Vec::new() }

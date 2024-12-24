@@ -26,6 +26,12 @@ impl NodeBuilder for BlockHeaderBuilder {
 }
 
 #[allow(dead_code)]
+impl Default for BlockHeaderBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BlockHeaderBuilder {
     pub fn new() -> Self {
         Self { nodes: Vec::new() }

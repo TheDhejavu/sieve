@@ -12,6 +12,12 @@ pub struct PoolBuilder {
 }
 
 #[allow(dead_code)]
+impl Default for PoolBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PoolBuilder {
     pub fn new() -> Self {
         Self { nodes: Vec::new() }

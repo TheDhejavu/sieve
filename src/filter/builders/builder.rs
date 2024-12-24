@@ -8,6 +8,12 @@ use crate::filter::conditions::{FilterNode, LogicalOp};
 pub struct FilterBuilder;
 
 #[allow(dead_code)]
+impl Default for FilterBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FilterBuilder {
     /// Creates a new empty [`FilterBuilder`].
     pub fn new() -> Self {
