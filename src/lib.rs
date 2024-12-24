@@ -4,11 +4,14 @@ use filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 
 mod config;
 mod engine;
-mod filter;
+pub mod filter;
+
 mod utils;
 
 // Prelude module for convenient imports
 pub mod prelude {
+    pub use crate::engine::FilterEngine;
+    pub use crate::filter::conditions::FilterNode;
     pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 }
 

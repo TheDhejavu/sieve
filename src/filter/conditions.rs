@@ -80,13 +80,13 @@ pub enum FilterCondition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct DynFieldCondition {
+pub struct DynFieldCondition {
     pub(crate) path: String,
     pub(crate) condition: ValueCondition,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ValueCondition {
+pub enum ValueCondition {
     U64(NumericCondition<u64>),
     U128(NumericCondition<u128>),
     U256(NumericCondition<U256>),
@@ -95,7 +95,7 @@ pub(crate) enum ValueCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(crate) enum TransactionCondition {
+pub enum TransactionCondition {
     Gas(NumericCondition<u64>),
     Nonce(NumericCondition<u64>),
     Type(NumericCondition<u8>),
@@ -123,7 +123,7 @@ pub(crate) enum TransactionCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(crate) enum EventCondition {
+pub enum EventCondition {
     // String conditions
     Contract(StringCondition),
     BlockHash(StringCondition),
@@ -154,7 +154,7 @@ pub(crate) enum ContractCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(crate) enum PoolCondition {
+pub enum PoolCondition {
     Hash(StringCondition),
     To(StringCondition),
     From(StringCondition),
@@ -166,7 +166,7 @@ pub(crate) enum PoolCondition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(crate) enum BlockHeaderCondition {
+pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
@@ -202,8 +202,8 @@ pub(crate) trait NodeBuilder {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct FilterNode {
-    pub(crate) children: Option<(LogicalOp, Vec<FilterNode>)>,
-    pub(crate) value: Option<FilterCondition>,
+    pub children: Option<(LogicalOp, Vec<FilterNode>)>,
+    pub value: Option<FilterCondition>,
 }
 
 impl FilterNode {
@@ -212,7 +212,8 @@ impl FilterNode {
         // 1. Re-order conditions based on priority (basic to complex)
         // 2. Re-order Logical operations to enable short-circuit
         // 3. Flatten nested logical operations if possible to reduce unnecessary recursive calls during evaluation.
-
+        // 4. Benchmark!!!!!!!! 
+        
         if let Some((op, nodes)) = self.children {
             let filtered_nodes: Vec<_> = nodes
                 .into_iter()
@@ -260,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_optimize_single_node_children() {
-        // children with single node should be flattened
+        // ensure that children with single node should be flattened
         let condition = FilterCondition::Transaction(TransactionCondition::From(
             StringCondition::EqualTo("0x123".to_string()),
         ));

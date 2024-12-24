@@ -8,7 +8,7 @@ use alloy_primitives::{keccak256, Selector};
 use alloy_rpc_types::{Header, Log, Transaction as RpcTransaction};
 use std::sync::Arc;
 
-pub(crate) trait EvaluableData {
+pub trait EvaluableData {
     // Check if we should proceed with full evaluation
     fn pre_evaluate(&self, _condition: &FilterCondition) -> bool {
         true

@@ -16,13 +16,19 @@ mod state;
 pub(crate) use state::DecodedData;
 
 #[allow(dead_code)]
-struct FilterEngine {
+pub struct FilterEngine {
     state: State,
 }
 
 #[allow(dead_code)]
+impl Default for FilterEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FilterEngine {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: State {
                 decoded_data: DashMap::new(),
@@ -54,7 +60,7 @@ impl FilterEngine {
         }
     }
 
-    pub(crate) fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
+    pub fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
     where
         D: EvaluableData + Send + Sync,
     {

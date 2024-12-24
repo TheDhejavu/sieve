@@ -55,6 +55,7 @@ impl Evaluable<String> for StringCondition {
             Self::EndsWith(suffix) => value.ends_with(suffix),
             Self::Matches(pattern) => {
                 // TODO: Use regex pattern matching here
+                //
                 value == pattern
             }
         }
