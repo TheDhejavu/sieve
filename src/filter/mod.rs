@@ -6,4 +6,5 @@ mod operations;
 mod priority;
 
 pub use builders::builder::FilterBuilder;
+pub(crate) use conditions::*;
 pub use operations::{ArrayOps, LogicalOps, NumericOps, StringOps};
