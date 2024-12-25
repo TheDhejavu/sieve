@@ -21,6 +21,17 @@ pub enum IngestError {
     OrchestrationError(String),
 }
 
+impl std::fmt::Display for IngestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IngestError::ChainNotFound(_) => write!(f, "Chain not found"),
+            IngestError::OrchestrationError(msg) => write!(f, "Orchestration error: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for IngestError {}
+
 const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 struct ChainState {
@@ -29,7 +40,7 @@ struct ChainState {
     handle: JoinHandle<()>,
 }
 
-struct Ingest {
+pub struct Ingest {
     chain_states: HashMap<Chain, ChainState>,
 }
 
@@ -128,5 +139,13 @@ impl Ingest {
             state.handle.abort();
         }
         Ok(())
+    }
+
+    // Returns a list of active chains.
+    pub fn active_chains(&self) -> Vec<Chain> {
+        self.chain_states
+            .iter()
+            .map(|(chain, _)| chain.clone())
+            .collect::<Vec<Chain>>()
     }
 }

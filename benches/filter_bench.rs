@@ -3,7 +3,7 @@ use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSigna
 use alloy_rpc_types::{AccessList, Transaction};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand::{thread_rng, Rng};
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use sieve::prelude::*;
 
@@ -140,7 +140,7 @@ fn bench_filter_evaluation(c: &mut Criterion) {
                 b.iter(|| {
                     for tx in txs {
                         for filter in filters {
-                            criterion::black_box(engine.evaluate_with_context(filter, tx.clone()));
+                            criterion::black_box(engine.evaluate_with_context(filter, Arc::new(tx.clone())));
                         }
                     }
                 });
@@ -155,7 +155,7 @@ fn bench_filter_evaluation(c: &mut Criterion) {
                 b.iter(|| {
                     for tx in txs {
                         for filter in filters {
-                            criterion::black_box(engine.evaluate_with_context(filter, tx.clone()));
+                            criterion::black_box(engine.evaluate_with_context(filter, Arc::new(tx.clone())));
                         }
                     }
                 });

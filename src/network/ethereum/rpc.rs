@@ -66,7 +66,9 @@ impl Stream for BlockStream {
                     {
                         Ok(block) => {
                             if let Some(block_data) = block {
-                                return Some(ChainData::Ethereum(EthereumData::Block(block_data)));
+                                return Some(ChainData::Ethereum(EthereumData::BlockHeader(
+                                    Arc::new(block_data.header),
+                                )));
                             }
                         }
                         Err(e) => {
@@ -111,9 +113,9 @@ impl PendingTxPoolStream {
 impl Stream for PendingTxPoolStream {
     type Item = ChainData;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let this = self.as_mut().project();
-        match this.tx_stream.poll_next_unpin(cx) {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+        match this.tx_stream.as_mut().poll_next(cx) {
             Poll::Ready(Some(txs)) => Poll::Ready(Some(ChainData::Ethereum(
                 EthereumData::TransactionPool(txs),
             ))),

@@ -1,6 +1,6 @@
 use lru::LruCache;
 use std::num::NonZeroUsize;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 
 use crate::network::orchestrator::{ChainData, EthereumData};
@@ -11,7 +11,7 @@ use super::Chain;
 pub(crate) struct ChainStream {
     chain: Chain,
     sender: broadcast::Sender<ChainData>,
-    block_cache: Arc<RwLock<LruCache<String, ()>>>,
+    block_header_cache: Arc<RwLock<LruCache<String, ()>>>,
     tx_cache: Arc<RwLock<LruCache<String, ()>>>,
 }
 
@@ -19,7 +19,7 @@ impl ChainStream {
     pub fn new(chain: Chain) -> Self {
         let (sender, _) = broadcast::channel(100);
 
-        let block_cache = Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(1000).unwrap())));
+        let block_header_cache = Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(1000).unwrap())));
         let tx_cache = Arc::new(RwLock::new(LruCache::new(
             NonZeroUsize::new(10_000).unwrap(),
         )));
@@ -27,7 +27,7 @@ impl ChainStream {
         Self {
             chain,
             sender,
-            block_cache,
+            block_header_cache,
             tx_cache,
         }
     }
@@ -39,14 +39,14 @@ impl ChainStream {
         match data {
             ChainData::Ethereum(eth_data) => {
                 match eth_data {
-                    EthereumData::Block(block) => {
-                        let block_id = format!("{:?}-{:?}", block.header.number, block.header.hash);
+                    EthereumData::BlockHeader(header) => {
+                        let block_header_id = format!("{:?}-{:?}", header.number, header.hash);
 
-                        let mut cache = self.block_cache.write().await;
-                        if cache.put(block_id, ()).is_none() {
+                        let mut cache = self.block_header_cache.write().await;
+                        if cache.put(block_header_id, ()).is_none() {
                             let _ = self
                                 .sender
-                                .send(ChainData::Ethereum(EthereumData::Block(block)));
+                                .send(ChainData::Ethereum(EthereumData::BlockHeader(header)));
                         }
                     }
                     EthereumData::TransactionPool(txs) => {
@@ -66,6 +66,7 @@ impl ChainStream {
                             ));
                         }
                     }
+                    EthereumData::Transaction(transaction) => todo!(),
                 }
             }
         }
@@ -77,7 +78,7 @@ impl ChainStream {
     }
 
     pub async fn has_seen_block(&self, block_id: &str) -> bool {
-        self.block_cache.read().await.contains(block_id)
+        self.block_header_cache.read().await.contains(block_id)
     }
 
     pub async fn has_seen_tx(&self, tx_id: &str) -> bool {

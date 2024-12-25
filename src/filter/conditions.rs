@@ -1,5 +1,7 @@
 use alloy_primitives::{Selector, U256};
-use std::cmp::PartialOrd;
+use std::{cmp::PartialOrd, sync::Arc};
+
+use crate::config::Chain;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
@@ -186,6 +188,22 @@ pub enum BlockHeaderCondition {
 pub(crate) trait NodeBuilder {
     type Condition;
     fn append_node(&mut self, condition: Self::Condition);
+}
+
+#[derive(Clone)]
+pub(crate) struct Filter {
+    chain: Chain,
+    filter_node: Arc<FilterNode>,
+}
+
+impl Filter {
+    pub(crate) fn which_chain(&self) -> Chain {
+        self.chain.clone()
+    }
+
+    pub(crate) fn filter_node(&self) -> &FilterNode {
+        self.filter_node.as_ref()
+    }
 }
 
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate

@@ -17,11 +17,8 @@ impl<'a, D> EvaluationContext<'a, D>
 where
     D: EvaluableData + Send + Sync,
 {
-    pub(crate) fn new(data: D, state: &'a State) -> Self {
-        Self {
-            data: Arc::new(data),
-            state,
-        }
+    pub(crate) fn new(data: Arc<D>, state: &'a State) -> Self {
+        Self { data, state }
     }
 
     pub(crate) fn entry(&self, key: &CacheKey) -> Option<Arc<DecodedData>> {

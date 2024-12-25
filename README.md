@@ -151,10 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // 2. Create Sieve with configuration
-    let sieve = Sieve::builder()
-        .chains(chains)               
-        .worker_threads(4)           
-        .build()?;                   
+    let sieve = Sieve::connect(chains)?;                   
 
     // 3. Create Filter
    let pool_filter = FilterBuilder::new().pool(|f| {

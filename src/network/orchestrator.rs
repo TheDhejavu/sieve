@@ -1,6 +1,6 @@
-use alloy_rpc_types::{Block, Transaction};
+use alloy_rpc_types::{Header, Transaction as RpcTransaction};
 use async_trait::async_trait;
-use std::sync::mpsc::Receiver;
+use std::sync::{mpsc::Receiver, Arc};
 
 #[derive(Debug, Clone)]
 pub enum ChainData {
@@ -10,8 +10,9 @@ pub enum ChainData {
 
 #[derive(Debug, Clone)]
 pub enum EthereumData {
-    Block(Block),
-    TransactionPool(Vec<Transaction>),
+    BlockHeader(Arc<Header>),
+    Transaction(Arc<RpcTransaction>),
+    TransactionPool(Vec<RpcTransaction>),
 }
 
 /// [`ChainOrchestrator`] Orchestrates the lifecycle of chain data polling and retrieval.
