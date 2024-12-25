@@ -212,8 +212,8 @@ impl FilterNode {
         // 1. Re-order conditions based on priority (basic to complex)
         // 2. Re-order Logical operations to enable short-circuit
         // 3. Flatten nested logical operations if possible to reduce unnecessary recursive calls during evaluation.
-        // 4. Benchmark!!!!!!!! 
-        
+        // 4. Benchmark!!!!!!!!
+
         if let Some((op, nodes)) = self.children {
             let filtered_nodes: Vec<_> = nodes
                 .into_iter()
