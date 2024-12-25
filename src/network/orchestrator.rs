@@ -2,13 +2,13 @@ use alloy_rpc_types::{Header, Transaction as RpcTransaction};
 use async_trait::async_trait;
 use std::sync::{mpsc::Receiver, Arc};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ChainData {
     // Ethereum chain data..
     Ethereum(EthereumData),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum EthereumData {
     BlockHeader(Arc<Header>),
     Transaction(Arc<RpcTransaction>),

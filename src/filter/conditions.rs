@@ -3,7 +3,7 @@ use std::{cmp::PartialOrd, sync::Arc};
 
 use crate::config::Chain;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum LogicalOp {
     And,
@@ -42,7 +42,7 @@ impl NumericType for U256 {
 }
 
 // Generic numeric condition that works with any numeric type
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum NumericCondition<T: NumericType> {
     GreaterThan(T),
     GreaterThanOrEqualTo(T),
@@ -54,7 +54,7 @@ pub enum NumericCondition<T: NumericType> {
     Outside(T, T),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ArrayCondition<T> {
     Contains(T),
     NotIn(Vec<T>),
@@ -62,7 +62,7 @@ pub enum ArrayCondition<T> {
     NotEmpty,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum StringCondition {
     EqualTo(String),
     Contains(String),
@@ -71,7 +71,7 @@ pub enum StringCondition {
     Matches(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 #[allow(dead_code)]
 pub enum FilterCondition {
     Transaction(TransactionCondition),
@@ -81,13 +81,13 @@ pub enum FilterCondition {
     DynField(DynFieldCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DynFieldCondition {
     pub(crate) path: String,
     pub(crate) condition: ValueCondition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ValueCondition {
     U64(NumericCondition<u64>),
     U128(NumericCondition<u128>),
@@ -95,7 +95,7 @@ pub enum ValueCondition {
     String(StringCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 #[allow(dead_code)]
 pub enum TransactionCondition {
     Gas(NumericCondition<u64>),
@@ -123,7 +123,7 @@ pub enum TransactionCondition {
     DynField(DynFieldCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum EventCondition {
     // String conditions
@@ -154,7 +154,7 @@ pub(crate) enum ContractCondition {
     Path(String, ValueCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum PoolCondition {
     Hash(StringCondition),
@@ -166,7 +166,7 @@ pub enum PoolCondition {
     GasLimit(NumericCondition<u64>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
@@ -190,19 +190,39 @@ pub(crate) trait NodeBuilder {
     fn append_node(&mut self, condition: Self::Condition);
 }
 
-#[derive(Clone)]
-pub(crate) struct Filter {
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub(crate) enum EventType {
+    Transaction = 0,
+    LogEvent = 1,
+    BlockHeader = 2,
+    Pool = 3,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Filter {
     chain: Chain,
+    event_type: Option<EventType>,
     filter_node: Arc<FilterNode>,
 }
 
 impl Filter {
+    pub(crate) fn new(
+        chain: Chain,
+        filter_node: Arc<FilterNode>,
+        event_type: Option<EventType>,
+    ) -> Self {
+        Self {
+            chain,
+            event_type,
+            filter_node,
+        }
+    }
     pub(crate) fn which_chain(&self) -> Chain {
         self.chain.clone()
     }
 
-    pub(crate) fn filter_node(&self) -> &FilterNode {
-        self.filter_node.as_ref()
+    pub fn filter_node(&self) -> Arc<FilterNode> {
+        self.filter_node.clone()
     }
 }
 
@@ -217,7 +237,7 @@ impl Filter {
 //       [AND]             [AND]
 //      /     \           /     \
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub struct FilterNode {
     pub children: Option<(LogicalOp, Vec<FilterNode>)>,

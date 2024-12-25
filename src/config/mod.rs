@@ -1,2 +1,2 @@
 mod chain;
-pub(crate) use chain::{Chain, ChainConfig};
+pub(crate) use chain::{Chain, ChainConfig, ChainConfigBuilder};

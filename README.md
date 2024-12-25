@@ -61,13 +61,9 @@ let filter = FilterBuilder::new().transaction(|f| {
 **RPC Calls (*busy-polling*):**
 
 - Pending Transactions:
-    - `txpool_content`
     - `eth_newPendingTransactionFilter`
 - Block & Transactions:
     - `eth_getBlockByNumber`
-    - `eth_getBlockByHash`
-    - `eth_getLogs`
-    - `eth_getTransactionReceipt`
 
 **Gossipsub (*reactive*):**
 
@@ -132,25 +128,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
         // Optimisim chain....
-        ChainConfig::builder()
+        ChainConfigBuilder::builder()
             .rpc("https://mainnet.optimism.io")    
             .ws("wss://ws-mainnet.optimism.io")     
             .gossipsub("/ip4/0.0.0.0/tcp/9000")    
             .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
-            .name(Chain::OPTIMISM),    
+            .chain(Chain::Optimisim)
+            .build(),    
 
         // Base chain.....
-        ChainConfig::builder()
+        ChainConfigBuilder::builder()
             .rpc("https://mainnet.base.org")        
-            .name(Chain::BASE),         
+            .chain(Chain::Base)
+            .build(),         
 
         // Ethereum chain....
-        ChainConfig::builder()
+        ChainConfigBuilder::builder()
             .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") 
-            .name(Chain::ETHEREUM)                       
+            .chain(Chain::Ethereum)   
+            .build(),                        
     ];
 
-    // 2. Create Sieve with configuration
+    // 2. Connect to chains via `Sieve`
     let sieve = Sieve::connect(chains)?;                   
 
     // 3. Create Filter
@@ -169,13 +168,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(event) = stream.next().await {
         println!("Pool: {:?}", event);
     }
-
-    // 5. Schedule a task to process events after a delay
-    let scheduled = sieve.submit_after(
-        transfer_filter,             
-        |event| println!("Scheduled: {:?}", event),
-        Duration::from_secs(10)    
-    );
 
     Ok(())
 }

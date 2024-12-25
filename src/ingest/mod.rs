@@ -143,9 +143,6 @@ impl Ingest {
 
     // Returns a list of active chains.
     pub fn active_chains(&self) -> Vec<Chain> {
-        self.chain_states
-            .iter()
-            .map(|(chain, _)| chain.clone())
-            .collect::<Vec<Chain>>()
+        self.chain_states.keys().cloned().collect::<Vec<Chain>>()
     }
 }
