@@ -12,6 +12,9 @@ pub struct ChainConfig {
 
     /// List of bootstrap peer addresses in multiaddr format
     peers: Vec<String>,
+
+    /// Chain
+    chain: Chain,
 }
 
 #[allow(dead_code)]
@@ -35,6 +38,9 @@ pub struct ChainConfigBuilder {
 
     /// List of bootstrap peer addresses
     peers: Vec<String>,
+
+    /// Chain
+    chain: Option<Chain>,
 }
 
 #[allow(dead_code)]
@@ -75,6 +81,15 @@ impl ChainConfigBuilder {
         self
     }
 
+    /// Sets the chain for the chain configuration
+    ///
+    /// # Arguments
+    /// * `peers` - Vector of peer addresses in multiaddr format
+    pub fn chain(&mut self, chain: Chain) -> &mut ChainConfigBuilder {
+        self.chain = Some(chain);
+        self
+    }
+
     /// Builds the final Chain configuration
     pub fn build(self) -> ChainConfig {
         if self.gossipsub_url.is_none() || self.rpc_url.is_none() || self.ws_url.is_none() {
@@ -86,6 +101,7 @@ impl ChainConfigBuilder {
             ws_url: self.ws_url.unwrap_or_default(),
             gossipsub_url: self.gossipsub_url.unwrap_or_default(),
             peers: self.peers,
+            chain: self.chain.expect("chain is required."),
         }
     }
 }
@@ -111,6 +127,7 @@ impl Chain {
             ws_url: None,
             gossipsub_url: None,
             peers: vec![],
+            chain: None,
         }
     }
 }
