@@ -1,6 +1,6 @@
 /// Chain configuration settings.
 #[allow(dead_code)]
-pub struct Chain {
+pub struct ChainConfig {
     /// RPC endpoint URL for the chain
     rpc_url: String,
 
@@ -12,6 +12,13 @@ pub struct Chain {
 
     /// List of bootstrap peer addresses in multiaddr format
     peers: Vec<String>,
+}
+
+#[allow(dead_code)]
+pub enum Chain {
+    ETHEREUM,
+    OPTIMISIM,
+    BASE,
 }
 
 /// Builder for creating a Chain configuration.
@@ -69,12 +76,12 @@ impl ChainConfigBuilder {
     }
 
     /// Builds the final Chain configuration
-    pub fn build(self) -> Chain {
+    pub fn build(self) -> ChainConfig {
         if self.gossipsub_url.is_none() || self.rpc_url.is_none() || self.ws_url.is_none() {
             panic!("at least one url is required.")
         }
 
-        Chain {
+        ChainConfig {
             rpc_url: self.rpc_url.unwrap_or_default(),
             ws_url: self.ws_url.unwrap_or_default(),
             gossipsub_url: self.gossipsub_url.unwrap_or_default(),

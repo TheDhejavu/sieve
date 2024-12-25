@@ -4,8 +4,8 @@ use filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 
 mod config;
 mod engine;
-pub mod filter;
-
+mod network;
+mod ingest;
 mod utils;
 
 // Prelude module for convenient imports
