@@ -121,7 +121,7 @@ fn main() {
 
 ### Proposed Usage (*stream*):
 ```rust
-use sieve::{runtime::Runtime, config::Chain, FilterBuilder, NumericOps, StringOps};
+use sieve::{Sieve, config::{ChainConfig, Chain}, FilterBuilder, NumericOps, StringOps};
 
 #[tokio::main]
 use sieve::{FilterBuilder, NumericOps, StringOps};
@@ -131,22 +131,27 @@ use std::time::Duration;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
-        Chain::builder()
+        // Optimisim chain....
+        ChainConfig::builder()
             .rpc("https://mainnet.optimism.io")    
             .ws("wss://ws-mainnet.optimism.io")     
             .gossipsub("/ip4/0.0.0.0/tcp/9000")    
             .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
-            .name(OPTIMISM),                      /
-        Chain::builder()
+            .name(Chain::OPTIMISM),    
+
+        // Base chain.....
+        ChainConfig::builder()
             .rpc("https://mainnet.base.org")        
-            .name(BASE),                          
-        Chain::builder()
+            .name(Chain::BASE),         
+
+        // Ethereum chain....
+        ChainConfig::builder()
             .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") 
-            .name(ETHEREUM)                       
+            .name(Chain::ETHEREUM)                       
     ];
 
-    // 2. Create Runtime with configuration
-    let runtime = Runtime::builder()
+    // 2. Create Sieve with configuration
+    let sieve = Sieve::builder()
         .chains(chains)               
         .worker_threads(4)           
         .build()?;                   
@@ -163,13 +168,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // 4. Subscribe to stream
-    let mut stream = runtime.subscribe(pool_filter.clone());
+    let mut stream = sieve.subscribe(pool_filter.clone());
     while let Some(event) = stream.next().await {
-        println!("Transfer: {:?}", event);
+        println!("Pool: {:?}", event);
     }
 
     // 5. Schedule a task to process events after a delay
-    let scheduled = runtime.submit_after(
+    let scheduled = sieve.submit_after(
         transfer_filter,             
         |event| println!("Scheduled: {:?}", event),
         Duration::from_secs(10)    
@@ -213,7 +218,7 @@ use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
     // Subscribe to events matching the Ethereum filter
-    let mut stream = runtime.subscribe(eth_filter);
+    let mut stream = sieve.subscribe(eth_filter);
 
     // Process incoming events from the subscription
     while let Some(event) = stream.next().await {
@@ -231,7 +236,7 @@ use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
     // Subscribe to all events that match the provided filters
-    let mut stream = runtime.subscribe_all([eth_filter, op_filter]);
+    let mut stream = sieve.subscribe_all([eth_filter, op_filter]);
 
     // Process incoming events from the stream
     while let Some(event) = stream.next().await {
@@ -249,7 +254,7 @@ use sieve::{FilterBuilder, NumericOps, StringOps};
 
 fn main() {
     // Create an event stream monitored within a 30-minute time window
-    let mut stream = runtime.watch_within(
+    let mut stream = sieve.watch_within(
         Duration::from_secs(1800), // Define a 30-minute time window
         eth_filter,                // Filter for Ethereum-related events
         op_filter                  // Filter for operation-related events
@@ -259,11 +264,11 @@ fn main() {
     while let Some(event) = stream.next().await {
         match event {
             // Handle matched events within the time window
-            Event::Match { event_1, event_2 } => {
+            Event::Match { l1_event, l2_event } => {
                 println!("Matched events within time window");
             }
             // Handle events that timed out without a match
-            Event::Timeout(event) => {
+            Event::Timeout(_) => {
                 println!("Event timed out");
             }
         }
