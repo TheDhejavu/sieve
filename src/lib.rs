@@ -2,10 +2,10 @@
 use alloy_primitives::U256;
 use filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 
-mod inngest;
 pub(crate) mod config;
 pub(crate) mod engine;
 mod filter;
+mod inngest;
 mod network;
 mod utils;
 

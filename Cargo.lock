@@ -1527,6 +1527,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "h2"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccae279728d634d083c00f6099cb58f01cc99c145b84b8be2f6c74618d79922e"
+dependencies = [
+ "atomic-waker",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "http",
+ "indexmap",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "half"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1903,21 +1922,12 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "ipnet"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddc24109865250148c2e0f3d25d4f0f479571723792d3802153c60922a4fb708"
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> 10f9a28 (folder structure)
 name = "is-terminal"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1929,12 +1939,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2211,22 +2215,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 10f9a28 (folder structure)
 name = "oorandom"
 version = "11.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b410bbe7e14ab526a0e86877eb47c6996a2bd7746f027ba551028c925390e4e9"
 
 [[package]]
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "openssl"
 version = "0.10.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2271,11 +2265,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "parity-scale-codec"
 version = "3.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2400,21 +2389,12 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "pkg-config"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> 10f9a28 (folder structure)
 name = "plotters"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2443,12 +2423,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2878,12 +2852,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 10f9a28 (folder structure)
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2893,10 +2861,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "schannel"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2917,11 +2881,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3082,19 +3041,14 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-txpool",
-<<<<<<< HEAD
- "criterion",
- "dashmap",
- "ethabi",
- "rand",
-=======
  "alloy-transport-http",
  "async-trait",
+ "criterion",
  "dashmap",
  "ethabi",
  "futures",
  "pin-project-lite",
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
+ "rand",
  "rayon",
  "reqwest",
  "serde",
@@ -3393,13 +3347,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "tinystr"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3410,8 +3357,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> 10f9a28 (folder structure)
 name = "tinytemplate"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3422,10 +3367,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "tokio"
 version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3498,11 +3439,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "toml_datetime"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3681,12 +3617,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 10f9a28 (folder structure)
 name = "walkdir"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3697,10 +3627,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3710,11 +3636,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "wasi"
 version = "0.11.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3788,13 +3709,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "943aab3fdaaa029a6e0271b35ea10b72b943135afe9bffca82384098ad0e06a6"
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "wasmtimer"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3809,7 +3723,6 @@ dependencies = [
 ]
 
 [[package]]
->>>>>>> 10f9a28 (folder structure)
 name = "web-sys"
 version = "0.3.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3820,7 +3733,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "winapi-util"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3830,10 +3742,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "windows-registry"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3864,11 +3772,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 10f9a28 (folder structure)
-=======
->>>>>>> 349b3b2 (feat: implement orchestrator & rpc polling mechanism)
 name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
