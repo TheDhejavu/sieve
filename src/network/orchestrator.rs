@@ -3,13 +3,13 @@ use async_trait::async_trait;
 use std::sync::mpsc::Receiver;
 
 #[derive(Debug, Clone)]
-pub(crate) enum ChainData {
+pub enum ChainData {
     // Ethereum chain data..
     Ethereum(EthereumData),
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum EthereumData {
+pub enum EthereumData {
     Block(Block),
     TransactionPool(Vec<Transaction>),
 }

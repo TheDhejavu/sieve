@@ -123,7 +123,7 @@ impl Stream for PendingTxPoolStream {
     }
 }
 
-pub struct RpcOrchestrator {
+pub struct EthereumRpcOrchestrator {
     provider: Arc<RootProvider<Http<Client>>>,
     poll_interval: Duration,
     is_running: Arc<AtomicBool>,
@@ -132,7 +132,7 @@ pub struct RpcOrchestrator {
     tx_pool_task: Option<JoinHandle<()>>,
 }
 
-impl RpcOrchestrator {
+impl EthereumRpcOrchestrator {
     pub fn new(
         name: String,
         rpc_url: String,
@@ -167,7 +167,7 @@ impl RpcOrchestrator {
 }
 
 #[async_trait]
-impl ChainOrchestrator for RpcOrchestrator {
+impl ChainOrchestrator for EthereumRpcOrchestrator {
     async fn start(&mut self) -> Result<Receiver<ChainData>, Box<dyn std::error::Error>> {
         if self.is_running.load(Ordering::Relaxed) {
             return Err("Orchestrator is already running".into());

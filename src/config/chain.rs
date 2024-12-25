@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 /// Chain configuration settings.
 #[allow(dead_code)]
 pub struct ChainConfig {
@@ -17,6 +19,28 @@ pub struct ChainConfig {
     chain: Chain,
 }
 
+impl ChainConfig {
+    pub fn rpc_url(&self) -> &String {
+        &self.rpc_url
+    }
+
+    pub fn ws_url(&self) -> &String {
+        &self.ws_url
+    }
+
+    pub fn gossipsub_url(&self) -> &String {
+        &self.gossipsub_url
+    }
+
+    pub fn peers(&self) -> &Vec<String> {
+        &self.peers
+    }
+    pub fn chain(&self) -> Chain {
+        self.chain.clone()
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum Chain {
     Ethereum,

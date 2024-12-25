@@ -5,8 +5,8 @@ use filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
 pub(crate) mod config;
 pub(crate) mod engine;
 mod filter;
-mod inngest;
-mod network;
+pub(crate) mod ingest;
+pub(crate) mod network;
 mod utils;
 
 // Prelude module for convenient imports

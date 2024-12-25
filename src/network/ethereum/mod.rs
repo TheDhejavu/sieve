@@ -1,2 +1,2 @@
-mod gossipsub;
-mod rpc;
+pub mod gossipsub;
+pub mod rpc;

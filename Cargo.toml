@@ -27,6 +27,8 @@ serde = "1.0.216"
 serde_json = "1.0.133"
 tokio = "1.42.0"
 tracing = "0.1.41"
+lru = "0.12.5"
+tokio-stream = "0.1.17"
 
 [dev-dependencies]
 criterion = "0.5"
