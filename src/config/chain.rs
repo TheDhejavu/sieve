@@ -19,9 +19,9 @@ pub struct ChainConfig {
 
 #[allow(dead_code)]
 pub enum Chain {
-    ETHEREUM,
-    OPTIMISIM,
-    BASE,
+    Ethereum,
+    Optimism,
+    Base,
 }
 
 /// Builder for creating a Chain configuration.
