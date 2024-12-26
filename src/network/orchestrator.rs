@@ -18,7 +18,7 @@ pub enum EthereumData {
 }
 
 impl ChainData {
-    pub(crate) fn match_event_type(self, event_type: EventType) -> bool {
+    pub(crate) fn match_event_type(&self, event_type: EventType) -> bool {
         match self {
             ChainData::Ethereum(eth_data) => match eth_data {
                 EthereumData::BlockHeader(_) => matches!(event_type, EventType::BlockHeader),

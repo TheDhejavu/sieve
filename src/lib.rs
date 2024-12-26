@@ -10,7 +10,8 @@ mod utils;
 
 // prelude module for convenient imports
 pub mod prelude {
-    pub use crate::config;
+    pub use crate::Sieve;
+    pub use crate::config::{ChainConfig, ChainConfigBuilder, Chain};
     pub use crate::engine::FilterEngine;
     pub use crate::filter::conditions::{Filter, FilterNode};
     pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
