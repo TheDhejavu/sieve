@@ -1,5 +1,5 @@
 use lru::LruCache;
-use std::sync::Arc;
+use std::{num::NonZeroUsize, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
 use crate::network::orchestrator::{ChainData, EthereumData};
@@ -24,10 +24,10 @@ impl ChainStream {
             chain,
             sender,
             block_header_cache: Arc::new(RwLock::new(LruCache::new(
-                std::num::NonZeroUsize::new(1_0000).unwrap(),
+                NonZeroUsize::new(1_0000).unwrap(),
             ))),
             tx_cache: Arc::new(RwLock::new(LruCache::new(
-                std::num::NonZeroUsize::new(1_0000).unwrap(),
+                NonZeroUsize::new(1_0000).unwrap(),
             ))),
         }
     }

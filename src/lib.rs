@@ -29,7 +29,7 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
-const BROADCAST_CHANNEL_SIZE: usize = 10_000;
+const BROADCAST_CHANNEL_SIZE: usize = 1_000;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Event {
