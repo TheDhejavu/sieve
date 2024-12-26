@@ -191,6 +191,7 @@ pub(crate) trait NodeBuilder {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub(crate) enum EventType {
     Transaction = 0,
     LogEvent = 1,
@@ -205,6 +206,7 @@ pub struct Filter {
     filter_node: Arc<FilterNode>,
 }
 
+#[allow(dead_code)]
 impl Filter {
     pub(crate) fn new(
         chain: Chain,

@@ -16,6 +16,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum IngestError {
     ChainNotFound(Chain),
     OrchestrationError(String),
@@ -34,6 +35,7 @@ impl std::error::Error for IngestError {}
 
 const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
+#[allow(dead_code)]
 struct ChainState {
     chain_stream: Arc<ChainStream>,
     orchestrator: Box<dyn ChainOrchestrator>,
@@ -44,6 +46,7 @@ pub struct Ingest {
     chain_states: HashMap<Chain, ChainState>,
 }
 
+#[allow(dead_code)]
 impl Ingest {
     //
     pub(crate) async fn new(configs: Vec<ChainConfig>) -> Self {
@@ -65,11 +68,11 @@ impl Ingest {
 
                         let chain_stream = Arc::new(ChainStream::new(chain.clone()));
                         let mut orchestrator = Box::new(orchestrator);
-                        let receiver = orchestrator.start().await.unwrap();
+                        let mut receiver = orchestrator.start().await.unwrap();
 
                         let stream_clone = chain_stream.clone();
                         let handle = tokio::spawn(async move {
-                            while let Ok(data) = receiver.recv() {
+                            while let Some(data) = receiver.recv().await {
                                 let _ = stream_clone.process_data(data).await;
                             }
                         });

@@ -10,39 +10,48 @@ mod utils;
 
 // prelude module for convenient imports
 pub mod prelude {
-    pub use crate::Sieve;
-    pub use crate::config::{ChainConfig, ChainConfigBuilder, Chain};
+    pub use crate::config::{Chain, ChainConfig, ChainConfigBuilder};
     pub use crate::engine::FilterEngine;
     pub use crate::filter::conditions::{Filter, FilterNode};
     pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
+    pub use crate::Sieve;
 }
 
 use crate::config::ChainConfig;
+use alloy_rpc_types::{BlockTransactions, Header, Transaction};
 use engine::FilterEngine;
-use filter::conditions::Filter;
+use filter::conditions::{EventType, Filter};
 use futures::StreamExt;
 use ingest::Ingest;
 use network::orchestrator::{ChainData, EthereumData};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::broadcast;
-use tokio_stream::wrappers::BroadcastStream;
+use tokio::sync::{broadcast, RwLock};
+use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 const BROADCAST_CHANNEL_SIZE: usize = 10_000;
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Event {
+    Transaction(Transaction),
+    Pool(Transaction),
+    Header(Header),
+}
+
+#[derive(Clone)]
 pub struct Sieve {
-    filters: HashMap<Filter, broadcast::Sender<ChainData>>,
+    filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
     engine: Arc<FilterEngine>,
-    ingest: Ingest,
+    ingest: Arc<Ingest>,
 }
 
 impl Sieve {
     pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
-        let ingest = Ingest::new(chains).await;
+        let ingest = Arc::new(Ingest::new(chains).await);
         let engine = Arc::new(FilterEngine::new());
-        let filters = HashMap::new();
+        let filters = Arc::new(RwLock::new(HashMap::new()));
 
-        let mut sieve = Self {
+        let sieve = Self {
             engine,
             ingest,
             filters,
@@ -52,59 +61,92 @@ impl Sieve {
         Ok(sieve)
     }
 
-    pub fn subscribe(
-        &mut self,
+    pub async fn subscribe(
+        &self,
         filter: Filter,
-    ) -> Result<BroadcastStream<ChainData>, Box<dyn std::error::Error>> {
-        // Get or create a broadcast channel for this filter
-        let sender = self
-            .filters
+    ) -> Result<BroadcastStream<Event>, Box<dyn std::error::Error>> {
+        let mut filters = self.filters.write().await;
+        let sender = filters
             .entry(filter.clone())
             .or_insert_with(|| broadcast::channel(BROADCAST_CHANNEL_SIZE).0);
 
-        // New receiver returned wrapped in BroadcastStream
         let receiver = sender.subscribe();
         Ok(BroadcastStream::new(receiver))
     }
 
-    async fn start_chain_processors(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn start_chain_processors(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut processor_handles = Vec::new();
+
         for chain in self.ingest.active_chains() {
-            let mut stream = self.ingest.subscribe_stream(chain.clone()).await?;
+            let stream = self.ingest.subscribe_stream(chain.clone()).await?;
             let engine = self.engine.clone();
             let filters = self.filters.clone();
 
-            tokio::spawn(async move {
-                while let Some(Ok(chain_data)) = stream.next().await {
-                    for (filter, sender) in filters.iter() {
-                        if filter.event_type().is_none() {
-                            continue;
-                        }
-
-                        if filter.chain() != chain
-                            && !chain_data.match_event_type(filter.event_type().unwrap())
-                        {
-                            continue;
-                        }
-                        match &chain_data {
-                            ChainData::Ethereum(EthereumData::BlockHeader(block_header)) => {
-                                if engine.evaluate_with_context(
-                                    filter.filter_node().as_ref(),
-                                    block_header.clone(),
-                                ) {
-                                    let _ = sender.send(chain_data.clone());
-                                }
-                            }
-                            ChainData::Ethereum(_) => (),
-                        }
-                    }
-                }
+            let handle = tokio::spawn(async move {
+                Self::run_chain_processor(stream, engine, filters).await;
             });
+
+            processor_handles.push(handle);
         }
+
+        tokio::spawn(async move {
+            for handle in processor_handles {
+                if let Err(e) = handle.await {
+                    eprintln!("Chain processor failed: {}", e);
+                }
+            }
+        });
+
         Ok(())
     }
 
-    fn subscriber_count(&self, filter: &Filter) -> usize {
+    async fn run_chain_processor(
+        mut stream: impl StreamExt<Item = Result<ChainData, BroadcastStreamRecvError>> + Unpin,
+        engine: Arc<FilterEngine>,
+        filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
+    ) {
+        while let Some(Ok(chain_data)) = stream.next().await {
+            let filters = filters.read().await;
+            for (filter, sender) in filters.iter() {
+                if filter.event_type().is_none() {
+                    continue;
+                }
+
+                match &chain_data {
+                    ChainData::Ethereum(EthereumData::Block(block)) => {
+                        if filter.event_type() == Some(EventType::Transaction) {
+                            if let BlockTransactions::Full(transactions) = &block.transactions {
+                                for transaction in transactions {
+                                    if engine.evaluate_with_context(
+                                        filter.filter_node().as_ref(),
+                                        Arc::new(transaction.clone()),
+                                    ) {
+                                        let _ =
+                                            sender.send(Event::Transaction(transaction.clone()));
+                                    }
+                                }
+                            }
+                        }
+
+                        if filter.event_type() == Some(EventType::BlockHeader)
+                            && engine.evaluate_with_context(
+                                filter.filter_node().as_ref(),
+                                Arc::new(block.header.clone()),
+                            )
+                        {
+                            let _ = sender.send(Event::Header(block.header.clone()));
+                        }
+                    }
+                    ChainData::Ethereum(_) => (),
+                }
+            }
+        }
+    }
+    #[allow(dead_code)]
+    async fn subscriber_count(&self, filter: &Filter) -> usize {
         self.filters
+            .read()
+            .await
             .get(filter)
             .map(|sender| sender.receiver_count())
             .unwrap_or(0)
@@ -115,7 +157,6 @@ impl Sieve {
 mod tests {
     use super::*;
     use alloy_primitives::U256;
-    use alloy_rpc_types::Header;
     use config::{Chain, ChainConfigBuilder};
     use filter::{FilterBuilder, LogicalOps, NumericOps, StringOps};
     use futures::StreamExt;
@@ -133,7 +174,7 @@ mod tests {
             .build()];
 
         // 2. Connect to chains via `Sieve`
-        let mut sieve = Sieve::connect(chains).await?;
+        let sieve = Sieve::connect(chains).await?;
 
         // 3. Create Filter
         let pool_filter = FilterBuilder::new().pool(|f| {
@@ -145,11 +186,11 @@ mod tests {
         });
 
         // Create two subscribers
-        let mut sub1 = sieve.subscribe(pool_filter.clone())?;
-        let mut sub2 = sieve.subscribe(pool_filter.clone())?;
+        let mut sub1 = sieve.subscribe(pool_filter.clone()).await?;
+        let mut sub2 = sieve.subscribe(pool_filter.clone()).await?;
 
         // Verify we have two subscribers
-        assert_eq!(sieve.subscriber_count(&pool_filter), 2);
+        assert_eq!(sieve.subscriber_count(&pool_filter).await, 2);
 
         let sub1_task = tokio::spawn(async move {
             let msg = sub1.next().await;
@@ -164,9 +205,8 @@ mod tests {
         // Ensure subscribers are ready
         sleep(Duration::from_millis(100)).await;
 
-        if let Some(sender) = sieve.filters.get(&pool_filter) {
-            let header = Arc::new(Header::default());
-            let test_data = ChainData::Ethereum(EthereumData::BlockHeader(header));
+        if let Some(sender) = sieve.filters.read().await.get(&pool_filter) {
+            let test_data = Event::Header(Header::default());
             sender.send(test_data.clone())?;
 
             // Wait for both subscribers to receive the message

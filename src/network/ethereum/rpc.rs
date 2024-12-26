@@ -1,12 +1,10 @@
 //! RPC connection to the Ethereum network with alloy
 //! Ref: https://alloy.rs/building-with-alloy/connecting-to-a-blockchain/setting-up-a-provider
-//!
 use std::{
     future::Future,
     pin::Pin,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{self, Receiver},
         Arc,
     },
     task::{Context, Poll},
@@ -20,8 +18,12 @@ use async_trait::async_trait;
 use futures::{Stream, StreamExt};
 use pin_project_lite::pin_project;
 use reqwest::Client;
-use tokio::{task::JoinHandle, time};
-use tracing::debug;
+use tokio::{
+    sync::mpsc::{self, Receiver},
+    task::JoinHandle,
+    time,
+};
+use tracing::{debug, error};
 
 use crate::network::orchestrator::{ChainData, ChainOrchestrator, EthereumData};
 
@@ -67,13 +69,11 @@ impl Stream for BlockStream {
                     {
                         Ok(block) => {
                             if let Some(block_data) = block {
-                                return Some(ChainData::Ethereum(EthereumData::BlockHeader(
-                                    Arc::new(block_data.header),
-                                )));
+                                return Some(ChainData::Ethereum(EthereumData::Block(block_data)));
                             }
                         }
                         Err(e) => {
-                            debug!(?e, "Error polling blocks");
+                            error!(?e, "Error polling blocks");
                         }
                     }
                     None
@@ -131,7 +131,7 @@ pub struct EthereumRpcOrchestrator {
     poll_interval: Duration,
     is_running: Arc<AtomicBool>,
     name: String,
-    block_header_task: Option<JoinHandle<()>>,
+    block_task: Option<JoinHandle<()>>,
     tx_pool_task: Option<JoinHandle<()>>,
 }
 
@@ -149,7 +149,7 @@ impl EthereumRpcOrchestrator {
             poll_interval,
             is_running: Arc::new(AtomicBool::new(false)),
             name,
-            block_header_task: None,
+            block_task: None,
             tx_pool_task: None,
         })
     }
@@ -177,20 +177,20 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
         }
 
         self.is_running.store(true, Ordering::Relaxed);
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = mpsc::channel(10_000);
 
         // Start block polling stream
         let mut block_stream = self.block_stream().await;
         let block_tx = tx.clone();
         let block_is_running = self.is_running.clone();
 
-        let block_header_task = tokio::spawn(async move {
+        let block_task = tokio::spawn(async move {
             while let Some(block) = block_stream.next().await {
-                println!("new block header: {block:#?}");
+                debug!("new pending block: {block:#?}");
                 if !block_is_running.load(Ordering::Relaxed) {
                     break;
                 }
-                let _ = block_tx.send(block);
+                let _ = block_tx.send(block).await;
             }
         });
 
@@ -201,15 +201,15 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
 
         let pool_task = tokio::spawn(async move {
             while let Some(transaction_data) = txpool_stream.next().await {
-                println!("new pending transaction: {transaction_data:#?}");
+                debug!("new pending transaction: {transaction_data:#?}");
                 if !pool_is_running.load(Ordering::Relaxed) {
                     break;
                 }
-                let _ = pool_tx.send(transaction_data);
+                let _ = pool_tx.send(transaction_data).await;
             }
         });
 
-        self.block_header_task = Some(block_header_task);
+        self.block_task = Some(block_task);
         self.tx_pool_task = Some(pool_task);
 
         Ok(rx)
@@ -218,7 +218,7 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
     async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.is_running.store(false, Ordering::Relaxed);
 
-        if let Some(task) = &self.block_header_task {
+        if let Some(task) = &self.block_task {
             task.abort();
         }
 
