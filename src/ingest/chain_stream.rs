@@ -25,7 +25,7 @@ impl ChainStream {
             chain,
             sender,
             block_header_cache: lru_cache!(1_000),
-            tx_cache: lru_cache!(10_000),
+            tx_cache: lru_cache!(1_000),
         }
     }
 

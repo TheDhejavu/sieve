@@ -131,7 +131,7 @@ pub struct EthereumRpcOrchestrator {
     poll_interval: Duration,
     is_running: Arc<AtomicBool>,
     name: String,
-    block_task: Option<JoinHandle<()>>,
+    block_header_task: Option<JoinHandle<()>>,
     tx_pool_task: Option<JoinHandle<()>>,
 }
 
@@ -149,7 +149,7 @@ impl EthereumRpcOrchestrator {
             poll_interval,
             is_running: Arc::new(AtomicBool::new(false)),
             name,
-            block_task: None,
+            block_header_task: None,
             tx_pool_task: None,
         })
     }
@@ -184,9 +184,9 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
         let block_tx = tx.clone();
         let block_is_running = self.is_running.clone();
 
-        let block_task = tokio::spawn(async move {
+        let block_header_task = tokio::spawn(async move {
             while let Some(block) = block_stream.next().await {
-                println!("new pending transaction: {block:#?}");
+                println!("new block header: {block:#?}");
                 if !block_is_running.load(Ordering::Relaxed) {
                     break;
                 }
@@ -209,7 +209,7 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
             }
         });
 
-        self.block_task = Some(block_task);
+        self.block_header_task = Some(block_header_task);
         self.tx_pool_task = Some(pool_task);
 
         Ok(rx)
@@ -218,7 +218,7 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
     async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.is_running.store(false, Ordering::Relaxed);
 
-        if let Some(task) = &self.block_task {
+        if let Some(task) = &self.block_header_task {
             task.abort();
         }
 

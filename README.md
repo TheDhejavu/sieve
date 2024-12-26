@@ -15,7 +15,7 @@ The system ingests blockchain data through both RPC and Gossipsub protocols, eac
 
 It is composed of **three main components** that work together to provide a reliable block & transaction stream. 
 
-- Node Manager layer
+- Network layer
 - Connection Orchestrator
 - Ingestion Pipeline
 
@@ -129,8 +129,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chains = vec![
         // Optimisim chain....
         ChainConfigBuilder::builder()
-            .rpc("https://mainnet.optimism.io")    
-            .ws("wss://ws-mainnet.optimism.io")     
+            .rpc("https://mainnet.optimism.io/...")    
+            .ws("wss://ws-mainnet.optimism.io/...")     
             .gossipsub("/ip4/0.0.0.0/tcp/9000")    
             .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
             .chain(Chain::Optimisim)
@@ -144,7 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Ethereum chain....
         ChainConfigBuilder::builder()
-            .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") 
+            .rpc("https://mainnet.infura.io/v3/...") 
             .chain(Chain::Ethereum)   
             .build(),                        
     ];

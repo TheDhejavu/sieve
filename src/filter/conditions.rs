@@ -217,8 +217,13 @@ impl Filter {
             filter_node,
         }
     }
-    pub(crate) fn which_chain(&self) -> Chain {
+
+    pub(crate) fn chain(&self) -> Chain {
         self.chain.clone()
+    }
+
+    pub(crate) fn event_type(&self) -> Option<EventType> {
+        self.event_type.clone()
     }
 
     pub fn filter_node(&self) -> Arc<FilterNode> {

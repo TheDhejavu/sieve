@@ -26,7 +26,7 @@ impl FilterBuilder {
     }
     /// Adds transaction conditions to the filter.
     ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
+    /// Returns a [`Filter`] after  configuration is completed.
     pub fn transaction<F>(&mut self, f: F) -> Filter
     where
         F: FnOnce(&mut TxBuilder),
@@ -49,7 +49,7 @@ impl FilterBuilder {
 
     /// Adds event(logs) conditions to the filter.
     ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
+    /// Returns a [`Filter`] after  configuration is completed.
     pub fn event<F>(&mut self, f: F) -> Filter
     where
         F: FnOnce(&mut EventBuilder),
@@ -72,7 +72,7 @@ impl FilterBuilder {
 
     /// Adds pool conditions to the filter.
     ///
-    /// Returns a [`PoolFilterBuilder`] for further configuration.
+    /// Returns a [`Filter`] after  configuration is completed.
     pub fn pool<F>(&mut self, f: F) -> Filter
     where
         F: FnOnce(&mut PoolBuilder),
@@ -95,7 +95,7 @@ impl FilterBuilder {
 
     /// Adds block header conditions to the filter.
     ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
+    /// Returns a [`Filter`] after  configuration is completed.
     pub fn block_header<F>(&mut self, f: F) -> Filter
     where
         F: FnOnce(&mut BlockHeaderBuilder),
@@ -119,7 +119,7 @@ impl FilterBuilder {
     // ====== Layer 2 ========
     /// Adds Optimism L2-specific conditions to the filter.
     ///
-    /// Returns a [`MainFilterBuilder`] for further configuration.
+    /// Returns a [`Filter`] after  configuration is completed.
     pub fn optimism<F>(&mut self, f: F) -> Filter
     where
         F: FnOnce(&mut OptimismFilterBuilder),

@@ -75,10 +75,15 @@ impl Sieve {
             tokio::spawn(async move {
                 while let Some(Ok(chain_data)) = stream.next().await {
                     for (filter, sender) in filters.iter() {
-                        if filter.which_chain() != chain {
+                        if filter.event_type().is_none() {
                             continue;
                         }
 
+                        if filter.chain() != chain
+                            && !chain_data.match_event_type(filter.event_type().unwrap())
+                        {
+                            continue;
+                        }
                         match &chain_data {
                             ChainData::Ethereum(EthereumData::BlockHeader(block_header)) => {
                                 if engine.evaluate_with_context(
