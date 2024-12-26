@@ -1,7 +1,9 @@
 use alloy_primitives::{Selector, U256};
-use std::cmp::PartialOrd;
+use std::{cmp::PartialOrd, sync::Arc};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use crate::config::Chain;
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum LogicalOp {
     And,
@@ -40,7 +42,7 @@ impl NumericType for U256 {
 }
 
 // Generic numeric condition that works with any numeric type
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum NumericCondition<T: NumericType> {
     GreaterThan(T),
     GreaterThanOrEqualTo(T),
@@ -52,7 +54,7 @@ pub enum NumericCondition<T: NumericType> {
     Outside(T, T),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ArrayCondition<T> {
     Contains(T),
     NotIn(Vec<T>),
@@ -60,7 +62,7 @@ pub enum ArrayCondition<T> {
     NotEmpty,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum StringCondition {
     EqualTo(String),
     Contains(String),
@@ -69,7 +71,7 @@ pub enum StringCondition {
     Matches(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 #[allow(dead_code)]
 pub enum FilterCondition {
     Transaction(TransactionCondition),
@@ -79,13 +81,13 @@ pub enum FilterCondition {
     DynField(DynFieldCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DynFieldCondition {
     pub(crate) path: String,
     pub(crate) condition: ValueCondition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ValueCondition {
     U64(NumericCondition<u64>),
     U128(NumericCondition<u128>),
@@ -93,7 +95,7 @@ pub enum ValueCondition {
     String(StringCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 #[allow(dead_code)]
 pub enum TransactionCondition {
     Gas(NumericCondition<u64>),
@@ -121,7 +123,7 @@ pub enum TransactionCondition {
     DynField(DynFieldCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum EventCondition {
     // String conditions
@@ -152,7 +154,7 @@ pub(crate) enum ContractCondition {
     Path(String, ValueCondition),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum PoolCondition {
     Hash(StringCondition),
@@ -164,7 +166,7 @@ pub enum PoolCondition {
     GasLimit(NumericCondition<u64>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
@@ -188,6 +190,49 @@ pub(crate) trait NodeBuilder {
     fn append_node(&mut self, condition: Self::Condition);
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
+pub(crate) enum EventType {
+    Transaction = 0,
+    LogEvent = 1,
+    BlockHeader = 2,
+    Pool = 3,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Filter {
+    chain: Chain,
+    event_type: Option<EventType>,
+    filter_node: Arc<FilterNode>,
+}
+
+#[allow(dead_code)]
+impl Filter {
+    pub(crate) fn new(
+        chain: Chain,
+        filter_node: Arc<FilterNode>,
+        event_type: Option<EventType>,
+    ) -> Self {
+        Self {
+            chain,
+            event_type,
+            filter_node,
+        }
+    }
+
+    pub(crate) fn chain(&self) -> Chain {
+        self.chain.clone()
+    }
+
+    pub(crate) fn event_type(&self) -> Option<EventType> {
+        self.event_type.clone()
+    }
+
+    pub fn filter_node(&self) -> Arc<FilterNode> {
+        self.filter_node.clone()
+    }
+}
+
 // [`FilterNode`] represents a hierarchical structure of logical filters used to evaluate
 // specific conditions. Each node in the tree represents a logical operator
 // (e.g., AND, OR) or a specific condition (e.g., Value > 100). The structure allows
@@ -199,7 +244,7 @@ pub(crate) trait NodeBuilder {
 //       [AND]             [AND]
 //      /     \           /     \
 // [Value > 100] [Gas < 50] [Contract] [Nonce > 5]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub struct FilterNode {
     pub children: Option<(LogicalOp, Vec<FilterNode>)>,

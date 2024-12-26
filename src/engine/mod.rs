@@ -2,6 +2,8 @@
 //! against complex filter trees, so we parallelize evaluation using Rayon workers
 //! for better performance.
 //!
+use std::sync::Arc;
+
 use context::EvaluationContext;
 use dashmap::DashMap;
 use evaluate::EvaluableData;
@@ -16,6 +18,7 @@ mod state;
 pub(crate) use state::DecodedData;
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct FilterEngine {
     state: State,
 }
@@ -60,7 +63,7 @@ impl FilterEngine {
         }
     }
 
-    pub fn evaluate_with_context<D>(&self, filter: &FilterNode, data: D) -> bool
+    pub fn evaluate_with_context<D>(&self, filter: &FilterNode, data: Arc<D>) -> bool
     where
         D: EvaluableData + Send + Sync,
     {
@@ -167,7 +170,7 @@ mod tests {
             value: None,
         };
 
-        let result = engine.evaluate_with_context(&filter, tx);
+        let result = engine.evaluate_with_context(&filter, Arc::new(tx));
         assert!(result, "Transaction should match the complex conditions");
     }
 
@@ -207,7 +210,7 @@ mod tests {
             value: None,
         };
 
-        let result = engine.evaluate_with_context(&filter, tx);
+        let result = engine.evaluate_with_context(&filter, Arc::new(tx));
         assert!(
             !result,
             "Transaction should not match Uniswap Router criteria"

@@ -26,6 +26,7 @@ pub struct DecodedContractCall {
     pub(crate) parameters: HashMap<String, Value>,
 }
 
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct State {
     pub(crate) decoded_data: DashMap<CacheKey, Arc<DecodedData>>,

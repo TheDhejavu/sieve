@@ -1,6 +1,5 @@
 # sieve
-A real-time data streaming & filtering engine for Ethereum & the superchain.
-
+A real-time data streaming engine with an expressive DSL for Ethereum & superchains
 
 ## Overview
 Sieve offers a simple and expressive way for filtering blockchain data streams and emitting events when specified conditions are met. We try to make sieve as humanly expressive as possible (comparable to "magic"). It's also an experiment - if it fails, we throw it away and rebuild from scratch. The major pain point is, we want you to be able to create listeners (streams from filters) dynamically (millions if possible) that emit events based on this. Let's imagine something: your user sends 100ETH on base chain and immediately you set up a listener on the fly to listen to this event on the base network and react accordingly. The listeners stay active till seen / timeouts. We also try to do alot of things like decoding data when we come accross fields with conditions that needs decoded data for evaluation, it's recommended to be explicit in this case by including correlated conditions to help Sieve understand exactly what to look for. However, without specific explicit instructions, Sieve falls back to heuristic approaches which, while functional, may impact performance.
@@ -15,7 +14,7 @@ The system ingests blockchain data through both RPC and Gossipsub protocols, eac
 
 It is composed of **three main components** that work together to provide a reliable block & transaction stream. 
 
-- Node Manager layer
+- Network layer
 - Connection Orchestrator
 - Ingestion Pipeline
 
@@ -61,13 +60,9 @@ let filter = FilterBuilder::new().transaction(|f| {
 **RPC Calls (*busy-polling*):**
 
 - Pending Transactions:
-    - `txpool_content`
     - `eth_newPendingTransactionFilter`
 - Block & Transactions:
     - `eth_getBlockByNumber`
-    - `eth_getBlockByHash`
-    - `eth_getLogs`
-    - `eth_getTransactionReceipt`
 
 **Gossipsub (*reactive*):**
 
@@ -132,29 +127,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
         // Optimisim chain....
-        ChainConfig::builder()
-            .rpc("https://mainnet.optimism.io")    
-            .ws("wss://ws-mainnet.optimism.io")     
+        ChainConfigBuilder::builder()
+            .rpc("https://mainnet.optimism.io/...")    
+            .ws("wss://ws-mainnet.optimism.io/...")     
             .gossipsub("/ip4/0.0.0.0/tcp/9000")    
             .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
-            .name(Chain::OPTIMISM),    
+            .chain(Chain::Optimisim)
+            .build(),    
 
         // Base chain.....
-        ChainConfig::builder()
+        ChainConfigBuilder::builder()
             .rpc("https://mainnet.base.org")        
-            .name(Chain::BASE),         
+            .chain(Chain::Base)
+            .build(),         
 
         // Ethereum chain....
-        ChainConfig::builder()
-            .rpc("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID") 
-            .name(Chain::ETHEREUM)                       
+        ChainConfigBuilder::builder()
+            .rpc("https://mainnet.infura.io/v3/...") 
+            .chain(Chain::Ethereum)   
+            .build(),                        
     ];
 
-    // 2. Create Sieve with configuration
-    let sieve = Sieve::builder()
-        .chains(chains)               
-        .worker_threads(4)           
-        .build()?;                   
+    // 2. Connect to chains via `Sieve`
+    let sieve = Sieve::connect(chains)?;                   
 
     // 3. Create Filter
    let pool_filter = FilterBuilder::new().pool(|f| {
@@ -172,13 +167,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(event) = stream.next().await {
         println!("Pool: {:?}", event);
     }
-
-    // 5. Schedule a task to process events after a delay
-    let scheduled = sieve.submit_after(
-        transfer_filter,             
-        |event| println!("Scheduled: {:?}", event),
-        Duration::from_secs(10)    
-    );
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 /// Chain configuration settings.
 #[allow(dead_code)]
-pub struct Chain {
+pub struct ChainConfig {
     /// RPC endpoint URL for the chain
     rpc_url: String,
 
@@ -12,6 +12,38 @@ pub struct Chain {
 
     /// List of bootstrap peer addresses in multiaddr format
     peers: Vec<String>,
+
+    /// Chain
+    chain: Chain,
+}
+
+impl ChainConfig {
+    pub fn rpc_url(&self) -> &String {
+        &self.rpc_url
+    }
+
+    pub fn ws_url(&self) -> &String {
+        &self.ws_url
+    }
+
+    pub fn gossipsub_url(&self) -> &String {
+        &self.gossipsub_url
+    }
+
+    pub fn peers(&self) -> &Vec<String> {
+        &self.peers
+    }
+    pub fn chain(&self) -> Chain {
+        self.chain.clone()
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum Chain {
+    Ethereum,
+    Optimism,
+    Base,
 }
 
 /// Builder for creating a Chain configuration.
@@ -28,16 +60,28 @@ pub struct ChainConfigBuilder {
 
     /// List of bootstrap peer addresses
     peers: Vec<String>,
+
+    /// Chain
+    chain: Option<Chain>,
 }
 
 #[allow(dead_code)]
 impl ChainConfigBuilder {
+    pub fn builder() -> ChainConfigBuilder {
+        ChainConfigBuilder {
+            gossipsub_url: None,
+            ws_url: None,
+            rpc_url: None,
+            peers: vec![],
+            chain: None,
+        }
+    }
     /// Sets the RPC endpoint URL for the chain configuration
     ///
     /// # Arguments
     /// * `rpc_url` - The RPC endpoint URL as a string
-    pub fn rpc(&mut self, rpc_url: String) -> &mut ChainConfigBuilder {
-        self.rpc_url = Some(rpc_url);
+    pub fn rpc(&mut self, rpc_url: &str) -> &mut ChainConfigBuilder {
+        self.rpc_url = Some(rpc_url.to_string());
         self
     }
 
@@ -45,8 +89,8 @@ impl ChainConfigBuilder {
     ///
     /// # Arguments
     /// * `ws_url` - The WebSocket endpoint URL as a string
-    pub fn ws(&mut self, ws_url: String) -> &mut ChainConfigBuilder {
-        self.ws_url = Some(ws_url);
+    pub fn ws(&mut self, ws_url: &str) -> &mut ChainConfigBuilder {
+        self.ws_url = Some(ws_url.to_string());
         self
     }
 
@@ -54,8 +98,8 @@ impl ChainConfigBuilder {
     ///
     /// # Arguments
     /// * `gossipsub_url` - The GossipSub endpoint URL as a string
-    pub fn gossipsub(&mut self, gossipsub_url: String) -> &mut ChainConfigBuilder {
-        self.gossipsub_url = Some(gossipsub_url);
+    pub fn gossipsub(&mut self, gossipsub_url: &str) -> &mut ChainConfigBuilder {
+        self.gossipsub_url = Some(gossipsub_url.to_string());
         self
     }
 
@@ -68,17 +112,27 @@ impl ChainConfigBuilder {
         self
     }
 
+    /// Sets the chain for the chain configuration
+    ///
+    /// # Arguments
+    /// * `peers` - Vector of peer addresses in multiaddr format
+    pub fn chain(&mut self, chain: Chain) -> &mut ChainConfigBuilder {
+        self.chain = Some(chain);
+        self
+    }
+
     /// Builds the final Chain configuration
-    pub fn build(self) -> Chain {
+    pub fn build(&mut self) -> ChainConfig {
         if self.gossipsub_url.is_none() || self.rpc_url.is_none() || self.ws_url.is_none() {
             panic!("at least one url is required.")
         }
 
-        Chain {
-            rpc_url: self.rpc_url.unwrap_or_default(),
-            ws_url: self.ws_url.unwrap_or_default(),
-            gossipsub_url: self.gossipsub_url.unwrap_or_default(),
-            peers: self.peers,
+        ChainConfig {
+            rpc_url: self.rpc_url.clone().unwrap_or_default(),
+            ws_url: self.ws_url.clone().unwrap_or_default(),
+            gossipsub_url: self.gossipsub_url.clone().unwrap_or_default(),
+            peers: self.peers.clone(),
+            chain: self.chain.clone().expect("chain is required."),
         }
     }
 }
@@ -104,6 +158,7 @@ impl Chain {
             ws_url: None,
             gossipsub_url: None,
             peers: vec![],
+            chain: None,
         }
     }
 }

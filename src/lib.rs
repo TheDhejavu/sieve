@@ -1,166 +1,228 @@
+pub mod cache;
 /// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
-use alloy_primitives::U256;
-use filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
-
-mod config;
-mod engine;
-pub mod filter;
-
+///
+pub mod config;
+pub(crate) mod engine;
+mod filter;
+pub(crate) mod ingest;
+pub(crate) mod network;
 mod utils;
 
-// Prelude module for convenient imports
+// prelude module for convenient imports
 pub mod prelude {
+    pub use crate::config::{Chain, ChainConfig, ChainConfigBuilder};
     pub use crate::engine::FilterEngine;
-    pub use crate::filter::conditions::FilterNode;
+    pub use crate::filter::conditions::{Filter, FilterNode};
     pub use crate::filter::{ArrayOps, FilterBuilder, LogicalOps, NumericOps, StringOps};
+    pub use crate::Sieve;
 }
 
-#[allow(dead_code)]
-fn main() {
-    //===============================================================================================
-    //                                     1. SIMPLE OR FILTER
-    //===============================================================================================
-    let _simple_or_filter = FilterBuilder::new().transaction(|f| {
-        f.or(|tx| {
-            tx.value().gt(U256::from(1000)); // Value > 1000
-            tx.gas_price().lt(50000); // OR Gas price < 50
-            tx.nonce().eq(5); // OR Nonce = 5
-        });
-    });
+use crate::config::ChainConfig;
+use alloy_rpc_types::{BlockTransactions, Header, Transaction};
+use engine::FilterEngine;
+use filter::conditions::{EventType, Filter};
+use futures::StreamExt;
+use ingest::Ingest;
+use network::orchestrator::{ChainData, EthereumData};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{broadcast, RwLock};
+use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
-    //===============================================================================================
-    //                              2. TRANSACTION PATTERN FILTER
-    //===============================================================================================
-    let _pattern_filter = FilterBuilder::new().transaction(|f| {
-        f.value().gt(U256::from(100));
+const BROADCAST_CHANNEL_SIZE: usize = 1_000;
 
-        f.all_of(|f| {
-            f.gas_price().between(50, 150);
-        });
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Event {
+    Transaction(Transaction),
+    Pool(Transaction),
+    Header(Header),
+}
 
-        f.or(|t| {
-            t.gas().gt(500000);
-            t.value().eq(U256::from(100));
-        });
-    });
+#[derive(Clone)]
+pub struct Sieve {
+    filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
+    engine: Arc<FilterEngine>,
+    ingest: Arc<Ingest>,
+}
 
-    //===============================================================================================
-    //                             3. MULTI-PROTOCOL MONITORING
-    //===============================================================================================
-    let _monitoring_filter = FilterBuilder::new().event(|f| {
-        // Monitor multiple tokens & DEX
-        f.any_of(|e| {
-            e.contract().exact("TetherToken");
-            e.contract().exact("UniswapV2Factory");
-            e.contract().exact("FiatTokenProxy");
-        });
+impl Sieve {
+    pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
+        let ingest = Arc::new(Ingest::new(chains).await);
+        let engine = Arc::new(FilterEngine::new());
+        let filters = Arc::new(RwLock::new(HashMap::new()));
 
-        // Monitor lending protocols
-        f.any_of(|e| {
-            e.contract().exact("Comp");
-            e.contract().exact("InitializableAdminUpgradeabilityProxy");
-            e.contract()
-                .exact("0xdAC17F958D2ee523a2206206994597C13D831ec7");
-            e.topics().contains(
-                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".to_string(),
-            );
+        let sieve = Self {
+            engine,
+            ingest,
+            filters,
+        };
 
-            let mut sig =
-                e.signature("Transfer(address indexed from,address indexed to,uint256 value)");
-            sig.params("value1").gt(100_u128);
-            sig.params("value2").gt(200_u128);
-        });
-    });
+        sieve.start_chain_processors().await?;
+        Ok(sieve)
+    }
 
-    //===============================================================================================
-    //                            4. COMPREHENSIVE TRANSACTION FILTER
-    //===============================================================================================
-    let _comprehensive_filter = FilterBuilder::new().transaction(|f| {
-        // Basic transaction numeric fields
-        f.any_of(|t| {
-            t.value().gt(U256::from(1000000));
-            t.gas_price().lt(50_000_000_000);
-            t.gas().between(21000, 100000);
-            t.nonce().eq(5);
+    pub async fn subscribe(
+        &self,
+        filter: Filter,
+    ) -> Result<BroadcastStream<Event>, Box<dyn std::error::Error>> {
+        let mut filters = self.filters.write().await;
+        let sender = filters
+            .entry(filter.clone())
+            .or_insert_with(|| broadcast::channel(BROADCAST_CHANNEL_SIZE).0);
 
-            t.access_list()
-                .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e".to_string());
-        });
+        let receiver = sender.subscribe();
+        Ok(BroadcastStream::new(receiver))
+    }
 
-        // EIP-1559 fields
-        f.any_of(|t| {
-            t.max_fee_per_gas().lt(100_000_000_000);
-            t.max_priority_fee().lt(2_000_000_000);
-            t.tx_type().eq(2);
-        });
+    async fn start_chain_processors(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut processor_handles = Vec::new();
 
-        // Block and chain fields
-        f.any_of(|t| {
-            t.block_number().gt(1000000);
-            t.index().lt(100);
-            t.chain_id().eq(1);
+        for chain in self.ingest.active_chains() {
+            let stream = self.ingest.subscribe_stream(chain.clone()).await?;
+            let engine = self.engine.clone();
+            let filters = self.filters.clone();
+
+            let handle = tokio::spawn(async move {
+                Self::run_chain_processor(stream, engine, filters).await;
+            });
+
+            processor_handles.push(handle);
+        }
+
+        tokio::spawn(async move {
+            for handle in processor_handles {
+                if let Err(e) = handle.await {
+                    eprintln!("Chain processor failed: {}", e);
+                }
+            }
         });
 
-        // Address and hash fields
-        f.or(|t| {
-            t.from().starts_with("0xdead");
-            t.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-            t.hash().contains("abc");
-            t.block_hash().starts_with("0x0");
+        Ok(())
+    }
+
+    async fn run_chain_processor(
+        mut stream: impl StreamExt<Item = Result<ChainData, BroadcastStreamRecvError>> + Unpin,
+        engine: Arc<FilterEngine>,
+        filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
+    ) {
+        while let Some(Ok(chain_data)) = stream.next().await {
+            let filters = filters.read().await;
+            for (filter, sender) in filters.iter() {
+                if filter.event_type().is_none() {
+                    continue;
+                }
+
+                match &chain_data {
+                    ChainData::Ethereum(EthereumData::Block(block)) => {
+                        if filter.event_type() == Some(EventType::Transaction) {
+                            if let BlockTransactions::Full(transactions) = &block.transactions {
+                                for transaction in transactions {
+                                    if engine.evaluate_with_context(
+                                        filter.filter_node().as_ref(),
+                                        Arc::new(transaction.clone()),
+                                    ) {
+                                        let _ =
+                                            sender.send(Event::Transaction(transaction.clone()));
+                                    }
+                                }
+                            }
+                        }
+
+                        if filter.event_type() == Some(EventType::BlockHeader)
+                            && engine.evaluate_with_context(
+                                filter.filter_node().as_ref(),
+                                Arc::new(block.header.clone()),
+                            )
+                        {
+                            let _ = sender.send(Event::Header(block.header.clone()));
+                        }
+                    }
+                    ChainData::Ethereum(_) => (),
+                }
+            }
+        }
+    }
+    #[allow(dead_code)]
+    async fn subscriber_count(&self, filter: &Filter) -> usize {
+        self.filters
+            .read()
+            .await
+            .get(filter)
+            .map(|sender| sender.receiver_count())
+            .unwrap_or(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy_primitives::U256;
+    use config::{Chain, ChainConfigBuilder};
+    use filter::{FilterBuilder, LogicalOps, NumericOps, StringOps};
+    use futures::StreamExt;
+    use tokio::time::{sleep, Duration};
+
+    #[tokio::test]
+    async fn test_multiple_subscribers() -> Result<(), Box<dyn std::error::Error>> {
+        // 1. Chain Configuration
+        let chains = vec![ChainConfigBuilder::builder()
+            .rpc("https://ethereum-holesky-rpc.publicnode.com")
+            .ws("wss://ws-mainnet.optimism.io")
+            .gossipsub("/ip4/0.0.0.0/tcp/9000")
+            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000".to_string()])
+            .chain(Chain::Ethereum)
+            .build()];
+
+        // 2. Connect to chains via `Sieve`
+        let sieve = Sieve::connect(chains).await?;
+
+        // 3. Create Filter
+        let pool_filter = FilterBuilder::new().pool(|f| {
+            f.any_of(|p| {
+                p.value().gt(U256::from(100u64));
+                p.from().starts_with("0xdead");
+                p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+            });
         });
-    });
 
-    //===============================================================================================
-    //                            5. POOL FILTER
-    //===============================================================================================
-    let _pool_filter = FilterBuilder::new().pool(|f| {
-        f.any_of(|p| {
-            // High value pending transaction
-            p.value().gt(U256::from(1000000000000000000u64));
-            // Specific sender/receiver
-            p.from().starts_with("0xdead");
-            p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-        });
-    });
+        // Create two subscribers
+        let mut sub1 = sieve.subscribe(pool_filter.clone()).await?;
+        let mut sub2 = sieve.subscribe(pool_filter.clone()).await?;
 
-    //===============================================================================================
-    //                            6. BLOCK HEADER FILTER
-    //===============================================================================================
-    let _block_filter = FilterBuilder::new().block_header(|f| {
-        f.or(|b| {
-            b.gas_limit().gt(100);
-            b.hash().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-            b.state_root()
-                .contains("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+        // Verify we have two subscribers
+        assert_eq!(sieve.subscriber_count(&pool_filter).await, 2);
 
-            b.receipts_root().starts_with("0xdead");
-            b.base_fee().gt(100);
-
-            b.gas_used().lt(1000);
-        });
-    });
-
-    //===============================================================================================
-    //                            7. L2 FILTER
-    //===============================================================================================
-    let _filter = FilterBuilder::new().optimism(|op| {
-        op.field("l1BlockNumber").gt(1000000000000000000u128);
-
-        op.field("l1TxOrigin").starts_with("0x");
-        op.field("queueIndex").lt(100u64);
-
-        // L2 block fields
-        op.field("sequenceNumber").gt(500u64);
-        op.field("prevTotalElements").between(1000u64, 2000u64);
-
-        op.any_of(|f| {
-            f.field("l1BlockNumber").gt(1000000000000000000u128);
-            f.field("l1TxOrigin").starts_with("0x");
+        let sub1_task = tokio::spawn(async move {
+            let msg = sub1.next().await;
+            msg.and_then(|r| r.ok())
         });
 
-        op.all_of(|f| {
-            f.field("sequenceNumber").gt(500u64);
-            f.field("batch.index").gt(100u128);
+        let sub2_task = tokio::spawn(async move {
+            let msg = sub2.next().await;
+            msg.and_then(|r| r.ok())
         });
-    });
+
+        // Ensure subscribers are ready
+        sleep(Duration::from_millis(100)).await;
+
+        if let Some(sender) = sieve.filters.read().await.get(&pool_filter) {
+            let test_data = Event::Header(Header::default());
+            sender.send(test_data.clone())?;
+
+            // Wait for both subscribers to receive the message
+            let (msg1, msg2) = tokio::join!(sub1_task, sub2_task);
+
+            // Verify both subscribers received the same data
+            assert!(msg1.is_ok());
+            assert!(msg2.is_ok());
+
+            let msg1 = msg1.unwrap();
+            let msg2 = msg2.unwrap();
+
+            assert!(msg1.is_some());
+            assert!(msg2.is_some());
+            assert_eq!(msg1, msg2);
+        }
+        Ok(())
+    }
 }

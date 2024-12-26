@@ -3,7 +3,7 @@ use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSigna
 use alloy_rpc_types::{AccessList, Transaction};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand::{thread_rng, Rng};
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use sieve::prelude::*;
 
@@ -17,7 +17,7 @@ fn generate_random_address() -> String {
     address
 }
 
-fn generate_best_case_filter() -> FilterNode {
+fn generate_best_case_filter() -> Filter {
     FilterBuilder::new().transaction(|tx| {
         tx.value().gt(U256::from(u64::MAX));
         tx.to().exact("0xdead000000000000000000000000000000000000");
@@ -25,7 +25,7 @@ fn generate_best_case_filter() -> FilterNode {
     })
 }
 
-fn generate_worst_case_filter() -> FilterNode {
+fn generate_worst_case_filter() -> Filter {
     let mut rng = thread_rng();
     // Constructs complex filter definitions for worst-case performance testing.
     // While more complex than typical real-world usage, we use `any_of`/`or`
@@ -140,7 +140,10 @@ fn bench_filter_evaluation(c: &mut Criterion) {
                 b.iter(|| {
                     for tx in txs {
                         for filter in filters {
-                            criterion::black_box(engine.evaluate_with_context(filter, tx.clone()));
+                            criterion::black_box(engine.evaluate_with_context(
+                                filter.filter_node().as_ref(),
+                                Arc::new(tx.clone()),
+                            ));
                         }
                     }
                 });
@@ -155,7 +158,10 @@ fn bench_filter_evaluation(c: &mut Criterion) {
                 b.iter(|| {
                     for tx in txs {
                         for filter in filters {
-                            criterion::black_box(engine.evaluate_with_context(filter, tx.clone()));
+                            criterion::black_box(engine.evaluate_with_context(
+                                filter.filter_node().as_ref(),
+                                Arc::new(tx.clone()),
+                            ));
                         }
                     }
                 });
