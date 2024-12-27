@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 4. Subscribe to stream
     let mut stream = sieve.subscribe(pool_filter.clone());
-    while let Some(event) = stream.next().await {
+    while let Some(Ok(event)) = stream.next().await {
         println!("Pool: {:?}", event);
     }
 
@@ -217,7 +217,7 @@ fn main() {
     let mut stream = sieve.subscribe(eth_filter);
 
     // Process incoming events from the subscription
-    while let Some(event) = stream.next().await {
+    while let Some(Ok(event)) = stream.next().await {
         println!("{:?} new event", event);
     }
 }
@@ -235,7 +235,7 @@ fn main() {
     let mut stream = sieve.subscribe_all([eth_filter, op_filter]);
 
     // Process incoming events from the stream
-    while let Some(event) = stream.next().await {
+    while let Some(Ok(event)) = stream.next().await {
         println!("{:?} new event", event);
     }
 }
