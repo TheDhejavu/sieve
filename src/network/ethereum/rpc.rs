@@ -11,8 +11,9 @@ use std::{
     time::Duration,
 };
 
+use alloy_primitives::U256;
 use alloy_provider::{Provider, ProviderBuilder, RootProvider};
-use alloy_rpc_types::{BlockId, BlockNumberOrTag, BlockTransactionsKind, Transaction};
+use alloy_rpc_types::{BlockId, BlockNumberOrTag, BlockTransactionsKind};
 use alloy_transport_http::Http;
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
@@ -49,7 +50,11 @@ impl Stream for BlockStream {
             match fut.as_mut().poll(cx) {
                 Poll::Ready(item) => {
                     *this.future = None;
-                    return Poll::Ready(item);
+                    if item.is_some() {
+                        return Poll::Ready(item);
+                    }
+                    // continue polling
+                    return self.poll_next(cx);
                 }
                 Poll::Pending => return Poll::Pending,
             }
@@ -89,7 +94,9 @@ impl Stream for BlockStream {
 pin_project! {
     struct PendingTxPoolStream {
         provider: Arc<RootProvider<Http<Client>>>,
-        tx_stream: Pin<Box<dyn Stream<Item = Vec<Transaction>> + Send>>,
+        filter_id: U256,
+        interval: time::Interval,
+        future: Option<Pin<Box<dyn Future<Output = Option<ChainData>> + Send>>>,
     }
 }
 
@@ -98,15 +105,13 @@ impl PendingTxPoolStream {
         provider: Arc<RootProvider<Http<Client>>>,
         poll_interval: Duration,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // Get the poller and configure it with our interval
-        let mut poller = provider.watch_full_pending_transactions().await?;
-
-        poller.set_poll_interval(poll_interval);
-        let stream = poller.into_stream();
+        let filter_id = provider.new_pending_transactions_filter(false).await?;
 
         Ok(Self {
+            interval: time::interval(poll_interval),
+            future: None,
             provider,
-            tx_stream: Box::pin(stream),
+            filter_id,
         })
     }
 }
@@ -114,13 +119,41 @@ impl PendingTxPoolStream {
 impl Stream for PendingTxPoolStream {
     type Item = ChainData;
 
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let this = self.project();
-        match this.tx_stream.as_mut().poll_next(cx) {
-            Poll::Ready(Some(txs)) => Poll::Ready(Some(ChainData::Ethereum(
-                EthereumData::TransactionPool(txs),
-            ))),
-            Poll::Ready(None) => Poll::Ready(None),
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.as_mut().project();
+        if let Some(fut) = this.future {
+            match fut.as_mut().poll(cx) {
+                Poll::Ready(item) => {
+                    *this.future = None;
+                    if item.is_some() {
+                        return Poll::Ready(item);
+                    }
+                    // If no transaction was found, continue polling
+                    return self.poll_next(cx);
+                }
+                Poll::Pending => return Poll::Pending,
+            }
+        }
+
+        match this.interval.poll_tick(cx) {
+            Poll::Ready(_) => {
+                let provider = this.provider.clone();
+                let filter_id = *this.filter_id;
+
+                *this.future = Some(Box::pin(async move {
+                    if let Ok(changes) = provider.get_filter_changes(filter_id).await {
+                        for tx_hash in changes {
+                            if let Ok(Some(tx)) = provider.get_transaction_by_hash(tx_hash).await {
+                                return Some(ChainData::Ethereum(EthereumData::TransactionPool(
+                                    tx,
+                                )));
+                            }
+                        }
+                    }
+                    None
+                }));
+                self.poll_next(cx)
+            }
             Poll::Pending => Poll::Pending,
         }
     }
@@ -195,17 +228,17 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
         });
 
         // Start txpool polling stream
-        let mut txpool_stream = self.pending_tx_pool_stream().await;
+        let mut pending_tx_stream = self.pending_tx_pool_stream().await;
         let pool_tx = tx.clone();
         let pool_is_running = self.is_running.clone();
 
         let pool_task = tokio::spawn(async move {
-            while let Some(transaction_data) = txpool_stream.next().await {
-                debug!("new pending transaction: {transaction_data:#?}");
+            while let Some(tx) = pending_tx_stream.next().await {
+                debug!("new pending transaction: {tx:#?}");
                 if !pool_is_running.load(Ordering::Relaxed) {
                     break;
                 }
-                let _ = pool_tx.send(transaction_data).await;
+                let _ = pool_tx.send(tx).await;
             }
         });
 

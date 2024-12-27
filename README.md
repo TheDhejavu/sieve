@@ -2,10 +2,10 @@
 <!-- [![CICD](https://github.com/thedhejavu/sieve/actions/workflows/CI.yml/badge.svg)](https://github.com/TheDhejavu/sieve/actions/workflows/CI.yml) -->
 ![minimum rustc 1.81](https://img.shields.io/badge/rustc-1.81.0+-red.svg)
 
+A real-time data streaming engine with an expressive DSL for Ethereum & superchains
 
 ![Banner](docs/images/banner.png)
 
-A real-time data streaming engine with an expressive DSL for Ethereum & superchains
 
 ## Overview
 Sieve offers a simple and expressive way for filtering blockchain data streams and emitting events when specified conditions are met. We try to make sieve as humanly expressive as possible. It's also an experiment - if it fails, we throw it away and rebuild from scratch. The major pain point is, we want you to be able to create listeners (streams from filters) dynamically (millions if possible) that emit events based on this. Let's imagine something: your user sends 100ETH on base chain and immediately you set up a listener on the fly to listen to this event on the base network and react accordingly. The listeners stay active till seen / timeouts. We also try to do alot of things like decoding data when we come accross fields with conditions that needs decoded data for evaluation, it's recommended to be explicit in this case by including correlated conditions to help Sieve understand exactly what to look for. However, without specific explicit instructions, Sieve falls back to heuristic approaches which, while functional, may impact performance.

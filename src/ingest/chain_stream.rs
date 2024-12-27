@@ -37,37 +37,28 @@ impl ChainStream {
         data: ChainData,
     ) -> Result<(), Box<dyn std::error::Error>> {
         match data {
-            ChainData::Ethereum(eth_data) => {
-                match eth_data {
-                    EthereumData::Block(block) => {
-                        let block_id = format!("{:?}-{:?}", block.header.number, block.header.hash);
+            ChainData::Ethereum(eth_data) => match eth_data {
+                EthereumData::Block(block) => {
+                    let block_id = format!("{:?}-{:?}", block.header.number, block.header.hash);
 
-                        let mut cache = self.block_header_cache.write().await;
-                        if cache.put(block_id, ()).is_none() {
-                            let _ = self
-                                .sender
-                                .send(ChainData::Ethereum(EthereumData::Block(block)));
-                        }
-                    }
-                    EthereumData::TransactionPool(txs) => {
-                        let mut unique_txs = Vec::new();
-                        let mut cache = self.tx_cache.write().await;
-
-                        for tx in txs {
-                            let tx_id = format!("{:?}-{:?}", tx.transaction_index, tx.block_hash);
-                            if cache.put(tx_id, ()).is_none() {
-                                unique_txs.push(tx);
-                            }
-                        }
-
-                        if !unique_txs.is_empty() {
-                            let _ = self.sender.send(ChainData::Ethereum(
-                                EthereumData::TransactionPool(unique_txs),
-                            ));
-                        }
+                    let mut cache = self.block_header_cache.write().await;
+                    if cache.put(block_id, ()).is_none() {
+                        let _ = self
+                            .sender
+                            .send(ChainData::Ethereum(EthereumData::Block(block)));
                     }
                 }
-            }
+                EthereumData::TransactionPool(tx) => {
+                    let mut cache = self.tx_cache.write().await;
+
+                    let tx_id = format!("{:?}-{:?}", tx.transaction_index, tx.block_hash);
+                    if cache.put(tx_id, ()).is_none() {
+                        let _ = self
+                            .sender
+                            .send(ChainData::Ethereum(EthereumData::TransactionPool(tx)));
+                    }
+                }
+            },
         }
         Ok(())
     }

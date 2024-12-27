@@ -11,7 +11,7 @@ pub enum ChainData {
 #[derive(Debug, PartialEq, Clone)]
 pub enum EthereumData {
     Block(Block),
-    TransactionPool(Vec<RpcTransaction>),
+    TransactionPool(RpcTransaction),
 }
 
 /// [`ChainOrchestrator`] Orchestrates the lifecycle of chain data polling and retrieval.
