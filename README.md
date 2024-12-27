@@ -195,13 +195,11 @@ fn main() {
                 tx.value().gt(U256::from(1000));
                 tx.gas_price().lt(50000);
             });
-        })
-        .build();
+        });
 
     // Single chain (L2 - Optimisim)
     let op_filter = FilterBuilder::new()
-        .optimism(|op| op.field("l1BlockNumber").gt(2000))
-        .build();
+        .optimism(|op| op.field("l1BlockNumber").gt(2000));
 }
 ```
 

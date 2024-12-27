@@ -149,8 +149,7 @@ impl Chain {
     ///     .gossipsub("/ip4/0.0.0.0/tcp/9000".to_string())
     ///     .bootstrap_peers(vec![
     ///          "/ip4/x.x.x.x/tcp/9000/p2p/QmPeer1...".to_string()
-    ///      ])
-    ///     .build();
+    ///      ]);
     /// ```
     pub fn builder() -> ChainConfigBuilder {
         ChainConfigBuilder {
