@@ -206,6 +206,10 @@ fn main() {
 ```
 
 ## Stream Listeners
+
+## Subsribe
+subscribe allows you to subsribe to any kind of events (transaction, header e.t.c) based on specified filter conditions.
+
 **Subsribe:**
 ```rust
 use sieve::{FilterBuilder, NumericOps, StringOps};
@@ -240,9 +244,17 @@ fn main() {
 
 ```
 
-**Watch Within:**
-The `watch_within` context allows for time-bounded cross-chain correlation
+### Watch Within
 
+`watch_within` is a context that enables time-bounded event monitoring across different data sources. Unlike standard filters that only process events from the latest block / data, `watch_within` maintains an active time window to detect correlated patterns.
+
+it continues monitoring until either:
+- All filter conditions are met within the time window
+- The time window expires without finding all matches
+
+This makes it ideal for scenarios requiring temporal correlation across different data sources, such as **cross-chain operations**, **multi-step transactions**, or **time-sensitive pattern detection**.
+
+**Sample**
 ```rust
 use sieve::{FilterBuilder, NumericOps, StringOps};
 
@@ -250,20 +262,24 @@ fn main() {
     // Create an event stream monitored within a 30-minute time window
     let mut stream = sieve.watch_within(
         Duration::from_secs(1800), // Define a 30-minute time window
-        eth_filter,                // Filter for Ethereum-related events
-        op_filter                  // Filter for operation-related events
+        [
+            eth_filter,   // Filter for Ethereum-related events
+            op_filter     // Filter for operation-related events
+        ],                            
     );
 
     // Process incoming events from the stream
     while let Some(event) = stream.next().await {
         match event {
             // Handle matched events within the time window
-            Event::Match { l1_event, l2_event } => {
-                println!("Matched events within time window");
+            Event::Match(events) => {
+                // let l1_event = events[0];
+                // let l2_event = events[1];
+                println!("Found matching events within time window");
             }
             // Handle events that timed out without a match
             Event::Timeout(_) => {
-                println!("Event timed out");
+                println!("Time window expired without finding all matches");
             }
         }
     }
