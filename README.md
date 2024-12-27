@@ -246,7 +246,7 @@ fn main() {
 
 ### Watch Within
 
-`watch_within` is a context that enables time-bounded event monitoring across different data sources. Unlike standard filters that only process events from the latest block / data, `watch_within` maintains an active time window to detect correlated patterns.
+**`watch_within`** is a context that enables time-bounded event monitoring across different data sources. Unlike standard filters that only process events from the latest block / data, **`watch_within`** maintains an active time window to detect correlated patterns.
 
 it continues monitoring until either:
 - All filter conditions are met within the time window
