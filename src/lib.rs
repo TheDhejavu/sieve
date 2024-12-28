@@ -1,6 +1,5 @@
-pub mod cache;
 /// ! Sieve is a real-time data streaming and filtering engine for ethereum & the superchain
-///
+pub(crate) mod cache;
 pub mod config;
 pub(crate) mod engine;
 mod filter;
@@ -173,8 +172,8 @@ impl FilterGroup {
 pub(crate) struct Window {
     /// Time when this window expires
     expires_at: Instant,
-    /// Events matched against filters, None means filter not yet matched
-    /// Index in the vec corresponds to the original filter position
+    /// Events matched against filters, None means filter not yet matched and
+    /// Index in the vector corresponds to the original filter position.
     matched_events: Vec<Option<Event>>,
     /// Count of remaining unmatched filters
     remaining_matches: usize,
@@ -210,10 +209,12 @@ impl Window {
                 self.remaining_matches -= 1;
 
                 if self.remaining_matches == 0 {
-                    return Some(self.matched_events
-                        .iter()
-                        .filter_map(|e| e.clone())
-                        .collect());
+                    return Some(
+                        self.matched_events
+                            .iter()
+                            .filter_map(|e| e.clone())
+                            .collect(),
+                    );
                 }
             }
         }

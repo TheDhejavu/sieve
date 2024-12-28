@@ -6,6 +6,9 @@ use crate::network::orchestrator::{ChainData, EthereumData};
 
 use super::Chain;
 
+/// [`ChainStream`] manages the processing and broadcasting of chain data,
+/// implementing caching mechanisms and provieds functionality to deduplicate
+/// and broadcast chain events to multiple subscribers
 #[derive(Clone)]
 #[allow(dead_code)]
 pub(crate) struct ChainStream {
@@ -17,6 +20,7 @@ pub(crate) struct ChainStream {
 
 #[allow(dead_code)]
 impl ChainStream {
+    /// Creates a new [`ChainStream`] instance with specified chain.
     pub fn new(chain: Chain) -> Self {
         let (sender, _) = broadcast::channel(100);
 
@@ -31,7 +35,8 @@ impl ChainStream {
             ))),
         }
     }
-
+    /// Processes incoming chain data, caching and broadcasting new blocks and transactions.
+    /// Implements deduplication using LRU cache to prevent broadcasting duplicate events.
     pub(crate) async fn process_data(
         &self,
         data: ChainData,
@@ -63,14 +68,17 @@ impl ChainStream {
         Ok(())
     }
 
+    /// Creates a new subscription to the chain data broadcast channel.
     pub fn subscribe(&self) -> broadcast::Receiver<ChainData> {
         self.sender.subscribe()
     }
 
+    /// Checks if a block with the given ID has been processed.
     pub async fn has_seen_block(&self, block_id: &str) -> bool {
         self.block_header_cache.read().await.contains(block_id)
     }
 
+    /// Checks if a transaction with the given ID has been processed.
     pub async fn has_seen_tx(&self, tx_id: &str) -> bool {
         self.tx_cache.read().await.contains(tx_id)
     }

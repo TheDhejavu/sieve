@@ -22,12 +22,17 @@ pub enum DecodedData {
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct DecodedContractCall {
+    /// Name of the called contract method
     pub(crate) method: String,
+    /// Decoded parameters as key-value pairs
     pub(crate) parameters: HashMap<String, Value>,
 }
 
+/// Holds shared state for decoded data caching
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct State {
+    /// Thread-safe cache mapping CacheKeys to decoded data.
+    /// Uses DashMap for concurrent access without explicit locking
     pub(crate) decoded_data: DashMap<CacheKey, Arc<DecodedData>>,
 }

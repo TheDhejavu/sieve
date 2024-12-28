@@ -8,17 +8,25 @@ use alloy_primitives::{keccak256, Selector};
 use alloy_rpc_types::{Header, Log, Transaction as RpcTransaction};
 use std::sync::Arc;
 
+/// Trait for data types that can be evaluated against filter conditions
+///
+/// This trait allows different types of ethereum & superchain data (transactions, blocks, etc.)
+/// to be evaluated against filter conditions in a uniform way, with support for
+/// caching decoded data to improve performance.
 pub trait EvaluableData {
-    // Check if we should proceed with full evaluation
+    /// Performs initial check before full evaluation
     fn pre_evaluate(&self, _condition: &FilterCondition) -> bool {
         true
     }
 
+    /// Generates a unique key for caching decoded data
     fn cache_key(&self) -> CacheKey;
 
+    /// Evaluates the data against a filter condition
     fn evaluate(&self, condition: &FilterCondition, decoded_data: Option<Arc<DecodedData>>)
         -> bool;
 
+    /// Decodes raw data for evaluation if needed
     fn decode_data(&self, condition: &FilterCondition) -> Option<Arc<DecodedData>>;
 }
 

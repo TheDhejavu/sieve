@@ -37,18 +37,23 @@ const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 #[allow(dead_code)]
 struct ChainState {
+    /// Stream handler for processing and broadcasting chain data
     chain_stream: Arc<ChainStream>,
+    /// Chain-specific orchestrator implementation
     orchestrator: Box<dyn ChainOrchestrator>,
+    /// Handle to the async task processing incoming chain data
     handle: JoinHandle<()>,
 }
 
+/// Main coordinator for ingesting and managing chain (l2, ethereum) data streams.
+/// Handles multiple chains simultaneously, providing unified access to their data streams.
 pub struct Ingest {
     chain_states: HashMap<Chain, ChainState>,
 }
 
 #[allow(dead_code)]
 impl Ingest {
-    //
+    /// Creates a new [`Ingest`] instance with the specified chain configurations.
     pub(crate) async fn new(configs: Vec<ChainConfig>) -> Self {
         let mut chain_states = HashMap::new();
 
@@ -57,6 +62,8 @@ impl Ingest {
 
             match config.chain() {
                 Chain::Ethereum => {
+                    let chain_stream = Arc::new(ChainStream::new(chain.clone()));
+
                     // Start RPC orchestrator if configured...
                     if !config.rpc_url().is_empty() {
                         let orchestrator = EthereumRpcOrchestrator::new(
@@ -66,7 +73,6 @@ impl Ingest {
                         )
                         .unwrap();
 
-                        let chain_stream = Arc::new(ChainStream::new(chain.clone()));
                         let mut orchestrator = Box::new(orchestrator);
                         let mut receiver = orchestrator.start().await.unwrap();
 
@@ -96,7 +102,6 @@ impl Ingest {
     }
     /// Subscribe to chain data as a Stream, allowing for ergonomic async operations
     /// and stream combinators.
-    ///
     pub async fn subscribe_stream(
         &self,
         chain: Chain,
@@ -144,7 +149,7 @@ impl Ingest {
         Ok(())
     }
 
-    // Returns a list of active chains.
+    /// Returns a list of currently active chains.
     pub fn active_chains(&self) -> Vec<Chain> {
         self.chain_states.keys().cloned().collect::<Vec<Chain>>()
     }
