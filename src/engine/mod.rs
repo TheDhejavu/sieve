@@ -34,7 +34,7 @@ impl FilterEngine {
     pub fn new() -> Self {
         Self {
             state: State {
-                decoded_data: DashMap::new(),
+                decoded_data: Arc::new(DashMap::new()),
             },
         }
     }

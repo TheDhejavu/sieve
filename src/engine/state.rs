@@ -34,5 +34,5 @@ pub struct DecodedContractCall {
 pub struct State {
     /// Thread-safe cache mapping CacheKeys to decoded data.
     /// Uses DashMap for concurrent access without explicit locking
-    pub(crate) decoded_data: DashMap<CacheKey, Arc<DecodedData>>,
+    pub(crate) decoded_data: Arc<DashMap<CacheKey, Arc<DecodedData>>>,
 }
