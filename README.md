@@ -6,7 +6,6 @@ A real-time data streaming engine with an expressive DSL for Ethereum & supercha
 
 ![Banner](docs/images/banner.png)
 
-
 ## Overview
 Sieve offers a simple and expressive way for filtering blockchain data streams and emits events when specified conditions are met. We try to make sieve as humanly expressive as possible. It's also an experiment - if it fails, we throw it away and rebuild from scratch. The major pain point is, we want you to be able to create listeners (streams from filters) dynamically (millions if possible) that emit events based on this. Let's imagine something: your user sends 100ETH on base chain and immediately you set up a listener on the fly to listen to this event on the base network and react accordingly. The listeners stay active till seen / timeouts. We also try to do alot of things like decoding data when we come accross fields with conditions that needs decoded data for evaluation, it's recommended to be explicit in this case by including correlated conditions to help Sieve understand exactly what to look for. However, without specific explicit instructions, Sieve falls back to heuristic approaches which, while functional, may impact performance.
 
@@ -267,7 +266,7 @@ fn main() {
     );
 
     // Process incoming events from the stream
-    while let Some(event) = stream.next().await {
+    while let Some(Ok(event)) = stream.next().await {
         match event {
             // Handle matched events within the time window
             Event::Match(events) => {
@@ -276,7 +275,7 @@ fn main() {
                 println!("Found matching events within time window");
             }
             // Handle events that timed out without a match
-            Event::Timeout(_) => {
+            Event::Timeout => {
                 println!("Time window expired without finding all matches");
             }
         }

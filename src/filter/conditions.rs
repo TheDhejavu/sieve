@@ -1,5 +1,12 @@
 use alloy_primitives::{Selector, U256};
-use std::{cmp::PartialOrd, sync::Arc};
+use std::{
+    cmp::PartialOrd,
+    hash::Hash,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
 
 use crate::config::Chain;
 
@@ -201,27 +208,35 @@ pub(crate) enum EventType {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Filter {
+    id: u64,
     chain: Chain,
     event_type: Option<EventType>,
     filter_node: Arc<FilterNode>,
 }
 
-#[allow(dead_code)]
+static FILTER_SEQ: AtomicU64 = AtomicU64::new(0);
 impl Filter {
     pub(crate) fn new(
         chain: Chain,
         filter_node: Arc<FilterNode>,
         event_type: Option<EventType>,
     ) -> Self {
+        let id = FILTER_SEQ.fetch_add(1, Ordering::SeqCst);
         Self {
+            id,
             chain,
             event_type,
             filter_node,
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn chain(&self) -> Chain {
         self.chain.clone()
+    }
+
+    pub(crate) fn id(&self) -> u64 {
+        self.id
     }
 
     pub(crate) fn event_type(&self) -> Option<EventType> {
