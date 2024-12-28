@@ -123,14 +123,12 @@ impl FilterGroup {
     }
 }
 
-
 #[derive(Clone)]
 pub struct Sieve {
     filters: Arc<RwLock<HashMap<u64, FilterGroup>>>,
     engine: Arc<FilterEngine>,
     ingest: Arc<Ingest>,
 }
-
 
 impl Sieve {
     pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
