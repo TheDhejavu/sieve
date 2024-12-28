@@ -326,7 +326,7 @@ impl Sieve {
     pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
         let ingest = Arc::new(Ingest::new(chains).await);
         let engine = Arc::new(FilterEngine::new());
-        let filters: Arc<RwLock<HashMap<u64, FilterGroup>>> = Arc::new(RwLock::new(HashMap::new()));
+        let filters = Arc::new(RwLock::new(HashMap::new()));
 
         let window_manager = Arc::new(WindowManager::new(
             Duration::from_secs(1),
