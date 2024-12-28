@@ -284,5 +284,9 @@ fn main() {
 
 ```
 
+## Todo
+- Add More chains (l2's)
+- Improve Streaming layer (rpc & gossipsub)
+
 ## Status
 🚧 Experimental - Not ready for production use 
