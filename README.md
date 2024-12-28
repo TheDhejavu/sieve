@@ -266,7 +266,7 @@ fn main() {
     );
 
     // Process incoming events from the stream
-    while let Some(event) = stream.next().await {
+    while let Some(Ok(event)) = stream.next().await {
         match event {
             // Handle matched events within the time window
             Event::Match(events) => {
@@ -275,7 +275,7 @@ fn main() {
                 println!("Found matching events within time window");
             }
             // Handle events that timed out without a match
-            Event::Timeout(_) => {
+            Event::Timeout => {
                 println!("Time window expired without finding all matches");
             }
         }

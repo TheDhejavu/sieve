@@ -173,22 +173,24 @@ impl FilterGroup {
 pub(crate) struct Window {
     /// Time when this window expires
     expires_at: Instant,
-    /// List of filter IDs that have found matches
-    matched_filters: Vec<u64>,
-    /// List of filter IDs still waiting for matches
-    unmatched_filters: Vec<u64>,
-    /// Events collected in order of matching
-    events: Vec<Event>,
+    /// Events matched against filters, None means filter not yet matched
+    /// Index in the vec corresponds to the original filter position
+    matched_events: Vec<Option<Event>>,
+    /// Count of remaining unmatched filters
+    remaining_matches: usize,
+    /// Original filter IDs in order
+    filter_ids: Vec<u64>,
 }
 
 impl Window {
     /// Creates a new [`Window`] instance with a set duration
     fn new(filter_ids: Vec<u64>, duration: Duration) -> Self {
+        let size = filter_ids.len();
         Self {
             expires_at: Instant::now() + duration,
-            matched_filters: Vec::new(),
-            unmatched_filters: filter_ids,
-            events: Vec::new(),
+            matched_events: vec![None; size],
+            remaining_matches: size,
+            filter_ids,
         }
     }
     /// Checks if this window has expired
@@ -202,23 +204,20 @@ impl Window {
             return None;
         }
 
-        if let Some(pos) = self
-            .unmatched_filters
-            .iter()
-            .position(|id| *id == filter_id)
-        {
-            self.unmatched_filters.remove(pos);
-            self.matched_filters.push(filter_id);
-            self.events.push(event);
+        if let Some(pos) = self.filter_ids.iter().position(|id| *id == filter_id) {
+            if self.matched_events[pos].is_none() {
+                self.matched_events[pos] = Some(event);
+                self.remaining_matches -= 1;
 
-            if self.unmatched_filters.is_empty() {
-                Some(self.events.clone())
-            } else {
-                None
+                if self.remaining_matches == 0 {
+                    return Some(self.matched_events
+                        .iter()
+                        .filter_map(|e| e.clone())
+                        .collect());
+                }
             }
-        } else {
-            None
         }
+        None
     }
 }
 
