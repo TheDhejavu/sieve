@@ -18,14 +18,15 @@ pub mod prelude {
 }
 
 use crate::config::ChainConfig;
-use alloy_rpc_types::{BlockTransactions, Header, Transaction};
+use alloy_rpc_types::{Block, BlockTransactions, Header, Transaction};
 use engine::FilterEngine;
 use filter::conditions::{EventType, Filter};
 use futures::StreamExt;
 use ingest::Ingest;
 use network::orchestrator::{ChainData, EthereumData};
-use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+use std::{collections::HashMap, hash::DefaultHasher};
 use tokio::sync::{broadcast, RwLock};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
@@ -39,11 +40,97 @@ pub enum Event {
 }
 
 #[derive(Clone)]
+pub enum SubscriptionType {
+    Default, // Regular filtering  with `subscribe`
+    Watch,   // Time-window based filtering with `watch_within`
+}
+
+#[derive(Clone)]
+pub(crate) struct FilterGroup {
+    sender: broadcast::Sender<Event>,
+    sub_type: SubscriptionType,
+    filters: Vec<Filter>,
+}
+
+impl FilterGroup {
+    pub fn process_block(&self, block: &Block, engine: &FilterEngine) {
+        match self.sub_type {
+            SubscriptionType::Default => self.process_block_filters(block, engine),
+            SubscriptionType::Watch => self.process_block_within(block, engine),
+        }
+    }
+
+    pub fn process_transaction(&self, tx: &Transaction, engine: &FilterEngine) {
+        match self.sub_type {
+            SubscriptionType::Default => self.process_tx_filters(tx, engine),
+            SubscriptionType::Watch => self.process_tx_within(tx, engine),
+        }
+    }
+
+    fn process_block_filters(&self, block: &Block, engine: &FilterEngine) {
+        for filter in &self.filters {
+            if filter.event_type().is_none() {
+                continue;
+            }
+
+            if filter.event_type() == Some(EventType::Transaction) {
+                if let BlockTransactions::Full(transactions) = &block.transactions {
+                    for tx in transactions {
+                        if engine.evaluate_with_context(
+                            filter.filter_node().as_ref(),
+                            Arc::new(tx.clone()),
+                        ) {
+                            let _ = self.sender.send(Event::Transaction(tx.clone()));
+                        }
+                    }
+                }
+            }
+
+            if filter.event_type() == Some(EventType::BlockHeader)
+                && engine.evaluate_with_context(
+                    filter.filter_node().as_ref(),
+                    Arc::new(block.header.clone()),
+                )
+            {
+                let _ = self.sender.send(Event::Header(block.header.clone()));
+            }
+        }
+    }
+
+    fn process_block_within(&self, _block: &Block, _engine: &FilterEngine) {
+        todo!("Implement watch_within block processing")
+    }
+
+    fn process_tx_filters(&self, transaction: &Transaction, engine: &FilterEngine) {
+        for filter in &self.filters {
+            if filter.event_type().is_none() {
+                continue;
+            }
+
+            if filter.event_type() == Some(EventType::Transaction)
+                && engine.evaluate_with_context(
+                    filter.filter_node().as_ref(),
+                    Arc::new(transaction.clone()),
+                )
+            {
+                let _ = self.sender.send(Event::Transaction(transaction.clone()));
+            }
+        }
+    }
+
+    fn process_tx_within(&self, _tx: &Transaction, _engine: &FilterEngine) {
+        todo!("Implement watch_within transaction processing")
+    }
+}
+
+
+#[derive(Clone)]
 pub struct Sieve {
-    filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
+    filters: Arc<RwLock<HashMap<u64, FilterGroup>>>,
     engine: Arc<FilterEngine>,
     ingest: Arc<Ingest>,
 }
+
 
 impl Sieve {
     pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
@@ -66,11 +153,36 @@ impl Sieve {
         filter: Filter,
     ) -> Result<BroadcastStream<Event>, Box<dyn std::error::Error>> {
         let mut filters = self.filters.write().await;
-        let sender = filters
-            .entry(filter.clone())
-            .or_insert_with(|| broadcast::channel(BROADCAST_CHANNEL_SIZE).0);
+        let group = filters.entry(filter.id()).or_insert_with(|| FilterGroup {
+            sender: broadcast::channel(BROADCAST_CHANNEL_SIZE).0,
+            sub_type: SubscriptionType::Default,
+            filters: vec![filter],
+        });
 
-        let receiver = sender.subscribe();
+        let receiver = group.sender.subscribe();
+        Ok(BroadcastStream::new(receiver))
+    }
+
+    pub async fn subscribe_all(
+        &self,
+        filters: Vec<Filter>,
+    ) -> Result<BroadcastStream<Event>, Box<dyn std::error::Error>> {
+        let mut filter_entries = self.filters.write().await;
+        let mut hasher = DefaultHasher::new();
+        for filter in &filters {
+            filter.hash(&mut hasher);
+        }
+        let group_id = hasher.finish();
+
+        let group = filter_entries
+            .entry(group_id)
+            .or_insert_with(|| FilterGroup {
+                sender: broadcast::channel(BROADCAST_CHANNEL_SIZE).0,
+                sub_type: SubscriptionType::Default,
+                filters,
+            });
+
+        let receiver = group.sender.subscribe();
         Ok(BroadcastStream::new(receiver))
     }
 
@@ -103,52 +215,33 @@ impl Sieve {
     async fn run_chain_processor(
         mut stream: impl StreamExt<Item = Result<ChainData, BroadcastStreamRecvError>> + Unpin,
         engine: Arc<FilterEngine>,
-        filters: Arc<RwLock<HashMap<Filter, broadcast::Sender<Event>>>>,
+        filters: Arc<RwLock<HashMap<u64, FilterGroup>>>,
     ) {
         while let Some(Ok(chain_data)) = stream.next().await {
             let filters = filters.read().await;
-            for (filter, sender) in filters.iter() {
-                if filter.event_type().is_none() {
-                    continue;
-                }
 
-                match &chain_data {
-                    ChainData::Ethereum(EthereumData::Block(block)) => {
-                        if filter.event_type() == Some(EventType::Transaction) {
-                            if let BlockTransactions::Full(transactions) = &block.transactions {
-                                for transaction in transactions {
-                                    if engine.evaluate_with_context(
-                                        filter.filter_node().as_ref(),
-                                        Arc::new(transaction.clone()),
-                                    ) {
-                                        let _ =
-                                            sender.send(Event::Transaction(transaction.clone()));
-                                    }
-                                }
-                            }
-                        }
-
-                        if filter.event_type() == Some(EventType::BlockHeader)
-                            && engine.evaluate_with_context(
-                                filter.filter_node().as_ref(),
-                                Arc::new(block.header.clone()),
-                            )
-                        {
-                            let _ = sender.send(Event::Header(block.header.clone()));
-                        }
+            match chain_data {
+                ChainData::Ethereum(EthereumData::Block(block)) => {
+                    for (_, filter_group) in filters.iter() {
+                        filter_group.process_block(&block, &engine);
                     }
-                    ChainData::Ethereum(_) => (),
+                }
+                ChainData::Ethereum(EthereumData::TransactionPool(tx)) => {
+                    for (_, filter_group) in filters.iter() {
+                        filter_group.process_transaction(&tx, &engine);
+                    }
                 }
             }
         }
     }
+
     #[allow(dead_code)]
     async fn subscriber_count(&self, filter: &Filter) -> usize {
         self.filters
             .read()
             .await
-            .get(filter)
-            .map(|sender| sender.receiver_count())
+            .get(&filter.id())
+            .map(|filter_group| filter_group.sender.receiver_count())
             .unwrap_or(0)
     }
 }
@@ -205,9 +298,9 @@ mod tests {
         // Ensure subscribers are ready
         sleep(Duration::from_millis(100)).await;
 
-        if let Some(sender) = sieve.filters.read().await.get(&pool_filter) {
+        if let Some(filter_group) = sieve.filters.read().await.get(&pool_filter.id()) {
             let test_data = Event::Header(Header::default());
-            sender.send(test_data.clone())?;
+            filter_group.sender.send(test_data.clone())?;
 
             // Wait for both subscribers to receive the message
             let (msg1, msg2) = tokio::join!(sub1_task, sub2_task);
