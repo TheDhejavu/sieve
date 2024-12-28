@@ -3,9 +3,8 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 mod chain_stream;
 
 use chain_stream::ChainStream;
-use futures::Stream;
 use tokio::{sync::broadcast, task::JoinHandle};
-use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::{
     config::{Chain, ChainConfig},
@@ -49,6 +48,28 @@ struct ChainState {
 /// Handles multiple chains simultaneously, providing unified access to their data streams.
 pub struct Ingest {
     chain_states: HashMap<Chain, ChainState>,
+}
+
+#[allow(dead_code)]
+#[async_trait::async_trait]
+pub trait IngestGateway: Send + Sync {
+    /// Subscribe to chain data as a Stream
+    async fn subscribe_stream(
+        &self,
+        chain: Chain,
+    ) -> Result<BroadcastStream<ChainData>, IngestError>;
+
+    /// Check if a chain is currently being orchestrated
+    fn is_active(&self, chain: &Arc<Chain>) -> bool;
+
+    /// Stop a specific chain's orchestration
+    async fn stop_chain(&mut self, chain: Arc<Chain>) -> Result<(), IngestError>;
+
+    /// Stop all chain orchestration
+    async fn stop_all(&mut self) -> Result<(), IngestError>;
+
+    /// Returns a list of currently active chains
+    fn active_chains(&self) -> Vec<Chain>;
 }
 
 #[allow(dead_code)]
@@ -100,31 +121,35 @@ impl Ingest {
 
         Self { chain_states }
     }
-    /// Subscribe to chain data as a Stream, allowing for ergonomic async operations
-    /// and stream combinators.
-    pub async fn subscribe_stream(
-        &self,
-        chain: Chain,
-    ) -> Result<impl Stream<Item = Result<ChainData, BroadcastStreamRecvError>>, IngestError> {
-        let receiver = self.subscribe(chain)?;
-        Ok(BroadcastStream::new(receiver))
-    }
 
     /// Subscribe to a specific chain's processed and deduplicated data stream
-    pub fn subscribe(&self, chain: Chain) -> Result<broadcast::Receiver<ChainData>, IngestError> {
+    fn subscribe(&self, chain: Chain) -> Result<broadcast::Receiver<ChainData>, IngestError> {
         self.chain_states
             .get(&chain)
             .map(|state| state.chain_stream.subscribe())
             .ok_or_else(|| IngestError::ChainNotFound(chain.clone()))
     }
+}
+
+#[async_trait::async_trait]
+impl IngestGateway for Ingest {
+    /// Subscribe to chain data as a Stream, allowing for ergonomic async operations
+    /// and stream combinators.
+    async fn subscribe_stream(
+        &self,
+        chain: Chain,
+    ) -> Result<BroadcastStream<ChainData>, IngestError> {
+        let receiver = self.subscribe(chain)?;
+        Ok(BroadcastStream::new(receiver))
+    }
 
     /// Check if a chain is currently being orchestrated
-    pub fn is_active(&self, chain: &Arc<Chain>) -> bool {
+    fn is_active(&self, chain: &Arc<Chain>) -> bool {
         self.chain_states.contains_key(chain)
     }
 
     /// Stop a specific chain's orchestration
-    pub async fn stop_chain(&mut self, chain: Arc<Chain>) -> Result<(), IngestError> {
+    async fn stop_chain(&mut self, chain: Arc<Chain>) -> Result<(), IngestError> {
         if let Some(state) = self.chain_states.remove(&chain) {
             state
                 .orchestrator
@@ -137,7 +162,7 @@ impl Ingest {
     }
 
     /// Stop all chain orchestration
-    pub async fn stop_all(&mut self) -> Result<(), IngestError> {
+    async fn stop_all(&mut self) -> Result<(), IngestError> {
         for (_, state) in self.chain_states.drain() {
             state
                 .orchestrator
@@ -150,7 +175,7 @@ impl Ingest {
     }
 
     /// Returns a list of currently active chains.
-    pub fn active_chains(&self) -> Vec<Chain> {
+    fn active_chains(&self) -> Vec<Chain> {
         self.chain_states.keys().cloned().collect::<Vec<Chain>>()
     }
 }

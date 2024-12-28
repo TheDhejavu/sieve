@@ -207,14 +207,14 @@ mod tests {
                     Some(FilterCondition::Event(EventCondition::Contract(cond))) => {
                         assert_eq!(*cond, StringCondition::EqualTo(ADDRESS.to_string()));
                     }
-                    _ => panic!("Expected Event Contract condition"),
+                    _ => unreachable!(),
                 }
 
                 match &nodes[1].value {
                     Some(FilterCondition::Event(EventCondition::BlockNumber(cond))) => {
                         assert_eq!(*cond, NumericCondition::GreaterThan(BASE_VALUE));
                     }
-                    _ => panic!("Expected Event BlockNumber condition"),
+                    _ => unreachable!(),
                 }
             }
             None => panic!("Expected group in node"),
@@ -246,14 +246,14 @@ mod tests {
                     Some(FilterCondition::Pool(PoolCondition::From(cond))) => {
                         assert_eq!(*cond, StringCondition::EqualTo(ADDRESS.to_string()));
                     }
-                    _ => panic!("Expected Pool From condition"),
+                    _ => unreachable!(),
                 }
 
                 match &nodes[1].value {
                     Some(FilterCondition::Pool(PoolCondition::GasLimit(cond))) => {
                         assert_eq!(*cond, NumericCondition::GreaterThan(BASE_VALUE));
                     }
-                    _ => panic!("Expected Pool GasLimit condition"),
+                    _ => unreachable!(),
                 }
             }
             None => panic!("Expected group in node"),
@@ -280,14 +280,14 @@ mod tests {
                     Some(FilterCondition::BlockHeader(BlockHeaderCondition::Number(cond))) => {
                         assert_eq!(*cond, NumericCondition::GreaterThan(BASE_VALUE));
                     }
-                    _ => panic!("Expected BlockHeader Number condition"),
+                    _ => unreachable!(),
                 }
 
                 match &nodes[1].value {
                     Some(FilterCondition::BlockHeader(BlockHeaderCondition::ParentHash(cond))) => {
                         assert_eq!(*cond, StringCondition::EqualTo(BLOCK_HASH.to_string()));
                     }
-                    _ => panic!("Expected BlockHeader ParentHash condition"),
+                    _ => unreachable!(),
                 }
             }
             None => panic!("Expected group in node"),

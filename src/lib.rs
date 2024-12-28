@@ -22,7 +22,7 @@ use dashmap::DashMap;
 use engine::FilterEngine;
 use filter::conditions::{EventType, Filter};
 use futures::StreamExt;
-use ingest::Ingest;
+use ingest::{Ingest, IngestGateway};
 use network::orchestrator::{ChainData, EthereumData};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
@@ -168,7 +168,7 @@ impl FilterGroup {
 
 /// Window manages the state of time-based event matching.
 /// It tracks which filters have matched and collects events until all conditions are met.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Window {
     /// Time when this window expires
     expires_at: Instant,
@@ -185,6 +185,7 @@ impl Window {
     /// Creates a new [`Window`] instance with a set duration
     fn new(filter_ids: Vec<u64>, duration: Duration) -> Self {
         let size = filter_ids.len();
+        println!("{filter_ids:#?}");
         Self {
             expires_at: Instant::now() + duration,
             matched_events: vec![None; size],
@@ -226,17 +227,23 @@ impl Window {
 /// It creates windows, processes events, and handles expiration.
 pub(crate) struct WindowManager {
     /// Active windows mapped by group ID
-    windows: DashMap<u64, Window>,
+    windows: Arc<DashMap<u64, Window>>,
     /// How often to check for expired windows
     purge_interval: Duration,
+    /// Callback for handling expired windows
+    on_expired: Arc<dyn Fn(u64) + Send + Sync>,
 }
 
 impl WindowManager {
     /// Creates a new [`WindowManager`] instance
-    pub(crate) fn new(purge_interval: Duration) -> Self {
+    pub(crate) fn new(
+        purge_interval: Duration,
+        on_expired: impl Fn(u64) + Send + Sync + 'static,
+    ) -> Self {
         let manager = Self {
-            windows: DashMap::new(),
+            windows: Arc::new(DashMap::new()),
             purge_interval,
+            on_expired: Arc::new(on_expired),
         };
         manager.start_periodic_purge();
         manager
@@ -258,6 +265,7 @@ impl WindowManager {
         if let Some(mut window) = self.windows.get_mut(&group_id) {
             if window.is_expired() {
                 group.send_window_event(EventWindow::Timeout);
+                drop(window); // drop mutable lock to prevent dead-lock.
                 self.windows.remove(&group_id);
                 return;
             }
@@ -265,6 +273,7 @@ impl WindowManager {
             for (filter_id, event) in events {
                 if let Some(matched_events) = window.try_match(filter_id, event) {
                     group.send_window_event(EventWindow::Match(matched_events));
+                    drop(window);
                     self.windows.remove(&group_id);
                     return;
                 }
@@ -276,12 +285,20 @@ impl WindowManager {
     fn start_periodic_purge(&self) {
         let windows = self.windows.clone();
         let interval = self.purge_interval;
+        let on_expired = self.on_expired.clone();
 
         tokio::spawn(async move {
             let mut interval_timer = tokio::time::interval(interval);
             loop {
                 interval_timer.tick().await;
-                windows.retain(|_, window| !window.is_expired());
+                windows.retain(|group_id, window| {
+                    if window.is_expired() {
+                        (on_expired)(*group_id);
+                        false
+                    } else {
+                        true
+                    }
+                });
             }
         });
     }
@@ -296,7 +313,7 @@ pub struct Sieve {
     /// Filter evaluation engine
     engine: Arc<FilterEngine>,
     /// Data ingestion handler
-    ingest: Arc<Ingest>,
+    ingest: Arc<dyn IngestGateway>,
     /// Window management system
     window_manager: Arc<WindowManager>,
 }
@@ -309,8 +326,12 @@ impl Sieve {
     pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
         let ingest = Arc::new(Ingest::new(chains).await);
         let engine = Arc::new(FilterEngine::new());
-        let filters = Arc::new(RwLock::new(HashMap::new()));
-        let window_manager = Arc::new(WindowManager::new(Duration::from_secs(1)));
+        let filters: Arc<RwLock<HashMap<u64, FilterGroup>>> = Arc::new(RwLock::new(HashMap::new()));
+
+        let window_manager = Arc::new(WindowManager::new(
+            Duration::from_secs(1),
+            Self::handle_window_expiration(filters.clone()),
+        ));
 
         let sieve = Self {
             engine,
@@ -388,7 +409,6 @@ impl Sieve {
 
         for group in filters.values() {
             let matches = group.evaluate_block(block, &self.engine);
-
             match group.sub_type {
                 SubscriptionType::Default => {
                     for (_, event) in matches {
@@ -448,6 +468,19 @@ impl Sieve {
 
         Ok(())
     }
+    /// Handle window expiration by sending timeout event
+    fn handle_window_expiration(
+        filters: Arc<RwLock<HashMap<u64, FilterGroup>>>,
+    ) -> impl Fn(u64) + Send + Sync + 'static {
+        move |group_id| {
+            if let Ok(filters_rw) = filters.try_read() {
+                if let Some(group) = filters_rw.get(&group_id) {
+                    group.send_window_event(EventWindow::Timeout);
+                }
+            }
+        }
+    }
+
     /// Gets the current number of subscribers for a filter
     #[allow(dead_code)]
     async fn subscriber_count(&self, filter: &Filter) -> usize {
@@ -464,78 +497,229 @@ impl Sieve {
 }
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
+
     use super::*;
+    use alloy_consensus::Transaction;
     use alloy_primitives::U256;
-    use config::{Chain, ChainConfigBuilder};
-    use filter::{FilterBuilder, LogicalOps, NumericOps, StringOps};
+    use config::Chain;
+    use filter::{FilterBuilder, NumericOps};
     use futures::StreamExt;
-    use tokio::time::{sleep, Duration};
+    use ingest::IngestError;
+    use tokio::time::Duration;
+    use utils::test_utils::generate_random_transaction;
+
+    pub struct MockIngest {
+        chain_states: Arc<Mutex<HashMap<Chain, broadcast::Sender<ChainData>>>>,
+    }
+
+    impl MockIngest {
+        pub fn new() -> Self {
+            let mut chain_states = HashMap::new();
+            chain_states.insert(Chain::Ethereum, broadcast::channel(32).0);
+            Self {
+                chain_states: Arc::new(Mutex::new(chain_states)),
+            }
+        }
+
+        pub fn mock_chain_data(
+            &self,
+            chain: Chain,
+            data: ChainData,
+        ) -> Result<(), Box<dyn std::error::Error>> {
+            let states = self.chain_states.lock().unwrap();
+            if let Some(sender) = states.get(&chain) {
+                sender.send(data)?;
+            }
+            Ok(())
+        }
+
+        fn subscribe(&self, chain: Chain) -> Result<broadcast::Receiver<ChainData>, IngestError> {
+            let mut states = self.chain_states.lock().unwrap();
+            let sender = states
+                .entry(chain.clone())
+                .or_insert_with(|| broadcast::channel(32).0);
+            Ok(sender.subscribe())
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl IngestGateway for MockIngest {
+        async fn subscribe_stream(
+            &self,
+            chain: Chain,
+        ) -> Result<BroadcastStream<ChainData>, IngestError> {
+            let receiver = self.subscribe(chain)?;
+            Ok(BroadcastStream::new(receiver))
+        }
+
+        fn is_active(&self, chain: &Arc<Chain>) -> bool {
+            self.chain_states.lock().unwrap().contains_key(chain)
+        }
+
+        async fn stop_chain(&mut self, chain: Arc<Chain>) -> Result<(), IngestError> {
+            self.chain_states.lock().unwrap().remove(&chain);
+            Ok(())
+        }
+
+        async fn stop_all(&mut self) -> Result<(), IngestError> {
+            self.chain_states.lock().unwrap().clear();
+            Ok(())
+        }
+
+        fn active_chains(&self) -> Vec<Chain> {
+            self.chain_states.lock().unwrap().keys().cloned().collect()
+        }
+    }
+
+    async fn setup_test_sieve() -> Result<(Sieve, Arc<MockIngest>), Box<dyn std::error::Error>> {
+        let mock_ingest = Arc::new(MockIngest::new());
+        let engine = Arc::new(FilterEngine::new());
+        let filters: Arc<RwLock<HashMap<u64, FilterGroup>>> = Arc::new(RwLock::new(HashMap::new()));
+
+        let clone_filters = filters.clone();
+        let window_manager = Arc::new(WindowManager::new(
+            Duration::from_secs(1),
+            move |group_id| {
+                if let Ok(filters_rw) = clone_filters.try_read() {
+                    if let Some(group) = filters_rw.get(&group_id) {
+                        group.send_window_event(EventWindow::Timeout);
+                    }
+                }
+            },
+        ));
+
+        let sieve = Sieve {
+            engine,
+            ingest: mock_ingest.clone(),
+            filters,
+            window_manager,
+        };
+
+        sieve.start_chain_processors().await?;
+
+        Ok((sieve, mock_ingest))
+    }
 
     #[tokio::test]
-    async fn test_multiple_subscribers() -> Result<(), Box<dyn std::error::Error>> {
-        // 1. Chain Configuration
-        let chains = vec![ChainConfigBuilder::builder()
-            .rpc("https://ethereum-holesky-rpc.publicnode.com")
-            .ws("wss://ws-mainnet.optimism.io")
-            .gossipsub("/ip4/0.0.0.0/tcp/9000")
-            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000".to_string()])
-            .chain(Chain::Ethereum)
-            .build()];
+    async fn test_single_subscribe() -> Result<(), Box<dyn std::error::Error>> {
+        let (sieve, mock_ingest) = setup_test_sieve().await?;
 
-        // 2. Connect to chains via `Sieve`
-        let sieve = Sieve::connect(chains).await?;
-
-        // 3. Create Filter
-        let pool_filter = FilterBuilder::new().pool(|f| {
-            f.any_of(|p| {
-                p.value().gt(U256::from(100u64));
-                p.from().starts_with("0xdead");
-                p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-            });
+        let filter = FilterBuilder::new().transaction(|f| {
+            f.value().gte(U256::from(0));
         });
 
-        let mut sub1 = sieve.subscribe(pool_filter.clone()).await?;
-        let mut sub2 = sieve.subscribe(pool_filter.clone()).await?;
+        // Subscribe to the filter.
+        let mut stream = sieve.subscribe(filter).await?;
 
-        // Verify we have two subscribers
-        assert_eq!(sieve.subscriber_count(&pool_filter).await, 2);
+        let tx = generate_random_transaction(100);
+        let block = Block {
+            transactions: BlockTransactions::Full(vec![tx.clone()]),
+            ..Default::default()
+        };
 
-        let sub1_task = tokio::spawn(async move {
-            let msg = sub1.next().await;
-            msg.and_then(|r| r.ok())
-        });
+        // Send test data through mock ingest
+        mock_ingest
+            .mock_chain_data(
+                Chain::Ethereum,
+                ChainData::Ethereum(EthereumData::Block(block)),
+            )
+            .expect("must mock chain data.");
 
-        let sub2_task = tokio::spawn(async move {
-            let msg = sub2.next().await;
-            msg.and_then(|r| r.ok())
-        });
-
-        // Ensure subscribers are ready
-        sleep(Duration::from_millis(100)).await;
-
-        if let Some(filter_group) = sieve.filters.read().await.get(&pool_filter.id()) {
-            let test_data = Event::Header(Header::default());
-            let sender = match &filter_group.sender {
-                GroupSender::Default(sender) => sender,
+        // Wait for and verify the received event
+        if let Some(Ok(event)) = stream.next().await {
+            match event {
+                Event::Transaction(received_tx) => {
+                    assert_eq!(received_tx.value(), tx.value());
+                }
                 _ => unreachable!(),
-            };
-
-            sender.send(test_data.clone())?;
-
-            // Wait for both subscribers to receive the message
-            let (msg1, msg2) = tokio::join!(sub1_task, sub2_task);
-
-            // Verify both subscribers received the same data
-            assert!(msg1.is_ok());
-            assert!(msg2.is_ok());
-
-            let msg1 = msg1.unwrap();
-            let msg2 = msg2.unwrap();
-
-            assert!(msg1.is_some());
-            assert!(msg2.is_some());
-            assert_eq!(msg1, msg2);
+            }
+        } else {
+            panic!("No event received");
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_watch_within() -> Result<(), Box<dyn std::error::Error>> {
+        let (sieve, mock_ingest) = setup_test_sieve().await?;
+        let filter1 = FilterBuilder::new().transaction(|f| {
+            f.value().gt(U256::from(1000));
+        });
+
+        let filter2 = FilterBuilder::new().transaction(|f| {
+            f.value().gt(U256::from(2000));
+        });
+
+        let mut stream = sieve
+            .watch_within(vec![filter1, filter2], Duration::from_secs(5))
+            .await?;
+
+        let tx1 = generate_random_transaction(1500);
+        let tx2 = generate_random_transaction(2500);
+
+        let block = Block {
+            transactions: BlockTransactions::Full(vec![tx1.clone(), tx2.clone()]),
+            ..Default::default()
+        };
+
+        mock_ingest.mock_chain_data(
+            Chain::Ethereum,
+            ChainData::Ethereum(EthereumData::Block(block)),
+        )?;
+
+        // Verify we receive a match with both events
+        if let Some(Ok(window_event)) = stream.next().await {
+            print!("window event");
+            match window_event {
+                EventWindow::Match(events) => {
+                    assert_eq!(events.len(), 2, "Should receive exactly 2 events");
+
+                    let transaction_values: Vec<U256> = events
+                        .iter()
+                        .filter_map(|event| match event {
+                            Event::Transaction(tx) => Some(tx.value()),
+                            _ => None,
+                        })
+                        .collect();
+
+                    assert!(
+                        transaction_values.contains(&U256::from(1500))
+                            && transaction_values.contains(&U256::from(2500)),
+                        "Did not receive expected transactions with values 1500 and 2500"
+                    );
+                }
+                EventWindow::Timeout => panic!("Received timeout instead of match"),
+            }
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_watch_within_timeout() -> Result<(), Box<dyn std::error::Error>> {
+        let (sieve, _mock_ingest) = setup_test_sieve().await?;
+
+        let filter1 = FilterBuilder::new().transaction(|f| {
+            f.value().gt(U256::from(1000));
+        });
+
+        let filter2 = FilterBuilder::new().transaction(|f| {
+            f.value().gt(U256::from(2000));
+        });
+
+        let mut stream = sieve
+            .watch_within(vec![filter1, filter2], Duration::from_millis(0))
+            .await?;
+
+        if let Some(Ok(window_event)) = stream.next().await {
+            match window_event {
+                EventWindow::Timeout => {}
+                EventWindow::Match(_) => panic!("Expected timeout, got match"),
+            }
+        }
+
         Ok(())
     }
 }

@@ -1,8 +1,11 @@
 use alloy_primitives::{Selector, U256};
 use std::{
     cmp::PartialOrd,
-    hash::{DefaultHasher, Hash, Hasher},
-    sync::Arc,
+    hash::Hash,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
 };
 
 use crate::config::Chain;
@@ -211,18 +214,14 @@ pub struct Filter {
     filter_node: Arc<FilterNode>,
 }
 
+static FILTER_SEQ: AtomicU64 = AtomicU64::new(0);
 impl Filter {
     pub(crate) fn new(
         chain: Chain,
         filter_node: Arc<FilterNode>,
         event_type: Option<EventType>,
     ) -> Self {
-        let mut hasher = DefaultHasher::new();
-        chain.hash(&mut hasher);
-        event_type.hash(&mut hasher);
-        filter_node.hash(&mut hasher);
-        let id = hasher.finish();
-
+        let id = FILTER_SEQ.fetch_add(1, Ordering::SeqCst);
         Self {
             id,
             chain,
