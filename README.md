@@ -132,26 +132,20 @@ use std::time::Duration;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Chain Configuration
     let chains = vec![
-        // Optimisim chain....
-        ChainConfigBuilder::builder()
-            .rpc("https://mainnet.optimism.io/...")    
-            .ws("wss://ws-mainnet.optimism.io/...")     
-            .gossipsub("/ip4/0.0.0.0/tcp/9000")    
-            .bootstrap_peers(vec!["/ip4/127.0.0.1/tcp/8000"])
-            .chain(Chain::Optimisim)
-            .build(),    
-
-        // Base chain.....
-        ChainConfigBuilder::builder()
-            .rpc("https://mainnet.base.org")        
-            .chain(Chain::Base)
-            .build(),         
-
         // Ethereum chain....
         ChainConfigBuilder::builder()
-            .rpc("https://mainnet.infura.io/v3/...") 
-            .chain(Chain::Ethereum)   
-            .build(),                        
+            .rpc("https://ethereum-holesky-rpc.publicnode.com")
+            .ws("wss://ethereum-holesky-rpc.publicnode.com")
+            .chain(Chain::Ethereum)
+            .build(),  
+            
+         // Optimisim chain....
+        ChainConfigBuilder::builder()
+            .rpc("https://optimism-sepolia-rpc.publicnode.com")
+            .ws("wss://optimism-sepolia-rpc.publicnode.com")
+            .chain(Chain::Optimism)
+            .build(),
+                           
     ];
 
     // 2. Connect to chains via `Sieve`
