@@ -231,7 +231,7 @@ impl Window {
         if let Some(pos) = self.filter_ids.iter().position(|id| *id == filter_id) {
             if self.matched_events[pos].is_none() {
                 self.matched_events[pos] = Some(event);
-                let remaining_matches = self.remaining_matches.fetch_sub(1, Ordering::SeqCst);
+                let remaining_matches = self.remaining_matches.fetch_sub(1, Ordering::Relaxed);
 
                 if remaining_matches == 1 {
                     return Some(
