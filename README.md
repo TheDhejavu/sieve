@@ -4,7 +4,7 @@
 
 A real-time data streaming engine with an expressive DSL for Ethereum & The Superchains
 
-![Banner](docs/images/banner.png)
+<!-- ![Banner](docs/images/banner.png) -->
 
 ## Overview
 Sieve offers a simple and expressive way for filtering blockchain data streams and emits events when specified conditions are met. We try to make sieve as humanly expressive as possible. It's also an experiment - if it fails, we throw it away and rebuild from scratch. The major pain point is, we want you to be able to create listeners (streams from filters) dynamically (millions if possible) that emit events based on this. Let's imagine something: your user sends 100ETH on base chain and immediately you set up a listener on the fly to listen to this event on the base network and react accordingly. The listeners stay active till seen / timeouts. We also try to do alot of things like decoding data when we come accross fields with conditions that needs decoded data for evaluation.
@@ -18,7 +18,7 @@ Sieve offers a simple and expressive way for filtering blockchain data streams a
 
 
 ## Architecture 
-<!-- ![Banner](docs/images/sieve-architecture.png) -->
+![Architecture](docs/images/sieve-architecture.png)
 
 ## Streaming Layer 
 The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
