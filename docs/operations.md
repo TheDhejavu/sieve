@@ -127,15 +127,9 @@ let filter = FilterBuilder::new().transaction(|f| {
 Special filters for Layer 2 chains like Optimism:
 
 ```rust
-let filter = FilterBuilder::new().optimism(|op| {
-    op.all_of(|f| {
-        f.field("sequenceNumber").gt(500u64);
-        f.field("batch.index").gt(100u128);
+let op_tx_filter = FilterBuilder::new()
+    .chain(Chain::Optimism)
+    .transaction(|op| {
+        op.field("value").gt(U256::from(100u64));
     });
-
-    op.any_of(|f| {
-        f.field("l1BlockNumber").gt(1000000000000000000u128);
-        f.field("l1TxOrigin").starts_with("0x");
-    });
-});
 ```
