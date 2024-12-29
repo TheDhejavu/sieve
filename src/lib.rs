@@ -27,7 +27,7 @@ use futures::StreamExt;
 use ingest::{Ingest, IngestGateway};
 use network::orchestrator::{AnyRPCNetwork, ChainData};
 use std::hash::{Hash, Hasher};
-use std::sync::atomic::{AtomicI64, AtomicIsize, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{collections::HashMap, hash::DefaultHasher};
