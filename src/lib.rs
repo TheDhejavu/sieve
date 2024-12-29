@@ -209,7 +209,6 @@ impl Window {
     /// Creates a new [`Window`] instance with a set duration
     fn new(filter_ids: Vec<u64>, duration: Duration) -> Self {
         let size = filter_ids.len();
-        println!("{filter_ids:#?}");
         Self {
             expires_at: Instant::now() + duration,
             matched_events: vec![None; size],
