@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::{
-    block_header::BlockHeaderBuilder, builder_ops::FilterBuilderOps, event::EventBuilder,
-    optimism::OptimismFilterBuilder, pool::PoolBuilder, transaction::TxBuilder,
+    block_header::BlockHeaderBuilder, event::EventBuilder, pool::PoolBuilder,
+    transaction::TxBuilder,
 };
 use crate::{
     config::Chain,
@@ -121,24 +121,11 @@ impl FilterBuilder {
         )
     }
 
-    // ====== Layer 2 ========
-    /// Adds Optimism L2-specific conditions to the filter.
-    ///
-    /// Returns a [`Filter`] after  configuration is completed.
-    pub fn optimism<F>(&mut self, f: F) -> Filter
-    where
-        F: FnOnce(&mut OptimismFilterBuilder),
-    {
-        let mut builder = OptimismFilterBuilder::new();
-        f(&mut builder);
-
-        let filter_node = FilterNode {
-            children: Some((LogicalOp::And, builder.nodes)),
-            value: None,
-        }
-        .optimize();
-
-        Filter::new(Chain::Optimism, Arc::new(filter_node), None)
+    /// ====== Layer 1 & Layer 2 context ========
+    /// Sets the chain context for this filter
+    pub fn chain(mut self, chain: Chain) -> Self {
+        self.chain = chain;
+        self
     }
 }
 
@@ -301,19 +288,18 @@ mod tests {
 
     #[test]
     fn test_optimism_filter() {
-        let mut builder = FilterBuilder::new();
+        let builder = FilterBuilder::new();
         let field_name = "l1BlockNumber";
         let field_value = "12345";
 
-        let node = builder
-            .optimism(|opt| {
-                opt.field(field_name).exact(field_value);
-                opt.field(field_name).exact(field_value);
-                opt.field(field_name).exact(field_value);
-            })
-            .filter_node();
+        let filter = builder.chain(Chain::Optimism).transaction(|tx| {
+            tx.field(field_name).exact(field_value);
+            tx.field(field_name).exact(field_value);
+            tx.field(field_name).exact(field_value);
+        });
 
-        match &node.children {
+        assert_eq!(filter.chain, Chain::Optimism);
+        match &filter.filter_node().children {
             Some((op, nodes)) => {
                 assert_eq!(*op, LogicalOp::And);
                 assert_eq!(nodes.len(), 3);

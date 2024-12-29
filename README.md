@@ -100,15 +100,21 @@ use sieve::FilterBuilder;
 fn main() {
     // Create a filter for Optimism-related fields. 
     let op_filter = FilterBuilder::new()
-        .optimism(|op| {
+        .chain(Chain::Optimisim) // chain context - no chain means L1
+        .transaction(|tx| {
+            // This works!!
+            tx.value().gt(U256::from(1000));
+            tx.gas_price().lt(50000);
+
+            // NOTE: We do not support this yet....
             // Filter for events where the `l1BlockNumber` is greater than 10^18
-            op.field("l1BlockNumber").gt(1000000000000000000u128);
+            tx.field("l1BlockNumber").gt(1000000000000000000u128);
 
             // Filter for events where `l1TxOrigin` starts with "0x" 
-            op.field("l1TxOrigin").starts_with("0x");
+            tx.field("l1TxOrigin").starts_with("0x");
 
             // Filter for events where `queueIndex` is less than 100
-            op.field("queueIndex").lt(100u64);
+            tx.field("queueIndex").lt(100u64);
         });
 }
 
@@ -193,7 +199,8 @@ fn main() {
 
     // Single chain (L2 - Optimisim)
     let op_filter = FilterBuilder::new()
-        .optimism(|op| op.field("l1BlockNumber").gt(2000));
+        .chain(Chain::Optimisim) // chain context - no chain means L1
+        .transaction(|tx| tx.field("l1BlockNumber").gt(2000));
 }
 ```
 

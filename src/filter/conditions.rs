@@ -206,10 +206,10 @@ pub(crate) enum EventType {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Filter {
-    id: u64,
-    chain: Chain,
-    event_type: Option<EventType>,
-    filter_node: Arc<FilterNode>,
+    pub(crate) id: u64,
+    pub(crate) chain: Chain,
+    pub(crate) event_type: Option<EventType>,
+    pub(crate) filter_node: Arc<FilterNode>,
 }
 
 static FILTER_SEQ: AtomicU64 = AtomicU64::new(0);

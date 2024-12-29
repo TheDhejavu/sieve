@@ -104,6 +104,9 @@ impl EvaluableData for AnyRpcTransaction {
                 }
             },
             FilterCondition::DynField(dyn_condition) => {
+                // TODO: all common fields are supported by defualt , which means
+                // we should check for dynamic fields in https://github.com/alloy-rs/alloy/blob/262089c6abf9c18c9220ffd884372a9cd3b3083f/crates/network-primitives/src/traits.rs#L132
+                // if there is any - in that case we need to update this.
                 let json_value = serde_json::to_value(self).unwrap_or_default();
                 dyn_condition.evaluate(&json_value)
             }

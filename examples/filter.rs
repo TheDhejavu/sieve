@@ -53,10 +53,9 @@ fn main() {
                 "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".to_string(),
             );
 
-            let mut sig =
-                e.signature("Transfer(address indexed from,address indexed to,uint256 value)");
-            sig.params("value1").gt(100_u128);
-            sig.params("value2").gt(200_u128);
+            e.signature("Transfer(address indexed from,address indexed to,uint256 value)")
+                .params("value1")
+                .gt(100_u128);
         });
     });
 
@@ -131,24 +130,30 @@ fn main() {
     //===============================================================================================
     //                            7. L2 FILTER
     //===============================================================================================
-    let _filter = FilterBuilder::new().optimism(|op| {
-        op.field("l1BlockNumber").gt(1000000000000000000u128);
+    let _filter = FilterBuilder::new()
+        .chain(Chain::Optimism)
+        .transaction(|op_tx| {
+            //
+            op_tx.value().gt(U256::from(1000000000000000000u64));
 
-        op.field("l1TxOrigin").starts_with("0x");
-        op.field("queueIndex").lt(100u64);
+            // NOTE: This is currently not supported yet.
+            op_tx.field("l1BlockNumber").gt(1000000000000000000u128);
 
-        // L2 block fields
-        op.field("sequenceNumber").gt(500u64);
-        op.field("prevTotalElements").between(1000u64, 2000u64);
+            op_tx.field("l1TxOrigin").starts_with("0x");
+            op_tx.field("queueIndex").lt(100u64);
 
-        op.any_of(|f| {
-            f.field("l1BlockNumber").gt(1000000000000000000u128);
-            f.field("l1TxOrigin").starts_with("0x");
+            // L2 block fields
+            op_tx.field("sequenceNumber").gt(500u64);
+            op_tx.field("prevTotalElements").between(1000u64, 2000u64);
+
+            op_tx.any_of(|f| {
+                f.field("l1BlockNumber").gt(1000000000000000000u128);
+                f.field("l1TxOrigin").starts_with("0x");
+            });
+
+            op_tx.all_of(|f| {
+                f.field("sequenceNumber").gt(500u64);
+                f.field("batch.index").gt(100u128);
+            });
         });
-
-        op.all_of(|f| {
-            f.field("sequenceNumber").gt(500u64);
-            f.field("batch.index").gt(100u128);
-        });
-    });
 }

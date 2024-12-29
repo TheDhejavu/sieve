@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use alloy_primitives::U256;
-use sieve::{prelude::*, Sieve};
+use sieve::{prelude::*, EventWindow, Sieve};
 use tokio_stream::StreamExt;
 use tracing::{error, info};
 
@@ -7,7 +9,7 @@ use tracing::{error, info};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
-    info!("Starting l2 transaction monitor...");
+    info!("Starting l1 & l2 transaction listener...");
 
     // 1. Chain Configuration
     let chains = vec![
@@ -36,19 +38,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // 3. Create Filter
-    let tx_filter = FilterBuilder::new()
+    let eth_tx_filter = FilterBuilder::new()
+        .chain(Chain::Ethereum)
+        .transaction(|op| {
+            op.field("value").gt(U256::from(100u64));
+        });
+
+    let op_tx_filter = FilterBuilder::new()
         .chain(Chain::Optimism)
         .transaction(|op| {
             op.field("value").gt(U256::from(100u64));
         });
 
     // 4. Subscribe to events with the filter
-    info!("Subscribing to transaction events...");
-    let mut events = sieve.subscribe(tx_filter).await?;
+    info!("Subscribing to transaction events on multiple chains ...");
+    let mut events = sieve
+        .watch_within(
+            vec![eth_tx_filter, op_tx_filter],
+            Duration::from_secs(5 * 60 * 60),
+        )
+        .await?;
 
     // 5. Handle events
     while let Some(Ok(event)) = events.next().await {
-        println!("Received event: {:?}", event);
+        match event {
+            // Handle matched events within the time window
+            EventWindow::Match(events) => {
+                println!("Found matching events within time window: {events:#?}");
+            }
+            // Handle events that timed out without a match
+            EventWindow::Timeout => {
+                println!("Time window expired without finding all matches");
+            }
+        }
     }
 
     Ok(())
