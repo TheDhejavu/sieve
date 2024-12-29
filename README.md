@@ -63,7 +63,9 @@ let filter = FilterBuilder::new().transaction(|f| {
 });
 ```
 
-### ingest / watcher (*v1.0*):
+### ingest / watcher:
+
+#### *v1.0*
 **RPC Calls (*busy-polling*):**
 
 - Pending Transactions:
@@ -71,6 +73,7 @@ let filter = FilterBuilder::new().transaction(|f| {
 - Block & Transactions:
     - `eth_getBlockByNumber`
 
+#### *v2.0*
 **Gossipsub (*reactive*):**
 
 - Block gossip:
