@@ -11,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+use alloy_network::AnyNetwork;
 use alloy_primitives::U256;
 use alloy_provider::{Provider, ProviderBuilder, RootProvider};
 use alloy_rpc_types::{BlockId, BlockNumberOrTag, BlockTransactionsKind};
@@ -26,7 +27,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::network::orchestrator::{ChainData, ChainOrchestrator, EthereumData};
+use crate::network::orchestrator::{AnyRPCNetwork, ChainData, ChainOrchestrator};
 
 // [`BlockStream`] is a self-contained stream that fetches block data from an external source.
 // It operates only when polled, which is preferable to manual busy-polling as it leverages
@@ -34,7 +35,7 @@ use crate::network::orchestrator::{ChainData, ChainOrchestrator, EthereumData};
 pin_project! {
     struct BlockStream {
         #[pin]
-        provider: Arc<RootProvider<Http<Client>>>,
+        provider: Arc<RootProvider<Http<Client>, AnyNetwork> >,
         interval: time::Interval,
         future: Option<Pin<Box<dyn Future<Output = Option<ChainData>> + Send>>>,
     }
@@ -74,7 +75,9 @@ impl Stream for BlockStream {
                     {
                         Ok(block) => {
                             if let Some(block_data) = block {
-                                return Some(ChainData::Ethereum(EthereumData::Block(block_data)));
+                                return Some(ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(
+                                    block_data,
+                                )));
                             }
                         }
                         Err(e) => {
@@ -93,7 +96,7 @@ impl Stream for BlockStream {
 // [`PendingTxPoolStream`] is a self-contained stream that has all it needs to get pending transaction data
 pin_project! {
     struct PendingTxPoolStream {
-        provider: Arc<RootProvider<Http<Client>>>,
+        provider: Arc<RootProvider<Http<Client>, AnyNetwork> >,
         filter_id: U256,
         interval: time::Interval,
         future: Option<Pin<Box<dyn Future<Output = Option<ChainData>> + Send>>>,
@@ -102,7 +105,7 @@ pin_project! {
 
 impl PendingTxPoolStream {
     async fn new(
-        provider: Arc<RootProvider<Http<Client>>>,
+        provider: Arc<RootProvider<Http<Client>, AnyNetwork>>,
         poll_interval: Duration,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let filter_id = provider.new_pending_transactions_filter(false).await?;
@@ -144,9 +147,9 @@ impl Stream for PendingTxPoolStream {
                     if let Ok(changes) = provider.get_filter_changes(filter_id).await {
                         for tx_hash in changes {
                             if let Ok(Some(tx)) = provider.get_transaction_by_hash(tx_hash).await {
-                                return Some(ChainData::Ethereum(EthereumData::TransactionPool(
-                                    tx,
-                                )));
+                                return Some(ChainData::AnyRPCNetwork(
+                                    AnyRPCNetwork::TransactionPool(tx),
+                                ));
                             }
                         }
                     }
@@ -159,8 +162,8 @@ impl Stream for PendingTxPoolStream {
     }
 }
 
-pub struct EthereumRpcOrchestrator {
-    provider: Arc<RootProvider<Http<Client>>>,
+pub struct RpcOrchestrator {
+    provider: Arc<RootProvider<Http<Client>, AnyNetwork>>,
     poll_interval: Duration,
     is_running: Arc<AtomicBool>,
     name: String,
@@ -168,14 +171,16 @@ pub struct EthereumRpcOrchestrator {
     tx_pool_task: Option<JoinHandle<()>>,
 }
 
-impl EthereumRpcOrchestrator {
+impl RpcOrchestrator {
     pub fn new(
         name: String,
         rpc_url: String,
         poll_interval: Duration,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let parsed_rpc_url = rpc_url.parse()?;
-        let provider = ProviderBuilder::new().on_http(parsed_rpc_url);
+        let provider: RootProvider<Http<Client>, AnyNetwork> = ProviderBuilder::new()
+            .network::<AnyNetwork>()
+            .on_http(parsed_rpc_url);
 
         Ok(Self {
             provider: Arc::new(provider),
@@ -203,7 +208,7 @@ impl EthereumRpcOrchestrator {
 }
 
 #[async_trait]
-impl ChainOrchestrator for EthereumRpcOrchestrator {
+impl ChainOrchestrator for RpcOrchestrator {
     async fn start(&mut self) -> Result<Receiver<ChainData>, Box<dyn std::error::Error>> {
         if self.is_running.load(Ordering::Relaxed) {
             return Err("Orchestrator is already running".into());
@@ -234,7 +239,7 @@ impl ChainOrchestrator for EthereumRpcOrchestrator {
 
         let pool_task = tokio::spawn(async move {
             while let Some(tx) = pending_tx_stream.next().await {
-                debug!("new pending transaction: {tx:#?}");
+                println!("new pending transaction: {tx:#?}");
                 if !pool_is_running.load(Ordering::Relaxed) {
                     break;
                 }

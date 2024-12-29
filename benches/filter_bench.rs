@@ -1,4 +1,5 @@
 use alloy_consensus::{Signed, TxEip7702, TxEnvelope};
+use alloy_network::{AnyRpcTransaction, AnyTxEnvelope};
 use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSignature, B256};
 use alloy_rpc_types::{AccessList, Transaction};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
@@ -69,7 +70,7 @@ fn generate_worst_case_filter() -> Filter {
         });
     })
 }
-pub fn generate_random_transaction() -> alloy_rpc_types::Transaction<TxEnvelope> {
+pub fn generate_random_transaction() -> AnyRpcTransaction {
     let chain_id = 1;
     let gas_limit: u64 = 10;
     let max_fee_per_gas: u128 = rand::thread_rng()
@@ -106,14 +107,14 @@ pub fn generate_random_transaction() -> alloy_rpc_types::Transaction<TxEnvelope>
     let hash = B256::default();
     let tx_envelope = TxEnvelope::Eip7702(Signed::new_unchecked(eip_7702, signature, hash));
 
-    Transaction {
-        inner: tx_envelope,
+    AnyRpcTransaction::new(Transaction {
+        inner: alloy_network::AnyTxEnvelope::Ethereum(tx_envelope),
         block_hash: Some(FixedBytes::default()),
         block_number: Some(1),
         transaction_index: Some(0),
         effective_gas_price: Some(20_000_000_000u128),
         from: to,
-    }
+    })
 }
 
 fn bench_filter_evaluation(c: &mut Criterion) {

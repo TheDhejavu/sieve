@@ -30,6 +30,7 @@ tracing = "0.1.41"
 lru = "0.12.5"
 tokio-stream = "0.1.17"
 tracing-subscriber = "0.3.19"
+alloy-network = "0.8.3"
 
 [dev-dependencies]
 criterion = "0.5"

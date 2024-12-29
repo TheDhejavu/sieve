@@ -78,10 +78,11 @@ mod tests {
         FilterCondition, FilterNode, LogicalOp, NumericCondition, StringCondition,
         TransactionCondition,
     };
+    use alloy_network::{AnyRpcTransaction, AnyTxEnvelope};
     use alloy_primitives::U256;
     use alloy_rpc_types::Transaction as RpcTransaction;
 
-    fn create_test_transaction() -> RpcTransaction {
+    fn create_test_transaction() -> RpcTransaction<AnyTxEnvelope> {
         let rpc_tx = r#"{
             "blockHash": "0x883f974b17ca7b28cb970798d1c80f4d4bb427473dc6d39b2a7fe24edc02902d",
             "blockNumber": "0xe26e6d",
@@ -104,7 +105,7 @@ mod tests {
             "gasPrice": "0x50101df3a"
         }"#;
 
-        serde_json::from_str::<RpcTransaction>(rpc_tx).unwrap()
+        serde_json::from_str::<RpcTransaction<AnyTxEnvelope>>(rpc_tx).unwrap()
     }
 
     #[test]
@@ -170,7 +171,7 @@ mod tests {
             value: None,
         };
 
-        let result = engine.evaluate_with_context(&filter, Arc::new(tx));
+        let result = engine.evaluate_with_context(&filter, Arc::new(AnyRpcTransaction::new(tx)));
         assert!(result, "Transaction should match the complex conditions");
     }
 
@@ -210,7 +211,7 @@ mod tests {
             value: None,
         };
 
-        let result = engine.evaluate_with_context(&filter, Arc::new(tx));
+        let result = engine.evaluate_with_context(&filter, Arc::new(AnyRpcTransaction::new(tx)));
         assert!(
             !result,
             "Transaction should not match Uniswap Router criteria"

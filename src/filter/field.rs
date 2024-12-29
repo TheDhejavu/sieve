@@ -177,15 +177,15 @@ impl From<U64FieldCondition<BlockField>> for BlockHeaderCondition {
     }
 }
 
-impl From<U256FieldCondition<BlockField>> for BlockHeaderCondition {
-    fn from(fc: U256FieldCondition<BlockField>) -> BlockHeaderCondition {
-        let U256FieldCondition(field, value) = fc;
-        match field {
-            BlockField::Size => BlockHeaderCondition::Size(value),
-            _ => panic!("Field does not support U256 numeric conditions"),
-        }
-    }
-}
+// impl From<U256FieldCondition<BlockField>> for BlockHeaderCondition {
+//     fn from(fc: U256FieldCondition<BlockField>) -> BlockHeaderCondition {
+//         let U256FieldCondition(field, value) = fc;
+//         match field {
+//             BlockField::Size => BlockHeaderCondition::Size(value),
+//             _ => panic!("Field does not support U256 numeric conditions"),
+//         }
+//     }
+// }
 
 impl From<U128FieldCondition<ContractField>> for ContractCondition {
     fn from(fc: U128FieldCondition<ContractField>) -> ContractCondition {
@@ -443,7 +443,6 @@ impl From<StringFieldCondition<BlockField>> for BlockHeaderCondition {
     fn from(fc: StringFieldCondition<BlockField>) -> BlockHeaderCondition {
         let StringFieldCondition(field, value) = fc;
         match field {
-            BlockField::Hash => BlockHeaderCondition::Hash(value),
             BlockField::ParentHash => BlockHeaderCondition::ParentHash(value),
             BlockField::StateRoot => BlockHeaderCondition::StateRoot(value),
             BlockField::ReceiptsRoot => BlockHeaderCondition::ReceiptsRoot(value),

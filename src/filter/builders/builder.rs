@@ -10,7 +10,9 @@ use crate::{
 };
 
 /// FilterBuilder allows constructing complex filter conditions using a builder pattern.
-pub struct FilterBuilder;
+pub struct FilterBuilder {
+    chain: Chain,
+}
 
 #[allow(dead_code)]
 impl Default for FilterBuilder {
@@ -22,7 +24,10 @@ impl Default for FilterBuilder {
 impl FilterBuilder {
     /// Creates a new empty [`FilterBuilder`].
     pub fn new() -> Self {
-        Self {}
+        Self {
+            // default chain is `Ethereum`
+            chain: Chain::Ethereum,
+        }
     }
     /// Adds transaction conditions to the filter.
     ///
@@ -41,7 +46,7 @@ impl FilterBuilder {
         .optimize();
 
         Filter::new(
-            Chain::Ethereum,
+            self.chain.clone(),
             Arc::new(filter_node),
             Some(EventType::Transaction),
         )
@@ -64,7 +69,7 @@ impl FilterBuilder {
         .optimize();
 
         Filter::new(
-            Chain::Ethereum,
+            self.chain.clone(),
             Arc::new(filter_node),
             Some(EventType::Transaction),
         )
@@ -87,7 +92,7 @@ impl FilterBuilder {
         .optimize();
 
         Filter::new(
-            Chain::Ethereum,
+            self.chain.clone(),
             Arc::new(filter_node),
             Some(EventType::Pool),
         )
@@ -110,7 +115,7 @@ impl FilterBuilder {
         .optimize();
 
         Filter::new(
-            Chain::Ethereum,
+            self.chain.clone(),
             Arc::new(filter_node),
             Some(EventType::BlockHeader),
         )

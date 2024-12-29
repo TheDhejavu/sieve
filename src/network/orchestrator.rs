@@ -1,17 +1,16 @@
-use alloy_rpc_types::{Block, Transaction as RpcTransaction};
+use alloy_network::{AnyRpcBlock, AnyRpcTransaction};
 use async_trait::async_trait;
 use tokio::sync::mpsc::Receiver;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ChainData {
-    // Ethereum chain data..
-    Ethereum(EthereumData),
+    AnyRPCNetwork(AnyRPCNetwork),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum EthereumData {
-    Block(Block),
-    TransactionPool(RpcTransaction),
+pub enum AnyRPCNetwork {
+    Block(AnyRpcBlock),
+    TransactionPool(AnyRpcTransaction),
 }
 
 /// [`ChainOrchestrator`] Orchestrates the lifecycle of chain data polling and retrieval.

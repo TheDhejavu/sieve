@@ -179,11 +179,9 @@ pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
-    Size(NumericCondition<U256>),
     GasUsed(NumericCondition<u64>),
     GasLimit(NumericCondition<u64>),
 
-    Hash(StringCondition),
     ParentHash(StringCondition),
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),

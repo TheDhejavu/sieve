@@ -6,8 +6,8 @@ use crate::filter::{
         TransactionCondition,
     },
     field::{
-        ArrayFieldType, FieldWrapper, StringFieldType, TxField, U128FieldType, U256FieldType,
-        U64FieldType, U8FieldType,
+        ArrayFieldType, DynField, DynValueFieldType, FieldWrapper, StringFieldType, TxField,
+        U128FieldType, U256FieldType, U64FieldType, U8FieldType,
     },
 };
 use alloy_primitives::Selector;
@@ -149,6 +149,13 @@ impl TxBuilder {
 
     pub fn call_data(&mut self, signature: &str) -> CallDataBuilder<Self> {
         CallDataBuilder::new(self, signature.to_string())
+    }
+
+    pub fn field(&mut self, path: &str) -> FieldWrapper<'_, DynValueFieldType<DynField>, Self> {
+        FieldWrapper {
+            field: DynValueFieldType(DynField(path.to_string())),
+            parent: self,
+        }
     }
 }
 

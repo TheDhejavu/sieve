@@ -17,13 +17,14 @@ pub mod prelude {
 }
 
 use crate::config::ChainConfig;
-use alloy_rpc_types::{Block, BlockTransactions, Header, Transaction};
+use alloy_network::{AnyHeader, AnyRpcBlock, AnyRpcTransaction, BlockResponse};
+use alloy_rpc_types::{BlockTransactions, Header};
 use dashmap::DashMap;
 use engine::FilterEngine;
 use filter::conditions::{EventType, Filter};
 use futures::StreamExt;
 use ingest::{Ingest, IngestGateway};
-use network::orchestrator::{ChainData, EthereumData};
+use network::orchestrator::{AnyRPCNetwork, ChainData};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -33,15 +34,18 @@ use tokio_stream::wrappers::BroadcastStream;
 
 const BROADCAST_CHANNEL_SIZE: usize = 1_000;
 
-/// A single event that matched a filter
+/// A single event that matched a filter.
+// In the meantime events are RPC-specific data, in order to be more specific 
+// we will have to manually create events for each data types by mapping RPC or any other 
+// network data types to a unified event type.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Event {
     /// A transaction included in a block
-    Transaction(Transaction),
+    Transaction(AnyRpcTransaction),
     /// A transaction from the mempool
-    Pool(Transaction),
+    Pool(AnyRpcTransaction),
     /// A block header
-    Header(Header),
+    Header(Header<AnyHeader>),
 }
 
 /// A window-based event that contains either matched events or a timeout
@@ -106,7 +110,7 @@ impl FilterGroup {
     }
 
     /// Evaluates a block against all filters in the group
-    fn evaluate_block(&self, block: &Block, engine: &FilterEngine) -> Vec<(u64, Event)> {
+    fn evaluate_block(&self, block: &AnyRpcBlock, engine: &FilterEngine) -> Vec<(u64, Event)> {
         let mut events = Vec::new();
 
         for filter in &self.filters {
@@ -120,8 +124,9 @@ impl FilterGroup {
                 events.push((filter.id(), Event::Header(block.header.clone())));
             }
 
+            let txs = block.transactions();
             // 2. Try to process transactions
-            if let BlockTransactions::Full(transactions) = &block.transactions {
+            if let BlockTransactions::Full(transactions) = txs {
                 for tx in transactions {
                     if filter.event_type() == Some(EventType::Transaction)
                         && engine.evaluate_with_context(
@@ -138,7 +143,11 @@ impl FilterGroup {
         events
     }
     /// Evaluates a mempool transaction against this group's filters
-    fn evaluate_transaction(&self, tx: &Transaction, engine: &FilterEngine) -> Vec<(u64, Event)> {
+    fn evaluate_transaction(
+        &self,
+        tx: &AnyRpcTransaction,
+        engine: &FilterEngine,
+    ) -> Vec<(u64, Event)> {
         let mut events = Vec::new();
 
         for filter in &self.filters {
@@ -404,7 +413,7 @@ impl Sieve {
     }
 
     /// Processes a block through all filter groups
-    async fn process_block(&self, block: &Block) {
+    async fn process_any_rpc_block(&self, block: &AnyRpcBlock) {
         let filters = self.filters.read().await;
 
         for group in filters.values() {
@@ -424,7 +433,7 @@ impl Sieve {
     }
 
     /// Processes a transaction through all filter groups
-    async fn process_transaction(&self, tx: &Transaction) {
+    async fn process_any_rpc_transaction(&self, tx: &AnyRpcTransaction) {
         let filters = self.filters.read().await;
 
         for group in filters.values() {
@@ -453,11 +462,11 @@ impl Sieve {
             let handle = tokio::spawn(async move {
                 while let Some(Ok(chain_data)) = stream.next().await {
                     match chain_data {
-                        ChainData::Ethereum(EthereumData::Block(block)) => {
-                            sieve.process_block(&block).await;
+                        ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(block)) => {
+                            sieve.process_any_rpc_block(&block).await;
                         }
-                        ChainData::Ethereum(EthereumData::TransactionPool(tx)) => {
-                            sieve.process_transaction(&tx).await;
+                        ChainData::AnyRPCNetwork(AnyRPCNetwork::TransactionPool(tx)) => {
+                            sieve.process_any_rpc_transaction(&tx).await;
                         }
                     }
                 }
@@ -502,6 +511,7 @@ mod tests {
     use super::*;
     use alloy_consensus::Transaction;
     use alloy_primitives::U256;
+    use alloy_rpc_types::Block;
     use config::Chain;
     use filter::{FilterBuilder, NumericOps};
     use futures::StreamExt;
@@ -622,7 +632,7 @@ mod tests {
         mock_ingest
             .mock_chain_data(
                 Chain::Ethereum,
-                ChainData::Ethereum(EthereumData::Block(block)),
+                ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(AnyRpcBlock::new(block))),
             )
             .expect("must mock chain data.");
 
@@ -666,7 +676,7 @@ mod tests {
 
         mock_ingest.mock_chain_data(
             Chain::Ethereum,
-            ChainData::Ethereum(EthereumData::Block(block)),
+            ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(AnyRpcBlock::new(block))),
         )?;
 
         // Verify we receive a match with both events

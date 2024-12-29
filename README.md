@@ -98,7 +98,7 @@ Supporting L2s through chain context and dynamic fields. Rather than hardcoding 
 use sieve::FilterBuilder;
 
 fn main() {
-    // Create a filter for Optimism-related events
+    // Create a filter for Optimism-related fields. 
     let op_filter = FilterBuilder::new()
         .optimism(|op| {
             // Filter for events where the `l1BlockNumber` is greater than 10^18
@@ -109,13 +109,6 @@ fn main() {
 
             // Filter for events where `queueIndex` is less than 100
             op.field("queueIndex").lt(100u64);
-        });
-
-    // Create a filter for Base-related events
-    let base_filter = FilterBuilder::new()
-        .base(|base| {
-            // Filter for events where the `l1BlockNumber` is greater than 10^18
-            base.field("l1BlockNumber").gt(1000000000000000000u128);
         });
 }
 
@@ -262,8 +255,8 @@ fn main() {
     let mut stream = sieve.watch_within(
         Duration::from_secs(1800), // Define a 30-minute time window
         [
-            eth_filter,   // Filter for Ethereum-related events
-            op_filter     // Filter for operation-related events
+            eth_filter,  
+            op_filter     
         ],                            
     );
 
@@ -286,9 +279,23 @@ fn main() {
 
 ```
 
-## Todo
-- Add More chains (L2's)
-- Improve Streaming layer (rpc & gossipsub)
+## TODO
+- Handle Chain Specific fields, the current implementation only support l1 & l2 common fields.
+
+- Improve how data is ingested (support gossipsub) and create a proper unification (RPC filter vs polling all data )
+
+- Filters will determine what is orchestrated (e.g we do not need to spin up transaction RPC poller if their are no transaction listeners )
+
+- Dynamic listeners creation (thousands to millions) and real time data correlation accross chains - end game.
 
 ## Status
 🚧 Experimental - Not ready for production use 
+
+
+## Acknowledgements
+
+Created by Ayodeji Akinola ([@ayodeji0x0](https://x.com/ayodeji0x0)).
+
+Special thanks to the creators and maintainers of [Alloy](https://github.com/alloy-rs/alloy) for their excellent Ethereum development toolkit, which significantly simplified working with data types and other foundational components.
+
+Licensed under the [MIT license](LICENSE).
