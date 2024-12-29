@@ -2,7 +2,7 @@
 <!-- [![CICD](https://github.com/thedhejavu/sieve/actions/workflows/CI.yml/badge.svg)](https://github.com/TheDhejavu/sieve/actions/workflows/CI.yml) -->
 ![minimum rustc 1.81](https://img.shields.io/badge/rustc-1.81.0+-red.svg)
 
-A real-time data streaming engine with an expressive DSL for Ethereum & superchains
+A real-time data streaming engine with an expressive DSL for Ethereum & The Superchains
 
 ![Banner](docs/images/banner.png)
 
@@ -15,6 +15,10 @@ Sieve offers a simple and expressive way for filtering blockchain data streams a
 - Transactions: Both confirmed and pending.
 - Events (Logs): Filtered logs from smart contract interactions.
 - Block Headers: Key details from block headers.
+
+
+## Architecture 
+![Banner](docs/images/sieve-architecture.png)
 
 ## Streaming Layer 
 The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
