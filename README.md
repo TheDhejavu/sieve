@@ -287,10 +287,10 @@ fn main() {
 ```
 
 ## TODO
-- Handle Chain Specific fields,current implementation only support l1 & l2 common fields.
-- Improve how data is ingested (support gossipsub) and create a proper unification (RPC filter vs polling all data )
+- Handle Chain Specific fields, current implementation only support l1 & l2 common fields.
+- Improve how data is ingested (support gossipsub) and create a proper unification (utilize RPC filter / optimize data polling )
 - Filters will determine what is orchestrated (e.g we do not need to spin up transaction RPC poller if their are no transaction listeners )
-- Dynamic listeners creation (thousands to millions) and real time data correlation accross chains - end game.
+- Dynamic listeners creation (thousands to millions) and real time data correlation across chains - end game.
 
 ## Status
 🚧 Experimental - Not ready for production use 
