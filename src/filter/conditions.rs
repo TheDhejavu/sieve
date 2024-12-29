@@ -229,8 +229,8 @@ impl Filter {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn chain(&self) -> Chain {
-        self.chain.clone()
+    pub(crate) fn chain(&self) -> &Chain {
+        &self.chain
     }
 
     pub(crate) fn id(&self) -> u64 {

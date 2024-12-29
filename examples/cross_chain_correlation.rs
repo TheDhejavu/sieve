@@ -64,6 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match event {
             // Handle matched events within the time window
             EventWindow::Match(events) => {
+                // Events are ordered based on filter ordering ["eth_event", "op_event"]
                 println!("Found matching events within time window: {events:#?}");
             }
             // Handle events that timed out without a match

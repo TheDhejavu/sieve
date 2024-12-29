@@ -261,7 +261,7 @@ fn main() {
     // Create an event stream monitored within a 30-minute time window
     let mut stream = sieve.watch_within(
         Duration::from_secs(1800), // Define a 30-minute time window
-        [
+        vec![
             eth_filter,  
             op_filter     
         ],                            

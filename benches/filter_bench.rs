@@ -1,5 +1,5 @@
 use alloy_consensus::{Signed, TxEip7702, TxEnvelope};
-use alloy_network::{AnyRpcTransaction, AnyTxEnvelope};
+use alloy_network::AnyRpcTransaction;
 use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSignature, B256};
 use alloy_rpc_types::{AccessList, Transaction};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};

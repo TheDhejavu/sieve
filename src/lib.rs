@@ -19,6 +19,7 @@ pub mod prelude {
 use crate::config::ChainConfig;
 use alloy_network::{AnyHeader, AnyRpcBlock, AnyRpcTransaction, BlockResponse};
 use alloy_rpc_types::{BlockTransactions, Header};
+use config::Chain;
 use dashmap::DashMap;
 use engine::FilterEngine;
 use filter::conditions::{EventType, Filter};
@@ -110,10 +111,19 @@ impl FilterGroup {
     }
 
     /// Evaluates a block against all filters in the group
-    fn evaluate_block(&self, block: &AnyRpcBlock, engine: &FilterEngine) -> Vec<(u64, Event)> {
+    fn evaluate_block(
+        &self,
+        block: &AnyRpcBlock,
+        engine: &FilterEngine,
+        chain: &Chain,
+    ) -> Vec<(u64, Event)> {
         let mut events = Vec::new();
 
         for filter in &self.filters {
+            if filter.chain() != chain {
+                continue;
+            }
+
             // 1. Try to process header
             if filter.event_type() == Some(EventType::BlockHeader)
                 && engine.evaluate_with_context(
@@ -147,10 +157,15 @@ impl FilterGroup {
         &self,
         tx: &AnyRpcTransaction,
         engine: &FilterEngine,
+        chain: &Chain,
     ) -> Vec<(u64, Event)> {
         let mut events = Vec::new();
 
         for filter in &self.filters {
+            if filter.chain() != chain {
+                continue;
+            }
+
             if filter.event_type() == Some(EventType::Transaction)
                 && engine.evaluate_with_context(filter.filter_node().as_ref(), Arc::new(tx.clone()))
             {
@@ -413,11 +428,11 @@ impl Sieve {
     }
 
     /// Processes a block through all filter groups
-    async fn process_any_rpc_block(&self, block: &AnyRpcBlock) {
+    async fn process_any_rpc_block(&self, block: &AnyRpcBlock, chain: &Chain) {
         let filters = self.filters.read().await;
 
         for group in filters.values() {
-            let matches = group.evaluate_block(block, &self.engine);
+            let matches = group.evaluate_block(block, &self.engine, chain);
             match group.sub_type {
                 SubscriptionType::Default => {
                     for (_, event) in matches {
@@ -433,11 +448,11 @@ impl Sieve {
     }
 
     /// Processes a transaction through all filter groups
-    async fn process_any_rpc_transaction(&self, tx: &AnyRpcTransaction) {
+    async fn process_any_rpc_transaction(&self, tx: &AnyRpcTransaction, chain: &Chain) {
         let filters = self.filters.read().await;
 
         for group in filters.values() {
-            let matches = group.evaluate_transaction(tx, &self.engine);
+            let matches = group.evaluate_transaction(tx, &self.engine, chain);
 
             match group.sub_type {
                 SubscriptionType::Default => {
@@ -463,10 +478,10 @@ impl Sieve {
                 while let Some(Ok(chain_data)) = stream.next().await {
                     match chain_data {
                         ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(block)) => {
-                            sieve.process_any_rpc_block(&block).await;
+                            sieve.process_any_rpc_block(&block, &chain).await;
                         }
                         ChainData::AnyRPCNetwork(AnyRPCNetwork::TransactionPool(tx)) => {
-                            sieve.process_any_rpc_transaction(&tx).await;
+                            sieve.process_any_rpc_transaction(&tx, &chain).await;
                         }
                     }
                 }
