@@ -35,8 +35,8 @@ use tokio_stream::wrappers::BroadcastStream;
 const BROADCAST_CHANNEL_SIZE: usize = 1_000;
 
 /// A single event that matched a filter.
-// In the meantime events are RPC-specific data, in order to be more specific 
-// we will have to manually create events for each data types by mapping RPC or any other 
+// In the meantime events are RPC-specific data, in order to be more specific
+// we will have to manually create events for each data types by mapping RPC or any other
 // network data types to a unified event type.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Event {
