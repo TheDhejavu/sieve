@@ -28,7 +28,7 @@ It is composed of **three main components** that work together to provide a reli
 ## L1 (Ethereum)
 We prioritize Ethereum data expressiveness by hardcoding commonly used fields, since these fields are relatively stable across the Ethereum ecosystem and often share relationships with L2s. 
 
-### Filter (*v1.0*)
+### Filter
 ```rust
 // Simple OR filter for transaction monitoring
 let filter = FilterBuilder::new().transaction(|f| {
