@@ -27,6 +27,7 @@ use futures::StreamExt;
 use ingest::{Ingest, IngestGateway};
 use network::orchestrator::{AnyRPCNetwork, ChainData};
 use std::hash::{Hash, Hasher};
+use std::sync::atomic::{AtomicI64, AtomicIsize, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{collections::HashMap, hash::DefaultHasher};
@@ -192,7 +193,7 @@ impl FilterGroup {
 
 /// Window manages the state of time-based event matching.
 /// It tracks which filters have matched and collects events until all conditions are met.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct Window {
     /// Time when this window expires
     expires_at: Instant,
@@ -200,7 +201,7 @@ pub(crate) struct Window {
     /// Index in the vector corresponds to the original filter position.
     matched_events: Vec<Option<Event>>,
     /// Count of remaining unmatched filters
-    remaining_matches: usize,
+    remaining_matches: AtomicU64,
     /// Original filter IDs in order
     filter_ids: Vec<u64>,
 }
@@ -212,7 +213,7 @@ impl Window {
         Self {
             expires_at: Instant::now() + duration,
             matched_events: vec![None; size],
-            remaining_matches: size,
+            remaining_matches: AtomicU64::new(size as u64),
             filter_ids,
         }
     }
@@ -230,9 +231,9 @@ impl Window {
         if let Some(pos) = self.filter_ids.iter().position(|id| *id == filter_id) {
             if self.matched_events[pos].is_none() {
                 self.matched_events[pos] = Some(event);
-                self.remaining_matches -= 1;
+                let remaining_matches = self.remaining_matches.fetch_sub(1, Ordering::SeqCst);
 
-                if self.remaining_matches == 0 {
+                if remaining_matches == 1 {
                     return Some(
                         self.matched_events
                             .iter()
