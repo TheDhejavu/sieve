@@ -18,7 +18,7 @@ Sieve offers a simple and expressive way for filtering blockchain data streams a
 
 
 ## Architecture 
-![Banner](docs/images/sieve-architecture.png)
+<!-- ![Banner](docs/images/sieve-architecture.png) -->
 
 ## Streaming Layer 
 The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
