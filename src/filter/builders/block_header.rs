@@ -140,8 +140,6 @@ impl FilterBuilderOps for BlockHeaderBuilder {
 
 #[cfg(test)]
 mod tests {
-    use alloy_primitives::U256;
-
     use super::*;
     use crate::filter::{
         conditions::{FilterCondition, NumericCondition, StringCondition},
@@ -149,7 +147,6 @@ mod tests {
     };
 
     const NUMBER: u64 = 1;
-    const SIZE: u64 = 1000;
     const GAS_USED: u64 = 2000;
     const GAS_LIMIT: u64 = 2000;
     const TIMESTAMP: u64 = 5000;
@@ -162,7 +159,6 @@ mod tests {
     fn test_numeric_field_operations() {
         let mut builder = BlockHeaderBuilder::new();
         builder.number().eq(NUMBER);
-        builder.size().gt(U256::from(SIZE));
         builder.gas_used().gte(GAS_USED);
         builder.gas_limit().lt(GAS_LIMIT);
         builder.timestamp().lte(TIMESTAMP);
@@ -173,12 +169,6 @@ mod tests {
                 children: None,
                 value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Number(
                     NumericCondition::EqualTo(NUMBER),
-                ))),
-            },
-            FilterNode {
-                children: None,
-                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Size(
-                    NumericCondition::GreaterThan(U256::from(SIZE)),
                 ))),
             },
             FilterNode {
@@ -213,19 +203,12 @@ mod tests {
     #[test]
     fn test_string_field_operations() {
         let mut builder = BlockHeaderBuilder::new();
-        builder.hash().exact(HASH);
         builder.parent_hash().starts_with(PREFIX);
         builder.state_root().ends_with(SUFFIX);
         builder.receipts_root().exact(HASH);
         builder.transactions_root().starts_with(PREFIX);
 
         let expected_nodes = vec![
-            FilterNode {
-                children: None,
-                value: Some(FilterCondition::BlockHeader(BlockHeaderCondition::Hash(
-                    StringCondition::EqualTo(HASH.to_string()),
-                ))),
-            },
             FilterNode {
                 children: None,
                 value: Some(FilterCondition::BlockHeader(

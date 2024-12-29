@@ -123,7 +123,7 @@ impl ChainConfigBuilder {
 
     /// Builds the final Chain configuration
     pub fn build(&mut self) -> ChainConfig {
-        if self.gossipsub_url.is_none() || self.rpc_url.is_none() || self.ws_url.is_none() {
+        if self.gossipsub_url.is_none() && self.rpc_url.is_none() && self.ws_url.is_none() {
             panic!("at least one url is required.")
         }
 

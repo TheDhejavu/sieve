@@ -179,11 +179,9 @@ pub enum BlockHeaderCondition {
     BaseFee(NumericCondition<u64>),
     Number(NumericCondition<u64>),
     Timestamp(NumericCondition<u64>),
-    Size(NumericCondition<U256>),
     GasUsed(NumericCondition<u64>),
     GasLimit(NumericCondition<u64>),
 
-    Hash(StringCondition),
     ParentHash(StringCondition),
     StateRoot(StringCondition),
     ReceiptsRoot(StringCondition),
@@ -208,10 +206,10 @@ pub(crate) enum EventType {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Filter {
-    id: u64,
-    chain: Chain,
-    event_type: Option<EventType>,
-    filter_node: Arc<FilterNode>,
+    pub(crate) id: u64,
+    pub(crate) chain: Chain,
+    pub(crate) event_type: Option<EventType>,
+    pub(crate) filter_node: Arc<FilterNode>,
 }
 
 static FILTER_SEQ: AtomicU64 = AtomicU64::new(0);
@@ -231,8 +229,8 @@ impl Filter {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn chain(&self) -> Chain {
-        self.chain.clone()
+    pub(crate) fn chain(&self) -> &Chain {
+        &self.chain
     }
 
     pub(crate) fn id(&self) -> u64 {

@@ -2,7 +2,7 @@ use lru::LruCache;
 use std::{num::NonZeroUsize, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
-use crate::network::orchestrator::{ChainData, EthereumData};
+use crate::network::orchestrator::{AnyRPCNetwork, ChainData};
 
 use super::Chain;
 
@@ -42,25 +42,25 @@ impl ChainStream {
         data: ChainData,
     ) -> Result<(), Box<dyn std::error::Error>> {
         match data {
-            ChainData::Ethereum(eth_data) => match eth_data {
-                EthereumData::Block(block) => {
+            ChainData::AnyRPCNetwork(eth_data) => match eth_data {
+                AnyRPCNetwork::Block(block) => {
                     let block_id = format!("{:?}-{:?}", block.header.number, block.header.hash);
 
                     let mut cache = self.block_header_cache.write().await;
                     if cache.put(block_id, ()).is_none() {
                         let _ = self
                             .sender
-                            .send(ChainData::Ethereum(EthereumData::Block(block)));
+                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(block)));
                     }
                 }
-                EthereumData::TransactionPool(tx) => {
+                AnyRPCNetwork::TransactionPool(tx) => {
                     let mut cache = self.tx_cache.write().await;
 
                     let tx_id = format!("{:?}-{:?}", tx.transaction_index, tx.block_hash);
                     if cache.put(tx_id, ()).is_none() {
                         let _ = self
                             .sender
-                            .send(ChainData::Ethereum(EthereumData::TransactionPool(tx)));
+                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::TransactionPool(tx)));
                     }
                 }
             },

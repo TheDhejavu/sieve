@@ -177,16 +177,6 @@ impl From<U64FieldCondition<BlockField>> for BlockHeaderCondition {
     }
 }
 
-impl From<U256FieldCondition<BlockField>> for BlockHeaderCondition {
-    fn from(fc: U256FieldCondition<BlockField>) -> BlockHeaderCondition {
-        let U256FieldCondition(field, value) = fc;
-        match field {
-            BlockField::Size => BlockHeaderCondition::Size(value),
-            _ => panic!("Field does not support U256 numeric conditions"),
-        }
-    }
-}
-
 impl From<U128FieldCondition<ContractField>> for ContractCondition {
     fn from(fc: U128FieldCondition<ContractField>) -> ContractCondition {
         let U128FieldCondition(field, value) = fc;
@@ -286,6 +276,46 @@ impl From<U256FieldCondition<DynField>> for BlockHeaderCondition {
         BlockHeaderCondition::DynField(DynFieldCondition {
             path: field.0,
             condition: ValueCondition::U256(value),
+        })
+    }
+}
+
+impl From<U64FieldCondition<DynField>> for TransactionCondition {
+    fn from(fc: U64FieldCondition<DynField>) -> TransactionCondition {
+        let U64FieldCondition(field, value) = fc;
+        TransactionCondition::DynField(DynFieldCondition {
+            path: field.0,
+            condition: ValueCondition::U64(value),
+        })
+    }
+}
+
+impl From<U128FieldCondition<DynField>> for TransactionCondition {
+    fn from(fc: U128FieldCondition<DynField>) -> TransactionCondition {
+        let U128FieldCondition(field, value) = fc;
+        TransactionCondition::DynField(DynFieldCondition {
+            path: field.0,
+            condition: ValueCondition::U128(value),
+        })
+    }
+}
+
+impl From<U256FieldCondition<DynField>> for TransactionCondition {
+    fn from(fc: U256FieldCondition<DynField>) -> TransactionCondition {
+        let U256FieldCondition(field, value) = fc;
+        TransactionCondition::DynField(DynFieldCondition {
+            path: field.0,
+            condition: ValueCondition::U256(value),
+        })
+    }
+}
+
+impl From<StringFieldCondition<DynField>> for TransactionCondition {
+    fn from(fc: StringFieldCondition<DynField>) -> TransactionCondition {
+        let StringFieldCondition(field, value) = fc;
+        TransactionCondition::DynField(DynFieldCondition {
+            path: field.0,
+            condition: ValueCondition::String(value),
         })
     }
 }
@@ -443,7 +473,6 @@ impl From<StringFieldCondition<BlockField>> for BlockHeaderCondition {
     fn from(fc: StringFieldCondition<BlockField>) -> BlockHeaderCondition {
         let StringFieldCondition(field, value) = fc;
         match field {
-            BlockField::Hash => BlockHeaderCondition::Hash(value),
             BlockField::ParentHash => BlockHeaderCondition::ParentHash(value),
             BlockField::StateRoot => BlockHeaderCondition::StateRoot(value),
             BlockField::ReceiptsRoot => BlockHeaderCondition::ReceiptsRoot(value),

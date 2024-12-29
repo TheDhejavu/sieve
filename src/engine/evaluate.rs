@@ -4,8 +4,9 @@ use crate::filter::conditions::{
 };
 use crate::{filter::evaluate::Evaluable, utils::decoder::EventDefinition};
 use alloy_consensus::{BlockHeader, Transaction, Typed2718};
+use alloy_network::{AnyHeader, AnyRpcTransaction};
 use alloy_primitives::{keccak256, Selector};
-use alloy_rpc_types::{Header, Log, Transaction as RpcTransaction};
+use alloy_rpc_types::{Header, Log};
 use std::sync::Arc;
 
 /// Trait for data types that can be evaluated against filter conditions
@@ -30,9 +31,12 @@ pub trait EvaluableData {
     fn decode_data(&self, condition: &FilterCondition) -> Option<Arc<DecodedData>>;
 }
 
-impl EvaluableData for RpcTransaction {
+impl EvaluableData for AnyRpcTransaction {
     fn cache_key(&self) -> CacheKey {
-        CacheKey::ContractCall(self.inner.tx_hash().to_string())
+        // TODO: revisit this, unwrap_or_default is just prevent panic in the meantime but
+        // can lead to unexpected result for cache key.
+        let hash = self.info().hash.unwrap_or_default().to_string();
+        CacheKey::ContractCall(hash)
     }
 
     fn evaluate(
@@ -40,6 +44,11 @@ impl EvaluableData for RpcTransaction {
         filter_condition: &FilterCondition,
         _decoded_data: Option<Arc<DecodedData>>,
     ) -> bool {
+        // TODO: Handle chain-specific transaction fields
+        // - `AnyRpcTransaction`  contains fields specific to different chains (Base, Optimism, etc.)
+        // - Use `chain_id` to determine which chain-specific struct to deserialize into
+        // - Only perform this conversion when evaluating `TransactionCondition::DynField`
+        //   to avoid unnecessary deserialization
         match filter_condition {
             FilterCondition::Transaction(condition) => match condition {
                 TransactionCondition::Value(condition) => condition.evaluate(&self.value()),
@@ -71,7 +80,7 @@ impl EvaluableData for RpcTransaction {
                     condition.evaluate(&self.transaction_index.unwrap_or_default())
                 }
                 TransactionCondition::Hash(condition) => {
-                    condition.evaluate(&self.inner.tx_hash().to_string())
+                    condition.evaluate(&self.info().hash.unwrap_or_default().to_string())
                 }
                 TransactionCondition::DynField(dyn_condition) => {
                     let json_value = serde_json::to_value(self).unwrap_or_default();
@@ -88,13 +97,16 @@ impl EvaluableData for RpcTransaction {
                 PoolCondition::Nonce(condition) => condition.evaluate(&self.nonce()),
                 PoolCondition::GasLimit(condition) => condition.evaluate(&self.gas_limit()),
                 PoolCondition::Hash(condition) => {
-                    condition.evaluate(&self.inner.tx_hash().to_string())
+                    condition.evaluate(&self.info().hash.unwrap_or_default().to_string())
                 }
                 PoolCondition::To(condition) => {
                     condition.evaluate(&self.to().unwrap_or_default().to_string())
                 }
             },
             FilterCondition::DynField(dyn_condition) => {
+                // TODO: all common fields are supported by defualt , which means
+                // we should check for dynamic fields in https://github.com/alloy-rs/alloy/blob/262089c6abf9c18c9220ffd884372a9cd3b3083f/crates/network-primitives/src/traits.rs#L132
+                // if there is any - in that case we need to update this.
                 let json_value = serde_json::to_value(self).unwrap_or_default();
                 dyn_condition.evaluate(&json_value)
             }
@@ -124,9 +136,9 @@ impl EvaluableData for RpcTransaction {
     }
 }
 
-impl EvaluableData for Header {
+impl EvaluableData for Header<AnyHeader> {
     fn cache_key(&self) -> CacheKey {
-        CacheKey::ContractCall(self.hash.to_string())
+        CacheKey::ContractCall(self.number().to_string())
     }
 
     fn evaluate(
@@ -141,12 +153,8 @@ impl EvaluableData for Header {
                 }
                 BlockHeaderCondition::Number(condition) => condition.evaluate(&self.number),
                 BlockHeaderCondition::Timestamp(condition) => condition.evaluate(&self.timestamp),
-                BlockHeaderCondition::Size(condition) => {
-                    condition.evaluate(&self.size.unwrap_or_default())
-                }
                 BlockHeaderCondition::GasUsed(condition) => condition.evaluate(&self.gas_used),
                 BlockHeaderCondition::GasLimit(condition) => condition.evaluate(&self.gas_limit),
-                BlockHeaderCondition::Hash(condition) => condition.evaluate(&self.hash.to_string()),
                 BlockHeaderCondition::ParentHash(condition) => {
                     condition.evaluate(&self.parent_hash.to_string())
                 }

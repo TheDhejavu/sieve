@@ -111,11 +111,9 @@ impl_condition_priority!(
         Self::Timestamp(_),
         Self::GasUsed(_),
         Self::GasLimit(_),
-        Self::Size(_),
         Self::DynField(_),
     ],
     hash: [
-        Self::Hash(_),
         Self::ParentHash(_),
         Self::StateRoot(_),
         Self::ReceiptsRoot(_),

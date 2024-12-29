@@ -7,14 +7,21 @@ use tracing::{error, info};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
-    info!("Starting Sieve mempool monitor...");
+    info!("Starting l2 transaction monitor...");
 
     // 1. Chain Configuration
-    let chains = vec![ChainConfigBuilder::builder()
-        .rpc("https://ethereum-holesky-rpc.publicnode.com")
-        .ws("wss://ethereum-holesky-rpc.publicnode.com")
-        .chain(Chain::Ethereum)
-        .build()];
+    let chains = vec![
+        ChainConfigBuilder::builder()
+            .rpc("https://optimism-sepolia-rpc.publicnode.com")
+            .ws("wss://optimism-sepolia-rpc.publicnode.com")
+            .chain(Chain::Optimism)
+            .build(),
+        ChainConfigBuilder::builder()
+            .rpc("https://ethereum-holesky-rpc.publicnode.com")
+            .ws("wss://ethereum-holesky-rpc.publicnode.com")
+            .chain(Chain::Ethereum)
+            .build(),
+    ];
 
     // 2. Connect to chains via `Sieve`
     let sieve = match Sieve::connect(chains).await {
@@ -29,17 +36,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // 3. Create Filter
-    let pool_filter = FilterBuilder::new().pool(|f| {
-        f.any_of(|p| {
-            p.value().gt(U256::from(100u64));
-            p.from().starts_with("0xdead");
-            p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+    let tx_filter = FilterBuilder::new()
+        .chain(Chain::Optimism)
+        .transaction(|op| {
+            op.field("value").gt(U256::from(100u64));
         });
-    });
 
     // 4. Subscribe to events with the filter
-    info!("Subscribing to mempool events...");
-    let mut events = sieve.subscribe(pool_filter).await?;
+    info!("Subscribing to transaction events...");
+    let mut events = sieve.subscribe(tx_filter).await?;
 
     // 5. Handle events
     while let Some(Ok(event)) = events.next().await {

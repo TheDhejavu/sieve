@@ -1,11 +1,12 @@
 use alloy_consensus::{Signed, TxEip7702, TxEnvelope};
+use alloy_network::AnyRpcTransaction;
 use alloy_primitives::{ruint::aliases::U256, Address, FixedBytes, PrimitiveSignature, B256};
 use alloy_rpc_types::{AccessList, Transaction};
 use rand::Rng;
 use std::str::FromStr;
 
 #[allow(dead_code)]
-pub fn generate_random_transaction(value: u64) -> alloy_rpc_types::Transaction<TxEnvelope> {
+pub fn generate_random_transaction(value: u64) -> AnyRpcTransaction {
     let chain_id = 1;
     let gas_limit: u64 = 10;
     let max_fee_per_gas: u128 = rand::thread_rng()
@@ -42,12 +43,12 @@ pub fn generate_random_transaction(value: u64) -> alloy_rpc_types::Transaction<T
     let hash = B256::default();
     let tx_envelope = TxEnvelope::Eip7702(Signed::new_unchecked(eip_7702, signature, hash));
 
-    Transaction {
-        inner: tx_envelope,
+    AnyRpcTransaction::new(Transaction {
+        inner: alloy_network::AnyTxEnvelope::Ethereum(tx_envelope),
         block_hash: Some(FixedBytes::default()),
-        block_number: Some(10),
+        block_number: Some(1),
         transaction_index: Some(0),
         effective_gas_price: Some(20_000_000_000u128),
         from: to,
-    }
+    })
 }

@@ -9,8 +9,8 @@ use tokio_stream::wrappers::BroadcastStream;
 use crate::{
     config::{Chain, ChainConfig},
     network::{
-        ethereum::rpc::EthereumRpcOrchestrator,
         orchestrator::{ChainData, ChainOrchestrator},
+        rpc::RpcOrchestrator,
     },
 };
 
@@ -87,7 +87,9 @@ impl Ingest {
 
                     // Start RPC orchestrator if configured...
                     if !config.rpc_url().is_empty() {
-                        let orchestrator = EthereumRpcOrchestrator::new(
+                        tracing::info!("Starting Ethereum chain stream...");
+
+                        let orchestrator = RpcOrchestrator::new(
                             format!("{:?}", config.chain()),
                             config.rpc_url().to_string(),
                             DEFAULT_POLL_INTERVAL,
@@ -114,7 +116,40 @@ impl Ingest {
                         );
                     }
                 }
-                Chain::Optimism => println!("<> implement optimism"),
+                Chain::Optimism => {
+                    let chain_stream = Arc::new(ChainStream::new(chain.clone()));
+
+                    // Start RPC orchestrator if configured...
+                    if !config.rpc_url().is_empty() {
+                        tracing::info!("Starting Optimism chain stream...");
+
+                        let orchestrator = RpcOrchestrator::new(
+                            format!("{:?}", config.chain()),
+                            config.rpc_url().to_string(),
+                            DEFAULT_POLL_INTERVAL,
+                        )
+                        .unwrap();
+
+                        let mut orchestrator = Box::new(orchestrator);
+                        let mut receiver = orchestrator.start().await.unwrap();
+
+                        let stream_clone = chain_stream.clone();
+                        let handle = tokio::spawn(async move {
+                            while let Some(data) = receiver.recv().await {
+                                let _ = stream_clone.process_data(data).await;
+                            }
+                        });
+
+                        chain_states.insert(
+                            chain,
+                            ChainState {
+                                chain_stream,
+                                orchestrator,
+                                handle,
+                            },
+                        );
+                    }
+                }
                 Chain::Base => println!("<> implement base"),
             }
         }
