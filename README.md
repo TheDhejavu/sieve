@@ -138,7 +138,7 @@ fn main() {
 
 ```
 
-### Proposed Usage (*stream*):
+### Usage:
 ```rust
 use sieve::prelude::*;
 
