@@ -17,6 +17,17 @@ Sieve offers a simple and expressive way for filtering blockchain data streams a
 - Block Headers: Key details from block headers.
 
 
+## Installation
+
+Since this crate is not yet published on [Crates.io](https://crates.io/), you can include it in your project directly from GitHub:
+
+Add the following to your `Cargo.toml` file under `[dependencies]`:
+
+```toml
+[dependencies]
+sieve = { git = "https://github.com/TheDhejavu/sieve" }
+```
+
 ## Architecture 
 ![Architecture](docs/images/sieve-architecture.png)
 
@@ -280,17 +291,6 @@ fn main() {
         }
     }
 }
-```
-
-## Installation
-
-Since this crate is not yet published on [Crates.io](https://crates.io/), you can include it in your project directly from GitHub:
-
-Add the following to your `Cargo.toml` file under `[dependencies]`:
-
-```toml
-[dependencies]
-sieve = { git = "https://github.com/TheDhejavu/sieve" }
 ```
 
 ## TODO
