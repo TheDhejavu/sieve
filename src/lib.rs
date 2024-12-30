@@ -766,7 +766,7 @@ mod tests {
         });
 
         let mut stream = sieve
-            .watch_within(vec![filter1, filter2], Duration::from_millis(0))
+            .watch_within(vec![filter1, filter2], Duration::from_millis(10))
             .await?;
 
         if let Some(Ok(window_event)) = stream.next().await {

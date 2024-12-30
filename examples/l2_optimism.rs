@@ -2,7 +2,7 @@ use alloy_primitives::U256;
 use eyre::{Result, WrapErr};
 use sieve::{prelude::*, Sieve};
 use tokio_stream::StreamExt;
-use tracing::{error, info};
+use tracing::info;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

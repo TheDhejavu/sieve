@@ -21,8 +21,8 @@ fn generate_random_address() -> String {
 fn generate_best_case_filter() -> Filter {
     FilterBuilder::new().transaction(|tx| {
         tx.value().gt(U256::from(u64::MAX));
-        tx.to().exact("0xdead000000000000000000000000000000000000");
-        tx.nonce().eq(u64::MAX);
+        // tx.to().exact("0xdead000000000000000000000000000000000000");
+        // tx.nonce().eq(u64::MAX);
     })
 }
 
