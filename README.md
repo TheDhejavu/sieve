@@ -5,7 +5,7 @@
 
 A lightweight real-time data streaming engine with an expressive DSL for Ethereum & The Superchain.
 
-[Design Document](https://github.com/TheDhejavu/sieve/blob/main/docs/sieve_v1.pdf)
+[Technical Design Specification](https://github.com/TheDhejavu/sieve/blob/main/docs/sieve_v1.pdf)
 
 <!-- ![Banner](docs/images/banner.png) -->
 
