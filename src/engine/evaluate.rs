@@ -33,7 +33,7 @@ pub trait EvaluableData {
 
 impl EvaluableData for AnyRpcTransaction {
     fn cache_key(&self) -> CacheKey {
-        // TODO: revisit this, unwrap_or_default is just prevent panic in the meantime but
+        // TODO: revisit this, unwrap_or_default is just to prevent panic in the meantime but
         // can lead to unexpected result for cache key.
         let hash = self.info().hash.unwrap_or_default().to_string();
         CacheKey::ContractCall(hash)
@@ -260,9 +260,6 @@ impl EvaluableData for Log {
         let FilterCondition::Event(EventCondition::EventData { signature, .. }) = condition else {
             return None;
         };
-
-        // TODO: Verify method signature hash against topic[0] to determine if
-        // this log is valid enough to be decoded.
 
         let event = EventDefinition::from_signature(signature).ok()?;
         let event_log = event.decode_log(&self.inner.data).ok()?;
