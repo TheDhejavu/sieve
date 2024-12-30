@@ -109,7 +109,6 @@ let filter = FilterBuilder::new().transaction(|f| {
 ## L2 (Superchain)
 Supporting L2s through chain context and dynamic fields. Rather than hardcoding chain-specific logic, developers can specify chain context and use flexible field conditions, while still maintaining harcoded cross-chain specific name
 
-### Idea ?
 **Basic filter**:
 
 ```rust
