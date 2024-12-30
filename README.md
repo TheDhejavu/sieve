@@ -2,7 +2,7 @@
 <!-- [![CICD](https://github.com/thedhejavu/sieve/actions/workflows/CI.yml/badge.svg)](https://github.com/TheDhejavu/sieve/actions/workflows/CI.yml) -->
 ![minimum rustc 1.81](https://img.shields.io/badge/rustc-1.81.0+-red.svg)
 
-A real-time data streaming engine with an expressive DSL for Ethereum & The Superchains
+A lightweight real-time data streaming engine with an expressive DSL for Ethereum & The Superchain.
 
 <!-- ![Banner](docs/images/banner.png) -->
 
