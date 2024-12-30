@@ -40,6 +40,56 @@ It is composed of **three main components** that work together to provide a reli
 - Connection Orchestrator
 - Ingestion Pipeline
 
+
+## Usage:
+```rust
+use sieve::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Chain Configuration
+    let chains = vec![
+        // Ethereum chain....
+        ChainConfigBuilder::builder()
+            .rpc("https://ethereum-holesky-rpc.publicnode.com")
+            .ws("wss://ethereum-holesky-rpc.publicnode.com")
+            .chain(Chain::Ethereum)
+            .build(),  
+            
+         // Optimisim chain....
+        ChainConfigBuilder::builder()
+            .rpc("https://optimism-sepolia-rpc.publicnode.com")
+            .ws("wss://optimism-sepolia-rpc.publicnode.com")
+            .chain(Chain::Optimism)
+            .build(),
+                           
+    ];
+
+    // 2. Connect to chains via `Sieve`
+    let sieve = Sieve::connect(chains)?;                   
+
+    // 3. Create Filter
+   let pool_filter = FilterBuilder::new().pool(|f| {
+        f.any_of(|p| {
+            // High value pending transaction
+            p.value().gt(U256::from(1000000000000000000u64));
+            // Specific sender/receiver
+            p.from().starts_with("0xdead");
+            p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+        });
+    });
+
+    // 4. Subscribe to stream
+    let mut stream = sieve.subscribe(pool_filter.clone());
+    while let Some(Ok(event)) = stream.next().await {
+        println!("Pool: {:?}", event);
+    }
+
+    Ok(())
+}
+
+```
+
 ## L1 (Ethereum)
 We prioritize Ethereum data expressiveness by hardcoding commonly used fields, since these fields are relatively stable across the Ethereum ecosystem and often share relationships with L2s. 
 
@@ -133,55 +183,6 @@ fn main() {
             // Filter for events where `queueIndex` is less than 100
             tx.field("queueIndex").lt(100u64);
         });
-}
-
-```
-
-### Usage:
-```rust
-use sieve::prelude::*;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Chain Configuration
-    let chains = vec![
-        // Ethereum chain....
-        ChainConfigBuilder::builder()
-            .rpc("https://ethereum-holesky-rpc.publicnode.com")
-            .ws("wss://ethereum-holesky-rpc.publicnode.com")
-            .chain(Chain::Ethereum)
-            .build(),  
-            
-         // Optimisim chain....
-        ChainConfigBuilder::builder()
-            .rpc("https://optimism-sepolia-rpc.publicnode.com")
-            .ws("wss://optimism-sepolia-rpc.publicnode.com")
-            .chain(Chain::Optimism)
-            .build(),
-                           
-    ];
-
-    // 2. Connect to chains via `Sieve`
-    let sieve = Sieve::connect(chains)?;                   
-
-    // 3. Create Filter
-   let pool_filter = FilterBuilder::new().pool(|f| {
-        f.any_of(|p| {
-            // High value pending transaction
-            p.value().gt(U256::from(1000000000000000000u64));
-            // Specific sender/receiver
-            p.from().starts_with("0xdead");
-            p.to().exact("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-        });
-    });
-
-    // 4. Subscribe to stream
-    let mut stream = sieve.subscribe(pool_filter.clone());
-    while let Some(Ok(event)) = stream.next().await {
-        println!("Pool: {:?}", event);
-    }
-
-    Ok(())
 }
 
 ```
