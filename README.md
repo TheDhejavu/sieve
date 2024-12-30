@@ -11,11 +11,10 @@ Sieve offers a simple and expressive way for filtering blockchain data streams a
 
 <!-- it's recommended to be explicit in this case by including correlated conditions to help Sieve understand exactly what to look for. However, without specific explicit instructions, Sieve falls back to heuristic approaches which, while functional, may impact performance. -->
 
-### Supported Emitted Events
-- Transactions: Both confirmed and pending.
-- Events (Logs): Filtered logs from smart contract interactions.
-- Block Headers: Key details from block headers.
-
+### Events
+- [x] Transactions: Both confirmed and pending.
+- [x] Block Headers: Key details from block headers.
+- [ ] Events (Logs): Filtered logs from smart contract interactions.
 
 ## Installation
 
