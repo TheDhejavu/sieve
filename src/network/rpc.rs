@@ -271,6 +271,3 @@ impl ChainOrchestrator for RpcOrchestrator {
         &self.name
     }
 }
-
-// The filter engine is designed as a high-performance, memory-efficient system for processing multiple concurrent filters across super-chain and Ethereum data streams. It implements a priority-based filtering approach with several optimizations to efficiently handle high volumes of concurrent filters. At its core, it combines simple predicate matching with optimized execution strategies to handle thousands of concurrent filters efficiently.
-// The engine evaluates each filter node using parallelization to efficiently traverse the condition trees. For each incoming data (blocks, transactions e.t.c), it performs pre-evaluation steps to quickly determine if a block might match a filter's criteria, preventing unnecessary decoding of  data such as calldata, input e.t.c. The engine also implements intelligent caching of decoded data, ensuring that frequently accessed data is decoded only once and reused across multiple filter evaluations.
