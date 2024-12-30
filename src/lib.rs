@@ -93,7 +93,6 @@ pub enum GroupSender {
     Watch(broadcast::Sender<EventWindow>),
 }
 
-
 /// [`FilterGroup`] handles the evaluation of filters and sending of events.
 /// It maintains a group of related filters and handles events based on its subscription type.
 #[derive(Clone)]
