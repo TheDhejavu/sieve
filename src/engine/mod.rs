@@ -1,7 +1,6 @@
-//! Filter engine performs CPU-intensive operations (decoding data, evaluating conditions)
-//! against complex filter trees, so we parallelize evaluation using Rayon workers
-//! for better performance.
-//!
+//! Filter engine handles concurrent filter evaluations using Rayon workers for parallel processing.
+//! While data decoding can be intensive, results are cached globally to prevent redundant operations.
+//! The parallel design enables efficient processing of multiple simultaneous filter conditions.
 use std::sync::Arc;
 
 use context::EvaluationContext;
