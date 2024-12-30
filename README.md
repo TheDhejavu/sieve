@@ -129,11 +129,7 @@ fn main() {
 
 ### Proposed Usage (*stream*):
 ```rust
-use sieve::{Sieve, config::{ChainConfig, Chain}, FilterBuilder, NumericOps, StringOps};
-
-#[tokio::main]
-use sieve::{FilterBuilder, NumericOps, StringOps};
-use std::time::Duration;
+use sieve::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -186,7 +182,7 @@ The filter engine uses a tree structure to represent complex logical combination
 ### Usage
 
 ```rust
-use sieve::{FilterBuilder, NumericOps, StringOps};
+use sieve::prelude::*;
 
 fn main() {
     // Single chain (L1)
@@ -212,7 +208,7 @@ subscribe allows you to subsribe to any kind of events (transaction, header e.t.
 
 **Subsribe:**
 ```rust
-use sieve::{FilterBuilder, NumericOps, StringOps};
+use sieve::prelude::*;
 
 fn main() {
     // Subscribe to events matching the Ethereum filter
@@ -256,7 +252,7 @@ This makes it ideal for scenarios requiring temporal correlation across differen
 
 **Sample**
 ```rust
-use sieve::{FilterBuilder, NumericOps, StringOps};
+use sieve::prelude::*;
 
 fn main() {
     // Create an event stream monitored within a 30-minute time window
@@ -284,7 +280,17 @@ fn main() {
         }
     }
 }
+```
 
+## Installation
+
+Since this crate is not yet published on [Crates.io](https://crates.io/), you can include it in your project directly from GitHub:
+
+Add the following to your `Cargo.toml` file under `[dependencies]`:
+
+```toml
+[dependencies]
+sieve = { git = "https://github.com/TheDhejavu/sieve" }
 ```
 
 ## TODO
