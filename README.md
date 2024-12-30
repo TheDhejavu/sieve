@@ -140,12 +140,7 @@ let filter = FilterBuilder::new().transaction(|f| {
 **Gossipsub (*reactive*):**
 
 - Block gossip:
-    - `BeaconBlock`
-    - `ExecutionPayload`
-    - `ExecutionPayloadHeader`
 - Transaction gossip:
-    - `TransactionAnnounce`
-    - `TransactionPropagation`
 
 **WebSocket (*reactive*):**
 
