@@ -1,4 +1,5 @@
 # sieve
+
 [![CICD](https://github.com/thedhejavu/sieve/actions/workflows/CI.yml/badge.svg)](https://github.com/TheDhejavu/sieve/actions/workflows/CI.yml)
 ![minimum rustc 1.81](https://img.shields.io/badge/rustc-1.81.0+-red.svg)
 ![GitHub](https://img.shields.io/github/license/thedhejavu/sieve)
@@ -13,12 +14,14 @@ A lightweight real-time data streaming engine with an expressive DSL for Ethereu
 Sieve offers a simple and expressive way for filtering blockchain data streams and emits events when specified conditions are met. We try to make sieve as humanly expressive as possible. It's also an experiment - if it fails, we throw it away and rebuild from scratch. The major pain point is, we want you to be able to create listeners (streams from filters) dynamically (millions if possible) that emit events based on this. Let's imagine something: your user sends 100ETH on base chain and immediately you set up a listener on the fly to listen to this event on the base network and react accordingly. The listeners stay active till seen / timeouts. We also try to do alot of things like decoding data when we come accross fields with conditions that needs decoded data for evaluation.
 
 
-### Events
+## Events
 - [x] Transactions: Both confirmed and pending.
 - [x] Block Headers: Key details from block headers.
 - [ ] Events (Logs): Filtered logs from smart contract interactions.
 
-## Installation
+
+## Quick Start
+### Installation
 
 Since this crate is not yet published on [Crates.io](https://crates.io/), you can include it in your project directly from GitHub:
 
@@ -29,20 +32,7 @@ Add the following to your `Cargo.toml` file under `[dependencies]`:
 sieve = { git = "https://github.com/TheDhejavu/sieve" }
 ```
 
-## Architecture 
-![Architecture](docs/images/sieve-architecture.png)
-
-## Streaming Layer 
-The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
-
-It is composed of **three main components** that work together to provide a reliable block & transaction stream. 
-
-- Network layer
-- Connection Orchestrator
-- Ingestion Pipeline
-
-
-## Usage:
+### Usage:
 ```rust
 use sieve::prelude::*;
 
@@ -90,6 +80,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 ```
+
+## Architecture 
+![Architecture](docs/images/sieve-architecture.png)
+
+## Streaming Layer 
+The system ingests blockchain data through both RPC and Gossipsub protocols, each chain configuration specifying its RPC endpoints, WebSocket connections, Gossipsub address, and bootstrap peers.
+
+It is composed of **three main components** that work together to provide a reliable block & transaction stream. 
+
+- Network layer
+- Connection Orchestrator
+- Ingestion Pipeline
+
 
 ## L1 (Ethereum)
 We prioritize Ethereum data expressiveness by hardcoding commonly used fields, since these fields are relatively stable across the Ethereum ecosystem and often share relationships with L2s. 
