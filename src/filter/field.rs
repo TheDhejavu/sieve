@@ -451,7 +451,6 @@ impl From<StringFieldCondition<EventField>> for EventCondition {
             EventField::Contract => EventCondition::Contract(value),
             EventField::BlockHash => EventCondition::BlockHash(value),
             EventField::TxHash => EventCondition::TxHash(value),
-            // EventField::Parameter(param) => EventCondition::Parameter(param.to_string(), value),
             _ => panic!("Field does not support string conditions"),
         }
     }

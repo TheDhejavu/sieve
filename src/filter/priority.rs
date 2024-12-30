@@ -130,7 +130,7 @@ impl Prioritized for FilterCondition {
             Self::Event(cond) => cond.priority(),
             Self::Pool(cond) => cond.priority(),
             Self::BlockHeader(cond) => cond.priority(),
-            Self::DynField(_cond) => Priority::Basic,
+            Self::DynField(_cond) => Priority::Complex,
         }
     }
 }

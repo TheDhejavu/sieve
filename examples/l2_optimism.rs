@@ -10,18 +10,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting l2 transaction monitor...");
 
     // 1. Chain Configuration
-    let chains = vec![
-        ChainConfigBuilder::builder()
-            .rpc("https://optimism-sepolia-rpc.publicnode.com")
-            .ws("wss://optimism-sepolia-rpc.publicnode.com")
-            .chain(Chain::Optimism)
-            .build(),
-        ChainConfigBuilder::builder()
-            .rpc("https://ethereum-holesky-rpc.publicnode.com")
-            .ws("wss://ethereum-holesky-rpc.publicnode.com")
-            .chain(Chain::Ethereum)
-            .build(),
-    ];
+    let chains = vec![ChainConfigBuilder::builder()
+        .rpc("https://optimism-sepolia-rpc.publicnode.com")
+        .ws("wss://optimism-sepolia-rpc.publicnode.com")
+        .chain(Chain::Optimism)
+        .build()];
 
     // 2. Connect to chains via `Sieve`
     let sieve = match Sieve::connect(chains).await {
