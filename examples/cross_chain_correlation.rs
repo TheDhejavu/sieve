@@ -1,12 +1,12 @@
-use std::time::Duration;
-
 use alloy_primitives::U256;
+use eyre::{Result, WrapErr};
 use sieve::{prelude::*, EventWindow, Sieve};
+use std::time::Duration;
 use tokio_stream::StreamExt;
-use tracing::{error, info};
+use tracing::info;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     info!("Starting l1 & l2 transaction listener...");
@@ -26,16 +26,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // 2. Connect to chains via `Sieve`
-    let sieve = match Sieve::connect(chains).await {
-        Ok(s) => {
-            info!("Successfully connected to chains");
-            s
-        }
-        Err(e) => {
-            error!("Failed to connect to chains: {:?}", e);
-            return Err(e);
-        }
-    };
+    let sieve = Sieve::connect(chains)
+        .await
+        .wrap_err("Failed to connect to chains")?;
 
     // 3. Create Filter
     let eth_tx_filter = FilterBuilder::new()
@@ -57,7 +50,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             vec![eth_tx_filter, op_tx_filter],
             Duration::from_secs(5 * 60 * 60),
         )
-        .await?;
+        .await
+        .wrap_err("Failed to subscribe to chain events")?;
 
     // 5. Handle events
     while let Some(Ok(event)) = events.next().await {

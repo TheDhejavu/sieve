@@ -1,4 +1,5 @@
 use alloy_primitives::U256;
+use eyre::{Result, WrapErr};
 use sieve::{prelude::*, Sieve};
 use tokio_stream::StreamExt;
 use tracing::{error, info};
@@ -17,16 +18,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()];
 
     // 2. Connect to chains via `Sieve`
-    let sieve = match Sieve::connect(chains).await {
-        Ok(s) => {
-            info!("Successfully connected to chains");
-            s
-        }
-        Err(e) => {
-            error!("Failed to connect to chains: {:?}", e);
-            return Err(e);
-        }
-    };
+    let sieve = Sieve::connect(chains)
+        .await
+        .wrap_err("Failed to connect to chains")?;
 
     // 3. Create Filter
     let tx_filter = FilterBuilder::new()

@@ -6,6 +6,14 @@ use crate::network::orchestrator::{AnyRPCNetwork, ChainData};
 
 use super::Chain;
 
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ChainStreamError {
+    #[error("Broadcast channel error: {0}")]
+    BroadcastError(#[from] broadcast::error::SendError<ChainData>),
+}
+
 /// [`ChainStream`] manages the processing and broadcasting of chain data,
 /// implementing caching mechanisms and provieds functionality to deduplicate
 /// and broadcast chain events to multiple subscribers
@@ -37,10 +45,7 @@ impl ChainStream {
     }
     /// Processes incoming chain data, caching and broadcasting new blocks and transactions.
     /// Implements deduplication using LRU cache to prevent broadcasting duplicate events.
-    pub(crate) async fn process_data(
-        &self,
-        data: ChainData,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) async fn process_data(&self, data: ChainData) -> Result<(), ChainStreamError> {
         match data {
             ChainData::AnyRPCNetwork(eth_data) => match eth_data {
                 AnyRPCNetwork::Block(block) => {
@@ -48,9 +53,9 @@ impl ChainStream {
 
                     let mut cache = self.block_header_cache.write().await;
                     if cache.put(block_id, ()).is_none() {
-                        let _ = self
-                            .sender
-                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(block)));
+                        self.sender
+                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::Block(block)))
+                            .map_err(ChainStreamError::BroadcastError)?;
                     }
                 }
                 AnyRPCNetwork::TransactionPool(tx) => {
@@ -58,9 +63,9 @@ impl ChainStream {
 
                     let tx_id = format!("{:?}-{:?}", tx.transaction_index, tx.block_hash);
                     if cache.put(tx_id, ()).is_none() {
-                        let _ = self
-                            .sender
-                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::TransactionPool(tx)));
+                        self.sender
+                            .send(ChainData::AnyRPCNetwork(AnyRPCNetwork::TransactionPool(tx)))
+                            .map_err(ChainStreamError::BroadcastError)?;
                     }
                 }
             },

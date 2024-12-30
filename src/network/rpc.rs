@@ -27,7 +27,9 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::network::orchestrator::{AnyRPCNetwork, ChainData, ChainOrchestrator};
+use crate::network::orchestrator::{
+    AnyRPCNetwork, ChainData, ChainOrchestrator, OrchestratorError,
+};
 
 // [`BlockStream`] is a self-contained stream that fetches block data from an external source.
 // It operates only when polled, which is preferable to manual busy-polling as it leverages
@@ -107,8 +109,11 @@ impl PendingTxPoolStream {
     async fn new(
         provider: Arc<RootProvider<Http<Client>, AnyNetwork>>,
         poll_interval: Duration,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let filter_id = provider.new_pending_transactions_filter(false).await?;
+    ) -> Result<Self, OrchestratorError> {
+        let filter_id = provider
+            .new_pending_transactions_filter(false)
+            .await
+            .map_err(|e| OrchestratorError::FilterCreation(e.to_string()))?;
 
         Ok(Self {
             interval: time::interval(poll_interval),
@@ -176,8 +181,11 @@ impl RpcOrchestrator {
         name: String,
         rpc_url: String,
         poll_interval: Duration,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let parsed_rpc_url = rpc_url.parse()?;
+    ) -> Result<Self, OrchestratorError> {
+        let parsed_rpc_url = rpc_url
+            .parse::<reqwest::Url>()
+            .map_err(|e| OrchestratorError::InvalidUrl(e.to_string()))?;
+
         let provider: RootProvider<Http<Client>, AnyNetwork> = ProviderBuilder::new()
             .network::<AnyNetwork>()
             .on_http(parsed_rpc_url);
@@ -209,9 +217,11 @@ impl RpcOrchestrator {
 
 #[async_trait]
 impl ChainOrchestrator for RpcOrchestrator {
-    async fn start(&mut self) -> Result<Receiver<ChainData>, Box<dyn std::error::Error>> {
+    async fn start(&mut self) -> Result<Receiver<ChainData>, OrchestratorError> {
         if self.is_running.load(Ordering::Relaxed) {
-            return Err("Orchestrator is already running".into());
+            return Err(OrchestratorError::AlreadyRunning {
+                name: self.name.clone(),
+            });
         }
 
         self.is_running.store(true, Ordering::Relaxed);
@@ -253,7 +263,7 @@ impl ChainOrchestrator for RpcOrchestrator {
         Ok(rx)
     }
 
-    async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn stop(&self) -> Result<(), OrchestratorError> {
         self.is_running.store(false, Ordering::Relaxed);
 
         if let Some(task) = &self.block_task {

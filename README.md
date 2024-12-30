@@ -34,10 +34,11 @@ sieve = { git = "https://github.com/TheDhejavu/sieve" }
 
 ### Usage:
 ```rust
+use eyre::Result;
 use sieve::prelude::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     // 1. Chain Configuration
     let chains = vec![
         // Ethereum chain....
@@ -57,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // 2. Connect to chains via `Sieve`
-    let sieve = Sieve::connect(chains)?;                   
+    let sieve = Sieve::connect(chains).await?;                   
 
     // 3. Create Filter
    let pool_filter = FilterBuilder::new().pool(|f| {
@@ -71,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // 4. Subscribe to stream
-    let mut stream = sieve.subscribe(pool_filter.clone());
+    let mut stream = sieve.subscribe(pool_filter.clone()).await?;
     while let Some(Ok(event)) = stream.next().await {
         println!("Pool: {:?}", event);
     }
@@ -218,16 +219,20 @@ subscribe allows you to subsribe to any kind of events (transaction, header e.t.
 
 **Subsribe:**
 ```rust
+use eyre::Result;
 use sieve::prelude::*;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Subscribe to events matching the Ethereum filter
-    let mut stream = sieve.subscribe(eth_filter);
+    let mut stream = sieve.subscribe(eth_filter).await?;
 
     // Process incoming events from the subscription
     while let Some(Ok(event)) = stream.next().await {
         println!("{:?} new event", event);
     }
+
+    Ok(())
 }
 
 ```
@@ -236,16 +241,19 @@ fn main() {
 The `subscribe_all` context allows you to subscribe to independent filters
 
 ```rust
-use sieve::{FilterBuilder, NumericOps, StringOps};
+use eyre::Result;
+use sieve::prelude::*;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Subscribe to all events that match the provided filters
-    let mut stream = sieve.subscribe_all([eth_filter, op_filter]);
+    let mut stream = sieve.subscribe_all([eth_filter, op_filter]).await?;
 
     // Process incoming events from the stream
     while let Some(Ok(event)) = stream.next().await {
         println!("{:?} new event", event);
     }
+    Ok(())
 }
 
 ```
@@ -264,7 +272,8 @@ This makes it ideal for scenarios requiring temporal correlation across differen
 ```rust
 use sieve::prelude::*;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Create an event stream monitored within a 30-minute time window
     let mut stream = sieve.watch_within(
         Duration::from_secs(1800), // Define a 30-minute time window
@@ -272,7 +281,7 @@ fn main() {
             eth_filter,  
             op_filter     
         ],                            
-    );
+    ).await?;
 
     // Process incoming events from the stream
     while let Some(Ok(event)) = stream.next().await {
@@ -289,6 +298,7 @@ fn main() {
             }
         }
     }
+    Ok(())
 }
 ```
 

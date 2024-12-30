@@ -24,17 +24,33 @@ use dashmap::DashMap;
 use engine::FilterEngine;
 use filter::conditions::{EventType, Filter};
 use futures::StreamExt;
-use ingest::{Ingest, IngestGateway};
+use ingest::{Ingest, IngestError, IngestGateway};
 use network::orchestrator::{AnyRPCNetwork, ChainData};
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{collections::HashMap, hash::DefaultHasher};
+use thiserror::Error;
 use tokio::sync::{broadcast, RwLock};
 use tokio_stream::wrappers::BroadcastStream;
 
 const BROADCAST_CHANNEL_SIZE: usize = 1_000;
+
+#[derive(Error, Debug)]
+pub enum SieveError {
+    #[error("Failed to connect to chain: {0}")]
+    ConnectionError(String),
+
+    #[error("Subscription error: {0}")]
+    SubscriptionError(String),
+
+    #[error("Ingest error: {0}")]
+    IngestError(#[from] IngestError),
+
+    #[error("Invalid window duration: {0}")]
+    InvalidWindowDuration(String),
+}
 
 /// A single event that matched a filter.
 // In the meantime events are RPC-specific data, in order to be more specific
@@ -76,6 +92,7 @@ pub enum GroupSender {
     /// Sender for window-based events
     Watch(broadcast::Sender<EventWindow>),
 }
+
 
 /// [`FilterGroup`] handles the evaluation of filters and sending of events.
 /// It maintains a group of related filters and handles events based on its subscription type.
@@ -347,7 +364,7 @@ impl Sieve {
     ///
     /// # Arguments
     /// * `chains` - List of chain configurations to connect to
-    pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn connect(chains: Vec<ChainConfig>) -> Result<Self, SieveError> {
         let ingest = Arc::new(Ingest::new(chains).await);
         let engine = Arc::new(FilterEngine::new());
         let filters = Arc::new(RwLock::new(HashMap::new()));
@@ -364,7 +381,11 @@ impl Sieve {
             window_manager,
         };
 
-        sieve.start_chain_processors().await?;
+        sieve
+            .start_chain_processors()
+            .await
+            .map_err(|e| SieveError::ConnectionError(e.to_string()))?;
+
         Ok(sieve)
     }
 
@@ -375,10 +396,7 @@ impl Sieve {
     ///
     /// # Returns
     /// Stream of matching events
-    pub async fn subscribe(
-        &self,
-        filter: Filter,
-    ) -> Result<BroadcastStream<Event>, Box<dyn std::error::Error>> {
+    pub async fn subscribe(&self, filter: Filter) -> Result<BroadcastStream<Event>, SieveError> {
         let mut filters = self.filters.write().await;
         let group = FilterGroup::new(filter.id(), vec![filter], SubscriptionType::Default);
 
@@ -386,7 +404,11 @@ impl Sieve {
 
         let receiver = match &group.sender {
             GroupSender::Default(sender) => sender.subscribe(),
-            _ => unreachable!(),
+            _ => {
+                return Err(SieveError::SubscriptionError(
+                    "Invalid subscription type".to_string(),
+                ))
+            }
         };
 
         Ok(BroadcastStream::new(receiver))
@@ -404,7 +426,13 @@ impl Sieve {
         &self,
         filters: Vec<Filter>,
         duration: Duration,
-    ) -> Result<BroadcastStream<EventWindow>, Box<dyn std::error::Error>> {
+    ) -> Result<BroadcastStream<EventWindow>, SieveError> {
+        if duration.is_zero() {
+            return Err(SieveError::InvalidWindowDuration(
+                "Window duration cannot be zero".to_string(),
+            ));
+        }
+
         let mut filter_entries = self.filters.write().await;
 
         let mut hasher = DefaultHasher::new();
@@ -416,7 +444,11 @@ impl Sieve {
 
         let receiver = match &group.sender {
             GroupSender::Watch(sender) => sender.subscribe(),
-            _ => unreachable!(),
+            _ => {
+                return Err(SieveError::SubscriptionError(
+                    "Invalid subscription type".to_string(),
+                ))
+            }
         };
 
         let filter_ids: Vec<u64> = filters.iter().map(|f| f.id()).collect();
@@ -468,7 +500,7 @@ impl Sieve {
         }
     }
     /// Starts background tasks for processing chain data
-    async fn start_chain_processors(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn start_chain_processors(&self) -> Result<(), SieveError> {
         let mut processor_handles = Vec::new();
         for chain in self.ingest.active_chains() {
             let mut stream = self.ingest.subscribe_stream(chain.clone()).await?;
