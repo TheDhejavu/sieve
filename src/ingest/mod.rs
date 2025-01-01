@@ -32,7 +32,7 @@ impl std::fmt::Display for IngestError {
 
 impl std::error::Error for IngestError {}
 
-const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(5);
+const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(3);
 
 #[allow(dead_code)]
 struct ChainState {
