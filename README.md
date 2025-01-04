@@ -4,6 +4,8 @@
 ![GitHub](https://img.shields.io/github/license/thedhejavu/sieve)
 ![minimum rustc 1.81](https://img.shields.io/badge/rustc-1.81.0+-red.svg)
 
+![banner](docs/images/banner.png)
+
 A lightweight real-time data streaming engine with an expressive DSL for Ethereum & The Superchain.
 
 [Technical Design Specification](https://github.com/TheDhejavu/sieve/blob/main/docs/sieve_v1.pdf) 
